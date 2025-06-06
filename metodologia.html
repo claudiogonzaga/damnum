@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAMNUM - Metodologia</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">DAMNUM</div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Início</a></li>
+                <li><a href="metodologia.html" class="nav-link active">Metodologia</a></li>
+                <li><a href="contato.html" class="nav-link">Contato</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header-light">
+            <h1>Metodologia</h1>
+            <div class="bioma-visual">
+                <div class="bioma-image-container">
+                    <img src="images/lobo_guara.jpg" alt="Lobo-guará" class="bioma-image">
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <div class="metodologia-container">
+                <div class="referencia-metodologia">
+                    <p class="citacao-texto" style="text-align: justify; font-size: 1.1em; line-height: 1.8; margin: 2rem 0; font-family: Arial, sans-serif; font-weight: normal;">
+                        GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM), 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em 
+                        <a href="https://damnum.netlify.app/metodologia.pdf" target="_blank" class="link-acesso">clique aqui</a> para acessar.
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="contador-valoracoes">
+                <span class="contador-label">Valorações realizadas:</span>
+                <span class="contador-numero" id="contadorValoracao">0</span>
+            </div>
+            <p>© 2025 Claudio Angelo Correa Gonzaga e Bianca Pazini. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Função para obter contador de valorações
+        function obterContadorValoracoes() {
+            const cookieConsent = localStorage.getItem('cookieConsent');
+            if (cookieConsent === 'accepted') {
+                const contador = localStorage.getItem('contadorValoracoes');
+                return contador ? parseInt(contador) : 0;
+            }
+            return 0;
+        }
+
+        // Atualizar exibição do contador
+        function atualizarExibicaoContador() {
+            const contador = obterContadorValoracoes();
+            document.getElementById('contadorValoracao').textContent = contador;
+        }
+
+        // Inicializar contador ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarExibicaoContador();
+        });
+    </script>
+</body>
+</html>
+

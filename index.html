@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAMNUM - Valoração de Danos Ambientais</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <!-- Barra de Cookies -->
+    <div id="cookieBar" class="cookie-bar" style="display: none;">
+        <div class="cookie-content">
+            <div class="cookie-text">
+                <h4>🍪 Cookies</h4>
+                <p>Este site utiliza cookies estritamente necessários para seu funcionamento. Não coletamos dados pessoais.</p>
+            </div>
+            <div class="cookie-buttons">
+                <button id="acceptCookies" class="btn-cookie accept">Permitir Necessários</button>
+                <button id="rejectCookies" class="btn-cookie reject">Rejeitar Tudo</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">DAMNUM</div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link active">Início</a></li>
+                <li><a href="metodologia.html" class="nav-link">Metodologia</a></li>
+                <li><a href="contato.html" class="nav-link">Contato</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>DAMNUM</h1>
+            <h2>Valoração de Danos Ambientais Decorrentes de Desmatamento Ilegal</h2>
+            <p class="version">v. 4.3</p>
+        </header>
+
+        <main>
+            <div class="bioma-visual">
+                <div id="biomaImageContainer" class="bioma-image-container">
+                    <img id="biomaImage" src="images/biomas/cerrado.jpg" alt="Biomas Brasileiros" class="bioma-image">
+                </div>
+            </div>
+
+            <form id="calculoForm" class="form-container">
+                <div class="input-group">
+                    <label for="bioma">Selecione o Bioma:</label>
+                    <select id="bioma" name="bioma" required>
+                        <option value="">-- Selecione um bioma --</option>
+                        <option value="CERRADO">CERRADO</option>
+                        <option value="FLORESTA AMAZÔNICA">FLORESTA AMAZÔNICA</option>
+                        <option value="PANTANAL MATO-GROSSENSE">PANTANAL MATO-GROSSENSE</option>
+                        <option value="CAATINGA">CAATINGA</option>
+                        <option value="PAMPAS">PAMPAS</option>
+                        <option value="MATA ATLÂNTICA">MATA ATLÂNTICA</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="areaForaAPP">Área ilegalmente desmatada fora de APP e ARL (hectares):</label>
+                    <input type="number" id="areaForaAPP" name="areaForaAPP" step="0.0001" min="0" placeholder="Ex: 3.3095">
+                </div>
+
+                <div class="input-group">
+                    <label for="areaEmAPP">Área ilegalmente desmatada em APP e ARL (hectares):</label>
+                    <input type="number" id="areaEmAPP" name="areaEmAPP" step="0.0001" min="0" placeholder="Ex: 1.5">
+                </div>
+
+                <button type="submit" class="btn-calcular">Calcular Valoração</button>
+            </form>
+
+            <div class="parametros-container">
+                <h3>Parâmetros Utilizados</h3>
+                <div class="parametros-grid">
+                    <div class="parametro-item">
+                        <label for="precoSocialCO2USD">Preço Social da tonelada de CO2 (US$) - Cenário SSP2/RCP6.0:</label>
+                        <input type="number" id="precoSocialCO2USD" value="24.20" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="cotacaoDolar">Cotação Dólar hoje (R$):</label>
+                        <input type="number" id="cotacaoDolar" value="5.71" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="precoSocialCO2BRL">Preço Social da tonelada de CO2 (R$):</label>
+                        <input type="number" id="precoSocialCO2BRL" value="138.18" step="0.01" min="0" readonly>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="precoMercadoCO2USD">Preço da tonelada CO2 (US$) no Mercado Voluntário:</label>
+                        <input type="number" id="precoMercadoCO2USD" value="5.00" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="precoMercadoCO2BRL">Preço da tonelada CO2 (R$) no Mercado Voluntário:</label>
+                        <input type="number" id="precoMercadoCO2BRL" value="28.55" step="0.01" min="0" readonly>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2Caatinga">Estoque de CO2/Ha - Caatinga (média):</label>
+                        <input type="number" id="estoqueCO2Caatinga" value="105.33" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2Cerrado">Estoque de CO2/Ha - Cerrado:</label>
+                        <input type="number" id="estoqueCO2Cerrado" value="75" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2Amazonia">Estoque de CO2/Ha - Floresta Amazônica:</label>
+                        <input type="number" id="estoqueCO2Amazonia" value="166" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2MataAtlantica">Estoque de CO2/Ha - Mata Atlântica (média):</label>
+                        <input type="number" id="estoqueCO2MataAtlantica" value="105.33" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2Pampas">Estoque de CO2/Ha - Pampas (média):</label>
+                        <input type="number" id="estoqueCO2Pampas" value="105.33" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2Pantanal">Estoque de CO2/Ha - Pantanal:</label>
+                        <input type="number" id="estoqueCO2Pantanal" value="75" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="estoqueCO2Media">Estoque de CO2/Ha - Média:</label>
+                        <input type="number" id="estoqueCO2Media" value="105.33" step="0.01" min="0" readonly>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="taxaJurosAnual">Taxa de juros anual (para o dano interino) em %:</label>
+                        <input type="number" id="taxaJurosAnual" value="0.06" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="tempoRecuperacao">Tempo mínimo para recuperação dos serviços ecossistêmicos básicos (anos):</label>
+                        <input type="number" id="tempoRecuperacao" value="15" step="1" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultado" class="resultado-container" style="display: none;">
+                <h3>Resultado da Valoração</h3>
+                
+                <div class="resultado-secao">
+                    <h4>Dano Material (área fora de APP e ARL)</h4>
+                    <div class="valores-container">
+                        <div class="valor-item">
+                            <span class="label">Menor valor:</span>
+                            <span id="danoMaterialMenor" class="valor"></span>
+                        </div>
+                        <div class="valor-item valor-destaque-medio">
+                            <span class="label">Média:</span>
+                            <span id="danoMaterialMedia" class="valor"></span>
+                        </div>
+                        <div class="valor-item">
+                            <span class="label">Maior valor:</span>
+                            <span id="danoMaterialMaior" class="valor"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resultado-secao">
+                    <h4>Dano Interino (área em APP e ARL)</h4>
+                    <div class="valores-container">
+                        <div class="valor-item">
+                            <span class="label">Menor valor:</span>
+                            <span id="danoInterinoMenor" class="valor"></span>
+                        </div>
+                        <div class="valor-item valor-destaque-medio">
+                            <span class="label">Média:</span>
+                            <span id="danoInterinoMedia" class="valor"></span>
+                        </div>
+                        <div class="valor-item">
+                            <span class="label">Maior valor:</span>
+                            <span id="danoInterinoMaior" class="valor"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resultado-secao">
+                    <h4>Dano Extrapatrimonial (Mercado Voluntário)</h4>
+                    <div class="valor-item">
+                        <span id="danoExtrapatrimonialMercado" class="valor-destaque"></span>
+                    </div>
+                </div>
+
+                <div class="resultado-secao">
+                    <h4>Dano Extrapatrimonial (Cenário SSP2/RCP6.0)</h4>
+                    <div class="valor-item">
+                        <span id="danoExtrapatrimonialSocial" class="valor-destaque"></span>
+                    </div>
+                </div>
+
+                <div class="resultado-secao totais">
+                    <h4>Totais</h4>
+                    <div class="valores-container">
+                        <div class="valor-item">
+                            <span class="label">Total (menor valor):</span>
+                            <span id="totalMenor" class="valor-total"></span>
+                        </div>
+                        <div class="valor-item valor-destaque-medio">
+                            <span class="label">Total (média):</span>
+                            <span id="totalMedia" class="valor-total"></span>
+                        </div>
+                        <div class="valor-item">
+                            <span class="label">Total (maior valor):</span>
+                            <span id="totalMaior" class="valor-total"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="relatorio" class="relatorio-container">
+                    <div class="relatorio-header">
+                        <h4>Relatório de Valoração dos Danos Ambientais Decorrentes de Desmatamento Ilegal</h4>
+                        <div class="relatorio-acoes">
+                            <button id="btnDownloadPDF" class="btn-download">📄 Baixar PDF</button>
+                            <button id="btnDownloadDOCX" class="btn-download">📝 Baixar DOCX</button>
+                            <a href="contato.html" class="btn-feedback">💬 Dê o feedback sobre a aplicação</a>
+                        </div>
+                    </div>
+                    <div id="textoRelatorio" class="texto-relatorio"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="contador-valoracoes">
+                <span class="contador-label">Valorações realizadas:</span>
+                <span id="contadorValoracao" class="contador-numero">I</span>
+            </div>
+            <p>© 2025 Claudio Angelo Correa Gonzaga e Bianca Pazini. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

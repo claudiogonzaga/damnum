@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAMNUM - Contato</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">DAMNUM</div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Início</a></li>
+                <li><a href="metodologia.html" class="nav-link">Metodologia</a></li>
+                <li><a href="contato.html" class="nav-link active">Contato</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header-light">
+            <h1>Contato</h1>
+            <div class="bioma-visual">
+                <div class="bioma-image-container">
+                    <img src="images/arara_caninde_nova.jpg" alt="Arara Canindé" class="bioma-image" style="object-position: center center;">
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <div class="contato-container">
+                <div class="google-forms-container">
+                    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSc96faJrfcBxf1Oy2dL4harKpKfdvCG6cdj1fZGoAG5Jhj_hg/viewform?embedded=true" 
+                            width="100%" 
+                            height="1135" 
+                            frameborder="0" 
+                            marginheight="0" 
+                            marginwidth="0">
+                        Carregando…
+                    </iframe>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="contador-valoracoes">
+                <span class="contador-label">Valorações realizadas:</span>
+                <span class="contador-numero" id="contadorValoracao">0</span>
+            </div>
+            <p>© 2025 Claudio Angelo Correa Gonzaga e Bianca Pazini. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Função para obter contador de valorações
+        function obterContadorValoracoes() {
+            const cookieConsent = localStorage.getItem('cookieConsent');
+            if (cookieConsent === 'accepted') {
+                const contador = localStorage.getItem('contadorValoracoes');
+                return contador ? parseInt(contador) : 0;
+            }
+            return 0;
+        }
+
+        // Atualizar exibição do contador
+        function atualizarExibicaoContador() {
+            const contador = obterContadorValoracoes();
+            document.getElementById('contadorValoracao').textContent = contador;
+        }
+
+        // Inicializar contador ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarExibicaoContador();
+        });
+    </script>
+</body>
+</html>
+
