@@ -85,6 +85,13 @@
                     <input type="number" id="areaEmAPP" name="areaEmAPP" step="0.0001" min="0" placeholder="Ex: 1.5">
                 </div>
 
+                <div id="checkboxReparacaoContainer" class="input-group" style="display:none;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.95em; color:#2c3e50; background:#e8f5e9; padding:10px 14px; border-radius:6px; border-left:4px solid #27ae60;">
+                        <input type="checkbox" id="reparacaoInSitu" checked style="width:18px; height:18px; cursor:pointer;">
+                        Reparação <em>in situ</em> é possível e será promovida
+                    </label>
+                </div>
+
                 <button type="submit" class="btn-calcular">Calcular Valoração</button>
             </form>
 
@@ -157,6 +164,9 @@
                         <span class="label">Valor:</span>
                         <span id="danoMaterialMedia" class="valor"></span>
                     </div>
+                    <p id="notaDanoMaterial" style="display:none; font-size:0.85em; color:#8b4513; margin:8px 0 0 0; padding:8px 12px; background:#fef9e7; border-left:3px solid #d4ac0d; border-radius:3px; line-height:1.5;">
+                        <strong>Nota:</strong> Se o dano é em área protegida (APP/ARL) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.
+                    </p>
                 </div>
 
                 <div class="resultado-secao">

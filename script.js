@@ -479,6 +479,9 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += '<tr><td style="padding:2px 10px;">Área desmatada fora de APP e ARL (A<sub>1</sub>):</td><td><b>' + (areaForaAPP || 0).toFixed(4) + ' ha</b></td></tr>';
     html += '<tr><td style="padding:2px 10px;">Área desmatada em APP e ARL (A<sub>2</sub>):</td><td><b>' + (areaEmAPP || 0).toFixed(4) + ' ha</b></td></tr>';
     html += '<tr><td style="padding:2px 10px;">Área total desmatada (A<sub>1</sub> + A<sub>2</sub>):</td><td><b>' + areaTotal.toFixed(4) + ' ha</b></td></tr>';
+    if (resultados.reparacaoInSitu) {
+        html += '<tr><td style="padding:2px 10px;">Reparação <em>in situ</em>:</td><td><b style="color:#27ae60;">Sim — será promovida</b></td></tr>';
+    }
     html += '</table>';
 
     // PARÂMETROS UTILIZADOS
@@ -509,6 +512,12 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
         html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
         html += '&nbsp;&nbsp;' + (areaForaAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha = ' + formatarMoeda(resultados.danoMaterial) + '</p>';
         html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO MATERIAL = ' + formatarMoeda(resultados.danoMaterial) + '</div>';
+    }
+
+    if (resultados.reparacaoInSitu) {
+        html += '<div style="background:#fef9e7; padding:8px 12px; margin:8px 10px; border-left:3px solid #d4ac0d; border-radius:3px; font-size:11pt;">';
+        html += '<b>Nota:</b> Havendo reparação <em>in situ</em> da área em APP/ARL, o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b> (abaixo).';
+        html += '</div>';
     }
 
     // 2. DANO INTERINO
@@ -693,13 +702,19 @@ function calcularValoracao() {
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(danoExtrapatrimonialSocial);
     document.getElementById('totalMedia').textContent = formatarMoeda(total);
 
+    // Mostrar nota do dano material quando há área em APP com reparação in situ
+    const reparacaoInSitu = document.getElementById('reparacaoInSitu').checked;
+    const notaDanoMaterial = document.getElementById('notaDanoMaterial');
+    notaDanoMaterial.style.display = (areaEmAPP > 0 && reparacaoInSitu) ? '' : 'none';
+
     // Gerar relatório
     const resultados = {
         danoMaterial,
         danoInterino,
         danoExtrapatrimonialMercado,
         danoExtrapatrimonialSocial,
-        total
+        total,
+        reparacaoInSitu: reparacaoInSitu && areaEmAPP > 0
     };
 
     const relatorio = gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados);
@@ -819,6 +834,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Listener para copiar relatorio
     document.getElementById('btnCopiar').addEventListener('click', copiarRelatorio);
+
+    // Mostrar/esconder checkbox de reparação in situ conforme área APP
+    document.getElementById('areaEmAPP').addEventListener('input', function() {
+        const container = document.getElementById('checkboxReparacaoContainer');
+        const valor = parseFloat(this.value) || 0;
+        container.style.display = valor > 0 ? '' : 'none';
+        if (valor <= 0) {
+            document.getElementById('reparacaoInSitu').checked = true; // resetar ao esconder
+        }
+    });
 
     // Permitir apenas números positivos nos campos de área
     const areaInputs = document.querySelectorAll('#areaForaAPP, #areaEmAPP');
