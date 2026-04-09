@@ -1039,7 +1039,7 @@ async function calcularValoracao() {
   // Mostrar loading no botão
     var btnCalc = document.querySelector('.btn-calcular');
     var btnTextoOriginal = btnCalc.innerHTML;
-    btnCalc.innerHTML = '⏳ Calculando...';
+    btnCalc.innerHTML = '<span class="btn-spinner"></span> Calculando...';
     btnCalc.disabled = true;
     btnCalc.style.opacity = '0.7';
 
