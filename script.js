@@ -710,6 +710,16 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
         html += '<div style="background:#fff3cd; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">VALOR TOTAL CORRIGIDO (IPCA) = ' + formatarMoeda(resultados.totalCorrigido) + '</div>';
     }
 
+    // Nota quando a data do dano não foi informada
+    if (usouDataHoje) {
+        html += '<div style="background:#fce4ec; padding:10px 14px; border-left:4px solid #c62828; margin:12px 0; font-size:11pt;">';
+        html += '<b>Atenção:</b> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. ';
+        html += 'Todavia, nos termos da <b>Súmula 43 do STJ</b> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) ';
+        html += 'e do entendimento consolidado do Superior Tribunal de Justiça (REsp 1.347.978/MG, entre outros), ';
+        html += '<b>a data correta para fins de correção monetária é a data do evento danoso</b>. ';
+        html += 'Recomenda-se inserir a data do dano no campo correspondente para que a correção monetária pelo IPCA seja calculada adequadamente.</div>';
+    }
+
     // CENÁRIOS DE REPARAÇÃO
     html += '<hr style="border:1px solid #999; margin:20px 0;">';
     html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">CENÁRIOS QUANTO À REPARAÇÃO</h3>';
@@ -900,6 +910,16 @@ async function calcularValoracao() {
         correcaoContainer.style.display = '';
     } else {
         correcaoContainer.style.display = 'none';
+    }
+
+    // Nota sobre data do dano não informada
+    var notaDataDano = document.getElementById('notaDataDano');
+    var usouDataHoje = !document.getElementById('dataDano').value;
+    if (usouDataHoje) {
+        notaDataDano.style.display = '';
+        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. Todavia, nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e do entendimento consolidado do Superior Tribunal de Justiça (REsp 1.347.978/MG, entre outros), <strong>a data correta para fins de correção monetária é a data do evento danoso</strong>. Recomenda-se inserir a data do dano no campo correspondente para que a correção monetária pelo IPCA seja calculada adequadamente.';
+    } else {
+        notaDataDano.style.display = 'none';
     }
 
     // Gerar relatório
