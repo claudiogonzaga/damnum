@@ -6,8 +6,7 @@
     <title>DAMNUM - Valoração de Danos Ambientais</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- docx e FileSaver removidos - usando apenas PDF e copiar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <!-- Barra de Cookies -->
@@ -72,6 +71,11 @@
                 </div>
 
                 <div class="input-group">
+                    <label for="dataDano">Data do dano (deixe em branco para usar a data de hoje):</label>
+                    <input type="date" id="dataDano" name="dataDano">
+                </div>
+
+                <div class="input-group">
                     <label for="areaForaAPP">Área ilegalmente desmatada fora de APP e ARL (hectares):</label>
                     <input type="number" id="areaForaAPP" name="areaForaAPP" step="0.0001" min="0" placeholder="Ex: 3.3095">
                 </div>
@@ -85,15 +89,16 @@
             </form>
 
             <div class="parametros-container">
-                <h3>Parâmetros Utilizados</h3>
+                <h3>Parâmetros Utilizados <span id="ipcaStatus" style="font-size:0.7em; font-weight:normal;"></span></h3>
                 <div class="parametros-grid">
                     <div class="parametro-item">
                         <label for="precoSocialCO2USD">Preço Social da tonelada de CO2 (US$) - Cenário SSP2/RCP6.0:</label>
                         <input type="number" id="precoSocialCO2USD" value="24.20" step="0.01" min="0">
                     </div>
                     <div class="parametro-item">
-                        <label for="cotacaoDolar">Cotação Dólar hoje (R$):</label>
+                        <label for="cotacaoDolar">Cotação Dólar hoje (R$): <span id="cotacaoStatus" style="font-size:0.8em;"></span></label>
                         <input type="number" id="cotacaoDolar" value="5.71" step="0.01" min="0">
+                        <span id="cotacaoAviso" style="display:none; color:#e67e22; font-size:0.8em; margin-top:2px;">Nao foi possivel obter a cotacao automaticamente. Verifique o valor acima.</span>
                     </div>
                     <div class="parametro-item">
                         <label for="precoSocialCO2BRL">Preço Social da tonelada de CO2 (R$):</label>
@@ -107,34 +112,31 @@
                         <label for="precoMercadoCO2BRL">Preço da tonelada CO2 (R$) no Mercado Voluntário:</label>
                         <input type="number" id="precoMercadoCO2BRL" value="28.55" step="0.01" min="0" readonly>
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2Caatinga">Estoque de CO2/Ha - Caatinga (média):</label>
+                    <div class="parametro-item estoque-co2-item" data-bioma="CAATINGA" style="display:none;">
+                        <label for="estoqueCO2Caatinga">Estoque de CO₂/ha - Caatinga (média):</label>
                         <input type="number" id="estoqueCO2Caatinga" value="105.33" step="0.01" min="0">
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2Cerrado">Estoque de CO2/Ha - Cerrado:</label>
+                    <div class="parametro-item estoque-co2-item" data-bioma="CERRADO" style="display:none;">
+                        <label for="estoqueCO2Cerrado">Estoque de CO₂/ha - Cerrado:</label>
                         <input type="number" id="estoqueCO2Cerrado" value="75" step="0.01" min="0">
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2Amazonia">Estoque de CO2/Ha - Floresta Amazônica:</label>
+                    <div class="parametro-item estoque-co2-item" data-bioma="FLORESTA AMAZÔNICA" style="display:none;">
+                        <label for="estoqueCO2Amazonia">Estoque de CO₂/ha - Floresta Amazônica:</label>
                         <input type="number" id="estoqueCO2Amazonia" value="166" step="0.01" min="0">
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2MataAtlantica">Estoque de CO2/Ha - Mata Atlântica (média):</label>
+                    <div class="parametro-item estoque-co2-item" data-bioma="MATA ATLÂNTICA" style="display:none;">
+                        <label for="estoqueCO2MataAtlantica">Estoque de CO₂/ha - Mata Atlântica (média):</label>
                         <input type="number" id="estoqueCO2MataAtlantica" value="105.33" step="0.01" min="0">
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2Pampas">Estoque de CO2/Ha - Pampas (média):</label>
+                    <div class="parametro-item estoque-co2-item" data-bioma="PAMPAS" style="display:none;">
+                        <label for="estoqueCO2Pampas">Estoque de CO₂/ha - Pampas (média):</label>
                         <input type="number" id="estoqueCO2Pampas" value="105.33" step="0.01" min="0">
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2Pantanal">Estoque de CO2/Ha - Pantanal:</label>
+                    <div class="parametro-item estoque-co2-item" data-bioma="PANTANAL MATO-GROSSENSE" style="display:none;">
+                        <label for="estoqueCO2Pantanal">Estoque de CO₂/ha - Pantanal:</label>
                         <input type="number" id="estoqueCO2Pantanal" value="75" step="0.01" min="0">
                     </div>
-                    <div class="parametro-item">
-                        <label for="estoqueCO2Media">Estoque de CO2/Ha - Média:</label>
-                        <input type="number" id="estoqueCO2Media" value="105.33" step="0.01" min="0" readonly>
-                    </div>
+                    <input type="hidden" id="estoqueCO2Media" value="105.33">
                     <div class="parametro-item">
                         <label for="taxaJurosAnual">Taxa de juros anual (para o dano interino) em %:</label>
                         <input type="number" id="taxaJurosAnual" value="0.06" step="0.01" min="0">

@@ -87,39 +87,115 @@ function incrementarContadorLocal() {
     document.getElementById('contadorValoracao').textContent = novoValor;
 }
 
-// Dados extraídos da planilha Excel (valores base)
-const valoresBiomasBase = {
-    'CERRADO': {
-        'menor_valor': 1580.50,
-        'media': 11538.92,
-        'maior_valor': 17948.50
-    },
-    'FLORESTA AMAZÔNICA': {
-        'menor_valor': 1745.75,
-        'media': 6010.33,
-        'maior_valor': 15170.17
-    },
-    'PANTANAL MATO-GROSSENSE': {
-        'menor_valor': 981.00,
-        'media': 16220.67,
-        'maior_valor': 29334.00
-    },
-    'CAATINGA': {
-        'menor_valor': 1536.00,
-        'media': 11198.38,
-        'maior_valor': 20860.75
-    },
-    'PAMPAS': {
-        'menor_valor': 2090.00,
-        'media': 12285.25,
-        'maior_valor': 23008.25
-    },
-    'MATA ATLÂNTICA': {
-        'menor_valor': 1521.00,
-        'media': 15737.26,
-        'maior_valor': 24302.00
-    }
+// Dados extraídos da planilha Excel (valores base - Portaria 118/2022 IBAMA, outubro/2022)
+const valoresBiomasOriginais = {
+    'CERRADO': { 'menor_valor': 1580.50, 'media': 11538.92, 'maior_valor': 17948.50 },
+    'FLORESTA AMAZÔNICA': { 'menor_valor': 1745.75, 'media': 6010.33, 'maior_valor': 15170.17 },
+    'PANTANAL MATO-GROSSENSE': { 'menor_valor': 981.00, 'media': 16220.67, 'maior_valor': 29334.00 },
+    'CAATINGA': { 'menor_valor': 1536.00, 'media': 11198.38, 'maior_valor': 20860.75 },
+    'PAMPAS': { 'menor_valor': 2090.00, 'media': 12285.25, 'maior_valor': 23008.25 },
+    'MATA ATLÂNTICA': { 'menor_valor': 1521.00, 'media': 15737.26, 'maior_valor': 24302.00 }
 };
+
+// Valores corrigidos pelo IPCA (serão atualizados ao carregar a página)
+const valoresBiomasBase = JSON.parse(JSON.stringify(valoresBiomasOriginais));
+
+// IPCA: índice de outubro/2022 (base da Portaria 118/2022)
+const IPCA_BASE_PERIODO = '202210';
+const IPCA_BASE_INDICE = 6407.93;
+
+// Variável global para armazenar info da correção
+let correcaoIPCA = {
+    fator: 1.0,
+    periodoBase: 'outubro/2022',
+    periodoAtual: null,
+    indiceBase: IPCA_BASE_INDICE,
+    indiceAtual: null,
+    sucesso: false
+};
+
+// Buscar correção IPCA via API do IBGE
+async function buscarCorrecaoIPCA() {
+    const statusEl = document.getElementById('ipcaStatus');
+    try {
+        if (statusEl) {
+            statusEl.textContent = '(buscando IPCA...)';
+            statusEl.style.color = '#888';
+        }
+
+        // Buscar os últimos 6 meses para pegar o mais recente disponível
+        const hoje = new Date();
+        const periodos = [];
+        for (let i = 0; i < 6; i++) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            const p = d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0');
+            periodos.push(p);
+        }
+
+        const url = 'https://servicodados.ibge.gov.br/api/v3/agregados/1737/periodos/'
+            + periodos.join('|')
+            + '/variaveis/2266?localidades=N1[all]';
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Erro na requisição IBGE');
+
+        const data = await response.json();
+        const series = data[0].resultados[0].series[0].serie;
+
+        // Encontrar o período mais recente com valor
+        let periodoMaisRecente = null;
+        let indiceMaisRecente = null;
+        for (const periodo of periodos) {
+            if (series[periodo] && series[periodo] !== '...') {
+                const valor = parseFloat(series[periodo]);
+                if (!isNaN(valor) && valor > 0) {
+                    if (!periodoMaisRecente || periodo > periodoMaisRecente) {
+                        periodoMaisRecente = periodo;
+                        indiceMaisRecente = valor;
+                    }
+                }
+            }
+        }
+
+        if (!indiceMaisRecente || !periodoMaisRecente) throw new Error('Dados IPCA indisponíveis');
+
+        const fator = indiceMaisRecente / IPCA_BASE_INDICE;
+        const mesNome = periodoMaisRecente.substring(4);
+        const anoNome = periodoMaisRecente.substring(0, 4);
+        const meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+        const periodoFormatado = meses[parseInt(mesNome)] + '/' + anoNome;
+
+        correcaoIPCA = {
+            fator: fator,
+            periodoBase: 'outubro/2022',
+            periodoAtual: periodoFormatado,
+            indiceBase: IPCA_BASE_INDICE,
+            indiceAtual: indiceMaisRecente,
+            sucesso: true
+        };
+
+        // Aplicar correção aos valores dos biomas
+        for (const bioma of Object.keys(valoresBiomasOriginais)) {
+            valoresBiomasBase[bioma].menor_valor = valoresBiomasOriginais[bioma].menor_valor * fator;
+            valoresBiomasBase[bioma].media = valoresBiomasOriginais[bioma].media * fator;
+            valoresBiomasBase[bioma].maior_valor = valoresBiomasOriginais[bioma].maior_valor * fator;
+        }
+
+        if (statusEl) {
+            statusEl.textContent = '(valores corrigidos pelo IPCA até ' + periodoFormatado + ' — fator: ' + fator.toFixed(4) + ')';
+            statusEl.style.color = '#27ae60';
+        }
+
+    } catch (error) {
+        console.error('Erro ao buscar IPCA:', error);
+        correcaoIPCA.sucesso = false;
+        if (statusEl) {
+            statusEl.textContent = '(não foi possível atualizar pelo IPCA — usando valores nominais de out/2022)';
+            statusEl.style.color = '#e67e22';
+        }
+    }
+}
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -266,9 +342,9 @@ function atualizarImagemSlideshow(imagemSrc) {
 function atualizarImagemBioma(bioma) {
     if (bioma && biomaParaImagem[bioma]) {
         pararSlideshow();
-        
+
         const biomaImage = document.getElementById('biomaImage');
-        
+
         biomaImage.style.opacity = '0';
         setTimeout(() => {
             biomaImage.src = biomaParaImagem[bioma];
@@ -280,6 +356,15 @@ function atualizarImagemBioma(bioma) {
         slideshowAtivo = true;
         iniciarSlideshow();
     }
+
+    // Mostrar apenas o campo de estoque de CO2 do bioma selecionado
+    document.querySelectorAll('.estoque-co2-item').forEach(function(el) {
+        if (bioma && el.getAttribute('data-bioma') === bioma) {
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
+        }
+    });
 }
 
 function obterEntendimento() {
@@ -326,12 +411,27 @@ function calcularDanoExtrapatrimonialSocial(bioma, areaForaAPP, areaEmAPP) {
     return areaTotal * parametros.precoSocialCO2BRL * estoqueCO2;
 }
 
+function obterDataDano() {
+    const input = document.getElementById('dataDano');
+    if (input && input.value) {
+        const partes = input.value.split('-');
+        return new Date(partes[0], partes[1] - 1, partes[2]);
+    }
+    return new Date();
+}
+
+function formatarData(data) {
+    return data.toLocaleDateString('pt-BR');
+}
+
 function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     const parametros = obterParametrosAtuais();
     const areaTotal = (areaForaAPP || 0) + (areaEmAPP || 0);
     const areaArredondada = Math.ceil(areaForaAPP || 0);
     const estoqueCO2 = obterEstoqueCO2PorBioma(bioma);
-    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    const dataAtual = new Date();
+    const dataDano = obterDataDano();
+    const usouDataHoje = !document.getElementById('dataDano').value;
     const entendimento = obterEntendimento();
     const valores = valoresBiomasBase[bioma];
     const fator = parametros.taxaJurosAnual * (parametros.tempoRecuperacao + 1) / 2;
@@ -340,313 +440,193 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
         ? 'IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)'
         : 'Gonzaga et al. (2025)';
 
-    const separador = '---------------------------------------------------';
+    const textoDataDano = usouDataHoje
+        ? formatarData(dataDano) + ' (data de hoje, pois não foi informada a data do dano)'
+        : formatarData(dataDano);
 
-    let memoriaCalculo = `MEMORIA DE CALCULO
+    let html = '<div style="font-family: \'Times New Roman\', serif; font-size: 12pt; line-height: 1.6; color: #222; max-width: 700px;">';
 
-${separador}
- DADOS DO CASO
-${separador}
+    // CABEÇALHO
+    html += '<h2 style="text-align:center; font-size:14pt; margin-bottom:5px;">RELATÓRIO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL</h2>';
+    html += '<p style="text-align:center; font-size:11pt; color:#555;">';
+    html += 'Data da valoração: ' + formatarData(dataAtual) + '<br>';
+    html += 'Data do dano: ' + textoDataDano + '<br>';
+    html += 'Bioma: ' + bioma + '<br>';
+    html += 'Entendimento: ' + nomeEntendimento + '<br>';
+    html += 'DAMNUM v. 5.1</p>';
+    html += '<hr style="border:1px solid #999;">';
 
-  Bioma selecionado: ${bioma}
-  Entendimento adotado: ${nomeEntendimento}
-  Area desmatada fora de APP e ARL (A1): ${(areaForaAPP || 0).toFixed(4)} ha
-  Area desmatada em APP e ARL (A2): ${(areaEmAPP || 0).toFixed(4)} ha
-  Area total desmatada (A1 + A2): ${areaTotal.toFixed(4)} ha
+    // NOTA SOBRE VALORES (agora no início)
+    html += '<div style="background:#f5f5dc; padding:10px 14px; border-left:4px solid #b8860b; margin:12px 0; font-size:11pt;">';
+    html += '<b>Nota sobre os valores de referência:</b> Os custos de reparação por hectare utilizados neste relatório correspondem à <b>média</b> dos custos de implantação e manutenção de projetos de recuperação ambiental, conforme a Portaria 118/2022 do IBAMA. ';
+    if (correcaoIPCA.sucesso) {
+        html += 'Os valores originais (outubro/2022) foram <b>corrigidos pelo IPCA</b> até ' + correcaoIPCA.periodoAtual + ' (fator de correção: ' + correcaoIPCA.fator.toFixed(4) + ', índice base: ' + correcaoIPCA.indiceBase.toFixed(2) + ', índice atual: ' + correcaoIPCA.indiceAtual.toFixed(2) + '). ';
+    } else {
+        html += 'Os valores são nominais de outubro/2022 (não foi possível obter a correção pelo IPCA). ';
+    }
+    html += 'Para o bioma <b>' + bioma + '</b>, os valores mínimo e máximo (corrigidos) são, respectivamente, ' + formatarMoeda(valores.menor_valor) + '/ha e ' + formatarMoeda(valores.maior_valor) + '/ha. ';
+    html += 'O valor médio adotado é de <b>' + formatarMoeda(valores.media) + '/ha</b>.</div>';
 
-${separador}
- PARAMETROS UTILIZADOS
-${separador}
+    // MEMÓRIA DE CÁLCULO
+    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">MEMÓRIA DE CÁLCULO</h3>';
 
-  Custo medio de reparacao por hectare (Portaria 118/2022 - IBAMA):
-    Custo medio (Cmed): ${formatarMoeda(valores.media)}/ha
+    // DADOS DO CASO
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">DADOS DO CASO</h4>';
+    html += '<table style="font-size:11pt; border-collapse:collapse; margin-left:10px;">';
+    html += '<tr><td style="padding:2px 10px;">Bioma selecionado:</td><td><b>' + bioma + '</b></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Entendimento adotado:</td><td><b>' + nomeEntendimento + '</b></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Data do dano:</td><td><b>' + textoDataDano + '</b></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Área desmatada fora de APP e ARL (A<sub>1</sub>):</td><td><b>' + (areaForaAPP || 0).toFixed(4) + ' ha</b></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Área desmatada em APP e ARL (A<sub>2</sub>):</td><td><b>' + (areaEmAPP || 0).toFixed(4) + ' ha</b></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Área total desmatada (A<sub>1</sub> + A<sub>2</sub>):</td><td><b>' + areaTotal.toFixed(4) + ' ha</b></td></tr>';
+    html += '</table>';
 
-  Preco Social CO2 (US$): US$ ${parametros.precoSocialCO2USD.toFixed(2)}
-  Cotacao Dolar: R$ ${parametros.cotacaoDolar.toFixed(2)}
-  Preco Social CO2 (R$): ${formatarMoeda(parametros.precoSocialCO2BRL)}
-    Calculo: US$ ${parametros.precoSocialCO2USD.toFixed(2)} x R$ ${parametros.cotacaoDolar.toFixed(2)} = ${formatarMoeda(parametros.precoSocialCO2BRL)}
+    // PARÂMETROS UTILIZADOS
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">PARÂMETROS UTILIZADOS</h4>';
+    html += '<table style="font-size:11pt; border-collapse:collapse; margin-left:10px;">';
+    html += '<tr><td style="padding:2px 10px;">Custo médio de reparação/ha (Portaria 118/2022 – IBAMA):</td><td><b>' + formatarMoeda(valores.media) + '/ha</b></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Preço Social do CO₂ (US$):</td><td>US$ ' + parametros.precoSocialCO2USD.toFixed(2) + '</td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Cotação do Dólar:</td><td>R$ ' + parametros.cotacaoDolar.toFixed(2) + '</td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Preço Social do CO₂ (R$):</td><td>' + formatarMoeda(parametros.precoSocialCO2BRL) + ' <span style="color:#666;">(US$ ' + parametros.precoSocialCO2USD.toFixed(2) + ' × R$ ' + parametros.cotacaoDolar.toFixed(2) + ')</span></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Preço Mercado Voluntário CO₂ (US$):</td><td>US$ ' + parametros.precoMercadoCO2USD.toFixed(2) + '</td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Preço Mercado Voluntário CO₂ (R$):</td><td>' + formatarMoeda(parametros.precoMercadoCO2BRL) + ' <span style="color:#666;">(US$ ' + parametros.precoMercadoCO2USD.toFixed(2) + ' × R$ ' + parametros.cotacaoDolar.toFixed(2) + ')</span></td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Estoque de CO₂ do bioma ' + bioma + ':</td><td>' + estoqueCO2 + ' tCO₂/ha</td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Taxa de juros anual (i):</td><td>' + (parametros.taxaJurosAnual * 100).toFixed(2) + '%</td></tr>';
+    html += '<tr><td style="padding:2px 10px;">Tempo de recuperação (t):</td><td>' + parametros.tempoRecuperacao + ' anos</td></tr>';
+    html += '</table>';
 
-  Preco Mercado Voluntario CO2 (US$): US$ ${parametros.precoMercadoCO2USD.toFixed(2)}
-  Preco Mercado Voluntario CO2 (R$): ${formatarMoeda(parametros.precoMercadoCO2BRL)}
-    Calculo: US$ ${parametros.precoMercadoCO2USD.toFixed(2)} x R$ ${parametros.cotacaoDolar.toFixed(2)} = ${formatarMoeda(parametros.precoMercadoCO2BRL)}
-
-  Estoque de CO2 do bioma ${bioma}: ${estoqueCO2} tCO2/ha
-
-  Taxa de juros anual (i): ${(parametros.taxaJurosAnual * 100).toFixed(2)}%
-  Tempo de recuperacao (t): ${parametros.tempoRecuperacao} anos
-
-`;
-
-    // --- 1. DANO MATERIAL ---
-    memoriaCalculo += `${separador}
- 1. DANO MATERIAL (Dano Ecologico / Dano Direto)
-${separador}
-
-  Formula: Dano Material = A1 x Custo de Reparacao/ha
-
-  Onde:
-    A1 = Area desmatada fora de APP e ARL = ${(areaForaAPP || 0).toFixed(4)} ha
-`;
+    // 1. DANO MATERIAL
+    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">1. DANO MATERIAL (Dano Ecológico / Dano Direto)</h4>';
+    html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Material = A<sub>1</sub> × Custo de Reparação/ha</p>';
+    html += '<p style="margin-left:10px;">Onde: A<sub>1</sub> = Área desmatada fora de APP e ARL = ' + (areaForaAPP || 0).toFixed(4) + ' ha</p>';
 
     if (!areaForaAPP || areaForaAPP <= 0) {
-        memoriaCalculo += `
-  Nao ha area fora de APP/ARL informada, portanto:
-    Dano Material = R$ 0,00
-`;
+        html += '<p style="margin-left:10px; color:#888;"><em>Não há área fora de APP/ARL informada, portanto: Dano Material = R$ 0,00</em></p>';
     } else if (entendimento === 'irdr') {
-        memoriaCalculo += `
-  Entendimento IRDR 13/TJMT: todo o dano material para area fora de APP e ARL e igual a zero (remanesce apenas o dano extrapatrimonial).
-
-    Dano Material = R$ 0,00
-`;
+        html += '<p style="margin-left:10px; color:#888;"><em>Entendimento IRDR 13/TJMT: todo o dano material para área fora de APP e ARL é igual a zero (remanesce apenas o dano extrapatrimonial). Dano Material = R$ 0,00</em></p>';
     } else {
-        memoriaCalculo += `
-  Calculo:
-    ${(areaForaAPP).toFixed(4)} ha x ${formatarMoeda(valores.media)}/ha = ${formatarMoeda(resultados.danoMaterial)}
-
-  DANO MATERIAL = ${formatarMoeda(resultados.danoMaterial)}
-`;
+        html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+        html += '&nbsp;&nbsp;' + (areaForaAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha = ' + formatarMoeda(resultados.danoMaterial) + '</p>';
+        html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO MATERIAL = ' + formatarMoeda(resultados.danoMaterial) + '</div>';
     }
 
-    // --- 2. DANO INTERINO ---
-    memoriaCalculo += `
-${separador}
- 2. DANO INTERINO
-${separador}
-
-  Formula: Dano Interino = A2 x Custo de Reparacao/ha x Fator
-
-  Onde:
-    A2 = Area desmatada em APP e ARL = ${(areaEmAPP || 0).toFixed(4)} ha
-    Fator = i x (t + 1) / 2
-
-  Calculo do Fator:
-    Fator = ${parametros.taxaJurosAnual} x (${parametros.tempoRecuperacao} + 1) / 2
-    Fator = ${parametros.taxaJurosAnual} x ${parametros.tempoRecuperacao + 1} / 2
-    Fator = ${fator.toFixed(4)}
-`;
+    // 2. DANO INTERINO
+    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">2. DANO INTERINO</h4>';
+    html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Interino = A<sub>2</sub> × Custo de Reparação/ha × Fator</p>';
+    html += '<p style="margin-left:10px;">Onde:<br>';
+    html += '&nbsp;&nbsp;A<sub>2</sub> = Área desmatada em APP e ARL = ' + (areaEmAPP || 0).toFixed(4) + ' ha<br>';
+    html += '&nbsp;&nbsp;Fator = i × (t + 1) / 2</p>';
+    html += '<p style="margin-left:20px;"><b>Cálculo do Fator:</b><br>';
+    html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × (' + parametros.tempoRecuperacao + ' + 1) / 2<br>';
+    html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × ' + (parametros.tempoRecuperacao + 1) + ' / 2<br>';
+    html += '&nbsp;&nbsp;Fator = ' + fator.toFixed(4) + '</p>';
 
     if (!areaEmAPP || areaEmAPP <= 0) {
-        memoriaCalculo += `
-  Nao ha area em APP/ARL informada, portanto:
-    Dano Interino = R$ 0,00
-`;
+        html += '<p style="margin-left:10px; color:#888;"><em>Não há área em APP/ARL informada, portanto: Dano Interino = R$ 0,00</em></p>';
     } else {
-        memoriaCalculo += `
-  Calculo:
-    ${(areaEmAPP).toFixed(4)} ha x ${formatarMoeda(valores.media)}/ha x ${fator.toFixed(4)} = ${formatarMoeda(resultados.danoInterino)}
-
-  DANO INTERINO = ${formatarMoeda(resultados.danoInterino)}
-`;
+        html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+        html += '&nbsp;&nbsp;' + (areaEmAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha × ' + fator.toFixed(4) + ' = ' + formatarMoeda(resultados.danoInterino) + '</p>';
+        html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO INTERINO = ' + formatarMoeda(resultados.danoInterino) + '</div>';
     }
 
-    // --- 3. DANO EXTRAPATRIMONIAL ---
-    memoriaCalculo += `
-${separador}
- 3. DANO EXTRAPATRIMONIAL
-${separador}
+    // 3. DANO EXTRAPATRIMONIAL
+    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">3. DANO EXTRAPATRIMONIAL</h4>';
 
-  3a) Mercado Voluntario de Carbono
-  Formula: (A1 + A2) x Preco CO2 Mercado (R$) x Estoque CO2/ha
+    // 3.1
+    html += '<p style="margin-left:10px;"><b>3.1) Mercado Voluntário de Carbono</b></p>';
+    html += '<p style="margin-left:10px;"><b>Fórmula:</b> (A<sub>1</sub> + A<sub>2</sub>) × Preço CO₂ Mercado (R$) × Estoque CO₂/ha</p>';
+    html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+    html += '&nbsp;&nbsp;' + areaTotal.toFixed(4) + ' ha × ' + formatarMoeda(parametros.precoMercadoCO2BRL) + '/tCO₂ × ' + estoqueCO2 + ' tCO₂/ha<br>';
+    html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</p>';
+    html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO EXTRAPATRIMONIAL (Mercado Voluntário) = ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</div>';
 
-  Calculo:
-    ${areaTotal.toFixed(4)} ha x ${formatarMoeda(parametros.precoMercadoCO2BRL)}/tCO2 x ${estoqueCO2} tCO2/ha
-    = ${formatarMoeda(resultados.danoExtrapatrimonialMercado)}
+    // 3.2
+    html += '<p style="margin-left:10px;"><b>3.2) Custo Social do Carbono (CSC – Cenário SSP2/RCP6.0)</b></p>';
+    html += '<p style="margin-left:10px;"><b>Fórmula:</b> (A<sub>1</sub> + A<sub>2</sub>) × Preço Social CO₂ (R$) × Estoque CO₂/ha</p>';
+    html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+    html += '&nbsp;&nbsp;' + areaTotal.toFixed(4) + ' ha × ' + formatarMoeda(parametros.precoSocialCO2BRL) + '/tCO₂ × ' + estoqueCO2 + ' tCO₂/ha<br>';
+    html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</p>';
+    html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO CLIMÁTICO (Custo Social do Carbono) = ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</div>';
 
-  DANO EXTRAPATRIMONIAL (Mercado Voluntario) = ${formatarMoeda(resultados.danoExtrapatrimonialMercado)}
+    // 4. TOTAL
+    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">4. TOTAL</h4>';
+    html += '<p style="margin-left:10px;"><b>Fórmula:</b> Total = Dano Material + Dano Interino + Dano Extrapatrimonial (mercado) + Dano Climático</p>';
+    html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+    html += '&nbsp;&nbsp;' + formatarMoeda(resultados.danoMaterial) + ' + ' + formatarMoeda(resultados.danoInterino) + ' + ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + ' + ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '<br>';
+    html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.total) + '</p>';
+    html += '<div style="background:#c8e6c9; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">VALOR TOTAL = ' + formatarMoeda(resultados.total) + '</div>';
 
-  3b) Custo Social do Carbono (CSC - Cenario SSP2/RCP6.0)
-  Formula: (A1 + A2) x Preco Social CO2 (R$) x Estoque CO2/ha
+    // CENÁRIOS DE REPARAÇÃO
+    html += '<hr style="border:1px solid #999; margin:20px 0;">';
+    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">CENÁRIOS QUANTO À REPARAÇÃO</h3>';
 
-  Calculo:
-    ${areaTotal.toFixed(4)} ha x ${formatarMoeda(parametros.precoSocialCO2BRL)}/tCO2 x ${estoqueCO2} tCO2/ha
-    = ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+    html += '<p><b>1) Hipótese da recuperação da área desmatada (recuperação <em>in situ</em>):</b></p>';
+    html += '<p style="text-align:justify;">Quando houver recuperação da área desmatada (recuperação <em>in situ</em>) por danos em área de reserva legal (ARL), área de preservação permanente (APP) ou áreas excedentes caso ele opte pela reparação <em>in natura</em> e <em>in situ</em>, degradador deverá indenizar os danos interinos no valor de ' + formatarMoeda(resultados.danoInterino) + ' (além de indenizar os danos extrapatrimoniais). Neste cenário, o proprietário deverá apresentar e executar Projeto de Recuperação de Áreas Degradadas (PRADA) ou laudo de constatação de reparação do dano ambiental. Alternativamente, a parte requerida poderá realizar a compensação ecológica do dano interino e extrapatrimonial (veja a seguir).</p>';
 
-  DANO CLIMATICO (Custo Social do Carbono) = ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+    html += '<p><b>2) Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):</b></p>';
+    html += '<p style="text-align:justify;">Quando não houver reparação <em>in situ</em> (área passível de exploração), deverá ser realizada a compensação ecológica ou o pagamento de indenização, para que o proprietário possa regularizar a exploração da área. Neste caso, a valoração (dano material) é de ' + formatarMoeda(resultados.danoMaterial) + '. Também deverão ser reparados os danos climáticos, estimados em ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + ' e extrapatrimoniais (' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + ').</p>';
 
-`;
+    html += '<p><b>COMPENSAÇÃO ECOLÓGICA</b></p>';
+    html += '<p style="text-align:justify;">Alternativamente, propõe-se a compensação ecológica dos danos materiais nos seguintes termos: instituição, no próprio imóvel ou imóvel de terceiro no mesmo bioma, estado da federação e preferencialmente, no mesmo município ou município contíguo, de RPPN, servidão ambiental perpétua ou aquisição e doação ao poder público de área em unidade de conservação igual à área ilegalmente desmatada (arredondada), isto é ' + areaArredondada + ' hectares, remanescendo o pagamento de indenização por danos extrapatrimoniais (que poderá ser reduzido a critério do promotor de Justiça, conforme a relevância da área protegida a ser criada) no valor de ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '.</p>';
 
-    // --- 4. TOTAIS ---
-    memoriaCalculo += `${separador}
- 4. TOTAL
-${separador}
+    html += '<p style="text-align:justify;">O valor dos danos extrapatrimoniais remanescente também poderá ser reduzido com o aumento da área a ser protegida, descontando-se o valor dos custos médios de reparação para cada hectare adicional de vegetação nativa no montante do dano extrapatrimonial (isto é, ' + formatarMoeda(valoresBiomasBase[bioma].media) + ' por hectare fora de ARL acrescentado na RPPN além da área desmatada).</p>';
 
-  Formula: Total = Dano Material + Dano Interino + Dano Extrapatrimonial (mercado) + Dano Climatico
+    html += '<p><b>Regras para a instituição de RPPN:</b></p>';
+    html += '<p style="text-align:justify;">1) A RPPN deverá abranger a área de reserva legal do imóvel, embora a ARL abrangida não será computada para fins da compensação ecológica;<br>';
+    html += '2) A área protegida deverá, salvo absoluta impossibilidade, (2.1) consistir-se de um único bloco de vegetação nativa e (2.2) ser lindeira à área de reserva legal ou área de preservação permanente existente no imóvel, visando diminuir os efeitos da fragmentação de habitats e efeitos de borda.</p>';
 
-  Calculo:
-    ${formatarMoeda(resultados.danoMaterial)} + ${formatarMoeda(resultados.danoInterino)} + ${formatarMoeda(resultados.danoExtrapatrimonialMercado)} + ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
-    = ${formatarMoeda(resultados.total)}
+    html += '<p style="text-align:justify;">Na hipótese de RPPN, toda a área protegida continuará ser de propriedade da parte requerida, que poderá aferir renda com a venda de créditos de carbono e cotas de reserva ambiental (CRA) para imóveis com déficit de áreas de reserva legal.</p>';
 
-  VALOR TOTAL = ${formatarMoeda(resultados.total)}
+    // REFERÊNCIAS
+    html += '<hr style="border:1px solid #999; margin:20px 0;">';
+    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">REFERÊNCIAS BIBLIOGRÁFICAS</h3>';
 
-`;
+    html += '<p style="text-align:justify; font-size:10pt;">GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM)</em>, 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em &lt;https://damnum.netlify.app/metodologia.pdf&gt;.</p>';
 
-    // --- Cenários de reparação ---
-    memoriaCalculo += `${separador}
- CENARIOS QUANTO A REPARACAO
-${separador}
+    html += '<p style="text-align:justify; font-size:10pt;">BRASIL. Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis – IBAMA. Portaria nº 118, de 3 de outubro de 2022. Institui Procedimento Operacional Padrão (POP) para Estimativa dos Custos de Implantação e Manutenção de Projeto de Recuperação Ambiental nos Biomas Brasileiros, para Compor Valor Mínimo da Reparação por Danos Ambientais à Vegetação Nativa, em Processos Administrativos no âmbito do Ibama. Disponível em: &lt;https://www.ibama.gov.br/component/legislacao/?view=legislacao&amp;force=1&amp;legislacao=139171&gt;.</p>';
 
-1) Hipotese da recuperacao da area desmatada (recuperacao in situ):
-Quando houver recuperacao da area desmatada (recuperacao in situ) por danos em area de reserva legal (ARL), area de preservacao permanente (APP) ou areas excedentes caso ele opte pela reparacao in natura e in situ, degradador devera indenizar os danos interinos no valor de ${formatarMoeda(resultados.danoInterino)} (alem de indenizar os danos extrapatrimoniais). Neste cenario, o proprietario devera apresentar e executar Projeto de Recuperacao de Areas Degradadas (PRADA) ou laudo de constatacao de reparacao do dano ambiental. Alternativamente, a parte requerida podera realizar a compensacao ecologica do dano interino e extrapatrimonial (veja a seguir).
+    html += '<p style="text-align:justify; font-size:10pt;">RICKE, Katharine et al. Country-level social cost of carbon. <em>Nature Climate Change</em>, v. 8, n. 10, p. 895-900, 2018. Disponível em: &lt;https://www.nature.com/articles/s41558-018-0282-y&gt;.</p>';
 
-2) Hipotese da nao recuperacao da area ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):
-Quando nao houver reparacao in situ (area passivel de exploracao), devera ser realizada a compensacao ecologica ou o pagamento de indenizacao, para que o proprietario possa regularizar a exploracao da area. Neste caso, a valoracao (dano material) e de ${formatarMoeda(resultados.danoMaterial)}. Tambem deverao ser reparados os danos climaticos, estimados em ${formatarMoeda(resultados.danoExtrapatrimonialSocial)} e extrapatrimoniais (${formatarMoeda(resultados.danoExtrapatrimonialMercado)}).
-
-COMPENSACAO ECOLOGICA
-Alternativamente, propoe-se a compensacao ecologica dos danos materiais nos seguintes termos: instituicao, no proprio imovel ou imovel de terceiro no mesmo bioma, estado da federacao e preferencialmente, no mesmo municipio ou municipio contiguo, de RPPN, servidao ambiental perpetua ou aquisicao e doacao ao poder publico de area em unidade de conservacao igual a area ilegalmente desmatada (arredondada), isto e ${areaArredondada} hectares, remanescendo o pagamento de indenizacao por danos extrapatrimoniais (que podera ser reduzido a criterio do promotor de Justica, conforme a relevancia da area protegida a ser criada) no valor de ${formatarMoeda(resultados.danoExtrapatrimonialMercado)}.
-
-O valor dos danos extrapatrimoniais remanescente tambem podera ser reduzido com o aumento da area a ser protegida, descontando-se o valor dos custos medios de reparacao para cada hectare adicional de vegetacao nativa no montante do dano extrapatrimonial (isto e, ${formatarMoeda(valoresBiomasBase[bioma].media)} por hectare fora de ARL acrescentado na RPPN alem da area desmatada).
-
-Regras para a instituicao de RPPN:
-1) A RPPN devera abranger a area de reserva legal do imovel, embora a ARL abrangida nao sera computada para fins da compensacao ecologica;
-2) A area protegida devera, salvo absoluta impossibilidade, (2.1) consistir-se de um unico bloco de vegetacao nativa e (2.2) ser lindeira a area de reserva legal ou area de preservacao permanente existente no imovel, visando diminuir os efeitos da fragmentacao de habitats e efeitos de borda;
-
-Na hipotese de RPPN, toda a area protegida continuara ser de propriedade da parte requerida, que podera aferir renda com a venda de creditos de carbono e cotas de reserva ambiental (CRA) para imoveis com deficit de areas de reserva legal.
-
-${separador}
- REFERENCIAS BIBLIOGRAFICAS
-${separador}
-
-GONZAGA, Claudio Angelo Correa; ROQUETTE, Jose Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoracao e compensacao ecologica dos danos ambientais causados pelo desmatamento ilegal. Anais do V Simposio Interdisciplinar de Ciencia Ambiental da USP (SICAM), 5., 2024, Sao Paulo. Sao Paulo: IEE-USP, 2025. p. 210-217. Disponivel em <https://damnum.netlify.app/metodologia.pdf>.
-
-BRASIL. Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renovaveis - IBAMA. Portaria n. 118, de 3 de outubro de 2022. Institui Procedimento Operacional Padrao (POP) para Estimativa dos Custos de Implantacao e Manutencao de Projeto de Recuperacao Ambiental nos Biomas Brasileiros, para Compor Valor Minimo da Reparacao por Danos Ambientais a Vegetacao Nativa, em Processos Administrativos no ambito do Ibama. Disponivel em: <https://www.ibama.gov.br/component/legislacao/?view=legislacao&force=1&legislacao=139171>.
-
-RICKE, Katharine et al. Country-level social cost of carbon. Nature Climate Change, v. 8, n. 10, p. 895-900, 2018. Disponivel em: <https://www.nature.com/articles/s41558-018-0282-y>.
-
-${separador}
- NOTA
-${separador}
-Os valores de custo de reparacao por hectare utilizados neste relatorio correspondem a media dos custos de implantacao e manutencao de projetos de recuperacao ambiental (Portaria 118/2022 - IBAMA). Para referencia, os valores minimo e maximo para o bioma ${bioma} sao, respectivamente, ${formatarMoeda(valores.menor_valor)}/ha e ${formatarMoeda(valores.maior_valor)}/ha.`;
-
-    const cabecalho = `RELATORIO DE VALORACAO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL
-
-Data da valoracao: ${dataAtual}
-Bioma: ${bioma}
-Entendimento: ${nomeEntendimento}
-DAMNUM v. 5.0
-
-`;
-
-    return cabecalho + memoriaCalculo;
+    html += '</div>';
+    return html;
 }
 
 function baixarRelatorioPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-
-    // Margens (A4: 210x297mm)
-    const mSup = 30;
-    const mEsq = 30;
-    const mInf = 25;
-    const mDir = 20;
-    const largura = 210 - mEsq - mDir;
-    const alturaMax = 297 - mInf;
-
-    const textoRelatorio = document.getElementById('textoRelatorio').textContent;
-    const linhas = textoRelatorio.split('\n');
-
-    let y = mSup;
-    let pag = 1;
-
-    function cabecalhoRodape() {
-        // Cabecalho
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120);
-        doc.text('DAMNUM - Valoracao de Danos Ambientais', 105, 12, { align: 'center' });
-        // Rodape
-        doc.text('Pagina ' + pag, 105, 290, { align: 'center' });
-        // Linha separadora do cabecalho
-        doc.setDrawColor(180);
-        doc.setLineWidth(0.3);
-        doc.line(mEsq, 15, 210 - mDir, 15);
-        doc.setTextColor(0);
-    }
-
-    function novaPagina() {
-        doc.addPage();
-        pag++;
-        y = mSup;
-        cabecalhoRodape();
-    }
-
-    function verificarEspaco(necessario) {
-        if (y + necessario > alturaMax) {
-            novaPagina();
-        }
-    }
-
-    cabecalhoRodape();
-
-    const tamanhoNormal = 10;
-    const tamanhoTitulo = 12;
-    const alturaLinha = 5;
-
-    for (let i = 0; i < linhas.length; i++) {
-        const linha = linhas[i];
-
-        // Linha separadora (---)
-        if (linha.trim().match(/^-{10,}$/)) {
-            verificarEspaco(6);
-            doc.setDrawColor(100);
-            doc.setLineWidth(0.5);
-            doc.line(mEsq, y, 210 - mDir, y);
-            y += 4;
-            continue;
-        }
-
-        // Linha em branco
-        if (!linha.trim()) {
-            y += 3;
-            continue;
-        }
-
-        // Titulo de secao (ex: " 1. DANO MATERIAL ..." ou "MEMORIA DE CALCULO" etc)
-        const ehTituloSecao = /^\s*(MEMORIA DE CALCULO|DADOS DO CASO|PARAMETROS UTILIZADOS|\d+\.\s+[A-Z]+|CENARIOS QUANTO|REFERENCIAS BIBLIOGRAFICAS|NOTA|COMPENSACAO ECOLOGICA|RELATORIO DE VALORACAO)/.test(linha);
-        const ehResultado = /^\s*(DANO MATERIAL|DANO INTERINO|DANO EXTRAPATRIMONIAL|DANO CLIMATICO|VALOR TOTAL)\s*=/.test(linha);
-
-        if (ehTituloSecao) {
-            verificarEspaco(10);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(tamanhoTitulo);
-            const splitTitulo = doc.splitTextToSize(linha.trim(), largura);
-            doc.text(splitTitulo, mEsq, y);
-            y += alturaLinha * splitTitulo.length + 2;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(tamanhoNormal);
-            continue;
-        }
-
-        if (ehResultado) {
-            verificarEspaco(10);
-            // Fundo destacado
-            const splitRes = doc.splitTextToSize(linha.trim(), largura - 4);
-            const alturaBg = alturaLinha * splitRes.length + 2;
-            doc.setFillColor(230, 240, 230);
-            doc.rect(mEsq - 1, y - 4, largura + 2, alturaBg + 2, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(tamanhoNormal);
-            doc.text(splitRes, mEsq + 1, y);
-            y += alturaBg + 1;
-            doc.setFont('helvetica', 'normal');
-            continue;
-        }
-
-        // Texto normal
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(tamanhoNormal);
-        const splitText = doc.splitTextToSize(linha, largura);
-        verificarEspaco(alturaLinha * splitText.length);
-        doc.text(splitText, mEsq, y);
-        y += alturaLinha * splitText.length;
-    }
-
+    const elemento = document.getElementById('textoRelatorio');
     const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-    doc.save('DAMNUM_Relatorio_' + dataAtual + '.pdf');
+
+    const opt = {
+        margin: [25, 20, 20, 25],
+        filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    // Mostrar indicador de carregamento
+    const btn = document.getElementById('btnDownloadPDF');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = 'Gerando PDF...';
+    btn.disabled = true;
+
+    html2pdf().set(opt).from(elemento).save().then(function() {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+    }).catch(function(err) {
+        console.error('Erro ao gerar PDF:', err);
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+        alert('Erro ao gerar o PDF. Tente novamente.');
+    });
 }
 
 function copiarRelatorio() {
-    const textoRelatorio = document.getElementById('textoRelatorio').textContent;
+    const textoRelatorio = document.getElementById('textoRelatorio').innerText;
     navigator.clipboard.writeText(textoRelatorio).then(function() {
         const btn = document.getElementById('btnCopiar');
         const textoOriginal = btn.innerHTML;
@@ -723,7 +703,7 @@ function calcularValoracao() {
     };
 
     const relatorio = gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados);
-    document.getElementById('textoRelatorio').textContent = relatorio;
+    document.getElementById('textoRelatorio').innerHTML = relatorio;
 
     // Mostrar resultado
     document.getElementById('resultado').style.display = 'block';
@@ -752,6 +732,39 @@ function atualizarParametrosCalculados() {
     document.getElementById('estoqueCO2Media').value = media.toFixed(2);
 }
 
+// Buscar cotacao do dolar automaticamente
+async function buscarCotacaoDolar() {
+    const statusEl = document.getElementById('cotacaoStatus');
+    const avisoEl = document.getElementById('cotacaoAviso');
+    const inputEl = document.getElementById('cotacaoDolar');
+
+    try {
+        statusEl.textContent = '(buscando...)';
+        statusEl.style.color = '#888';
+
+        const response = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
+        if (!response.ok) throw new Error('Erro na requisicao');
+
+        const data = await response.json();
+        const cotacao = parseFloat(data.USDBRL.bid);
+
+        if (isNaN(cotacao) || cotacao <= 0) throw new Error('Valor invalido');
+
+        inputEl.value = cotacao.toFixed(2);
+        statusEl.textContent = '(atualizado automaticamente)';
+        statusEl.style.color = '#27ae60';
+        avisoEl.style.display = 'none';
+
+        // Atualizar os campos calculados em BRL
+        atualizarParametrosCalculados();
+    } catch (error) {
+        console.error('Erro ao buscar cotacao do dolar:', error);
+        statusEl.textContent = '(valor padrao)';
+        statusEl.style.color = '#e67e22';
+        avisoEl.style.display = 'block';
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', async function() {
     const form = document.getElementById('calculoForm');
@@ -776,7 +789,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Inicializar slideshow
     iniciarSlideshow();
-    
+
+    // Buscar cotacao do dolar e correção IPCA automaticamente
+    buscarCotacaoDolar();
+    buscarCorrecaoIPCA();
+
     // Listener para mudança de bioma
     biomaSelect.addEventListener('change', function() {
         atualizarImagemBioma(this.value);

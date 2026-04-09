@@ -600,9 +600,8 @@ header h2 {
 .texto-relatorio {
     line-height: 1.6;
     color: #333;
-    white-space: pre-wrap;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.82em;
+    font-family: 'Times New Roman', Georgia, serif;
+    font-size: 1em;
     background: #fafaf5;
     padding: 25px;
     border-radius: 8px;
