@@ -623,29 +623,35 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 }
 
 function baixarRelatorioPDF() {
-    const elemento = document.getElementById('textoRelatorio');
     const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
 
+    // Criar container temporário isolado do layout da página
+    const container = document.createElement('div');
+    container.innerHTML = document.getElementById('textoRelatorio').innerHTML;
+    container.style.cssText = 'position:fixed; top:0; left:0; width:210mm; padding:20mm 15mm; background:white; z-index:-9999; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222;';
+    document.body.appendChild(container);
+
     const opt = {
-        margin: [25, 20, 20, 25],
+        margin: [15, 15, 15, 20],
         filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0, windowWidth: container.scrollWidth },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    // Mostrar indicador de carregamento
-    const btn = document.getElementById('btnDownloadPDF');
-    const textoOriginal = btn.innerHTML;
+    var btn = document.getElementById('btnDownloadPDF');
+    var textoOriginal = btn.innerHTML;
     btn.innerHTML = 'Gerando PDF...';
     btn.disabled = true;
 
-    html2pdf().set(opt).from(elemento).save().then(function() {
+    html2pdf().set(opt).from(container).save().then(function() {
+        document.body.removeChild(container);
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
     }).catch(function(err) {
         console.error('Erro ao gerar PDF:', err);
+        document.body.removeChild(container);
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
         alert('Erro ao gerar o PDF. Tente novamente.');
@@ -653,35 +659,48 @@ function baixarRelatorioPDF() {
 }
 
 function copiarRelatorio() {
-    const textoRelatorio = document.getElementById('textoRelatorio').innerText;
-    navigator.clipboard.writeText(textoRelatorio).then(function() {
-        const btn = document.getElementById('btnCopiar');
-        const textoOriginal = btn.innerHTML;
+    const elemento = document.getElementById('textoRelatorio');
+    const htmlContent = elemento.innerHTML;
+    const textoPlano = elemento.innerText;
+
+    function mostrarCopiado() {
+        var btn = document.getElementById('btnCopiar');
+        var textoOriginal = btn.innerHTML;
         btn.innerHTML = '&#10003; Copiado!';
         btn.style.backgroundColor = '#27ae60';
         setTimeout(function() {
             btn.innerHTML = textoOriginal;
             btn.style.backgroundColor = '';
         }, 2000);
-    }).catch(function() {
-        // Fallback para navegadores mais antigos
-        const textarea = document.createElement('textarea');
-        textarea.value = textoRelatorio;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        const btn = document.getElementById('btnCopiar');
-        const textoOriginal = btn.innerHTML;
-        btn.innerHTML = '&#10003; Copiado!';
-        btn.style.backgroundColor = '#27ae60';
-        setTimeout(function() {
-            btn.innerHTML = textoOriginal;
-            btn.style.backgroundColor = '';
-        }, 2000);
-    });
+    }
+
+    // Tentar copiar como HTML rico (mantém formatação ao colar no Word, Google Docs, etc.)
+    try {
+        const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+        const blobText = new Blob([textoPlano], { type: 'text/plain' });
+        const clipboardItem = new ClipboardItem({
+            'text/html': blobHtml,
+            'text/plain': blobText
+        });
+        navigator.clipboard.write([clipboardItem]).then(function() {
+            mostrarCopiado();
+        }).catch(function() {
+            // Fallback: copiar só texto
+            navigator.clipboard.writeText(textoPlano).then(mostrarCopiado);
+        });
+    } catch (e) {
+        // Fallback para navegadores que não suportam ClipboardItem
+        navigator.clipboard.writeText(textoPlano).then(mostrarCopiado).catch(function() {
+            var textarea = document.createElement('textarea');
+            textarea.value = textoPlano;
+            textarea.style.cssText = 'position:fixed;opacity:0;';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            mostrarCopiado();
+        });
+    }
 }
 
 function calcularValoracao() {
