@@ -850,6 +850,61 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 
     html += '<p style="margin-left:10px; font-size:10pt; color:#555;"><em>Para detalhes sobre a metodologia de atualização monetária, consulte a aba <a href="metodologia.html#atualizacao" target="_blank">Metodologia</a>.</em></p>';
 
+    // VALORAÇÃO POR ENTENDIMENTO ALTERNATIVO
+    html += '<hr style="border:1px solid #999; margin:20px 0;">';
+    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">VALORAÇÃO POR ENTENDIMENTO E METODOLOGIA ALTERNATIVA</h3>';
+
+    if (entendimento === 'gonzaga') {
+        // Alternativa: IRDR 13/TJMT
+        var altNome = 'IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)';
+        var altDanoMaterial = 0;
+        var altDanoInterino = 0;
+        var altTotal = altDanoMaterial + altDanoInterino + resultados.danoExtrapatrimonialMercado + resultados.danoExtrapatrimonialSocial;
+        var altTotalPatrimonial = altDanoMaterial + altDanoInterino;
+        var altTotalCorrigido = altTotal;
+        if (resultados.correcao && resultados.correcao.aplicada) {
+            altTotalCorrigido = (altTotalPatrimonial * resultados.correcao.fatorTotal) + resultados.totalExtrapatrimonial;
+        }
+
+        html += '<p style="text-align:justify;">Caso fosse adotado o entendimento do <b>' + altNome + '</b>, segundo o qual o desmatamento em área não especialmente protegida configura dano extrapatrimonial <em>in re ipsa</em>, mas não dano material indenizável, os valores seriam:</p>';
+        html += '<table style="font-size:11pt; border-collapse:collapse; margin:10px; width:calc(100% - 20px); border:1px solid #ccc;">';
+        html += '<tr style="background:#f5f5f5;"><th style="padding:6px 10px; text-align:left; border:1px solid #ccc;">Parcela</th><th style="padding:6px 10px; text-align:right; border:1px solid #ccc;">Valor</th></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Material</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(0) + ' <span style="color:#888;">(zerado pelo entendimento)</span></td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Interino</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(0) + '</td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Extrapatrimonial (Mercado Voluntário)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Climático (Custo Social do Carbono)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</td></tr>';
+        html += '<tr style="background:#f0f7f0;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotal) + '</b></td></tr>';
+        if (resultados.correcao && resultados.correcao.aplicada) {
+            html += '<tr style="background:#fff8e1;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total atualizado (SELIC/IPCA-15)</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotalCorrigido) + '</b></td></tr>';
+        }
+        html += '</table>';
+    } else {
+        // Alternativa: Gonzaga et al. (2025)
+        var altNome = 'Gonzaga et al. (2025)';
+        var altAreaMaterial = resultados.reparacaoInSitu ? (areaForaAPP || 0) : ((areaForaAPP || 0) + (areaEmAPP || 0));
+        var altDanoMaterial = altAreaMaterial * valores.media;
+        var altDanoInterino = resultados.reparacaoInSitu ? ((areaEmAPP || 0) * valores.media * fator) : 0;
+        var altTotal = altDanoMaterial + altDanoInterino + resultados.danoExtrapatrimonialMercado + resultados.danoExtrapatrimonialSocial;
+        var altTotalPatrimonial = altDanoMaterial + altDanoInterino;
+        var altTotalCorrigido = altTotal;
+        if (resultados.correcao && resultados.correcao.aplicada) {
+            altTotalCorrigido = (altTotalPatrimonial * resultados.correcao.fatorTotal) + resultados.totalExtrapatrimonial;
+        }
+
+        html += '<p style="text-align:justify;">Caso fosse adotada a metodologia de <b>' + altNome + '</b>, que considera o dano material (custo de reparação da vegetação nativa conforme Portaria 118/2022 do IBAMA) como parcela indenizável autônoma, os valores seriam:</p>';
+        html += '<table style="font-size:11pt; border-collapse:collapse; margin:10px; width:calc(100% - 20px); border:1px solid #ccc;">';
+        html += '<tr style="background:#f5f5f5;"><th style="padding:6px 10px; text-align:left; border:1px solid #ccc;">Parcela</th><th style="padding:6px 10px; text-align:right; border:1px solid #ccc;">Valor</th></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Material</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(altDanoMaterial) + '</td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Interino</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(altDanoInterino) + '</td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Extrapatrimonial (Mercado Voluntário)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Climático (Custo Social do Carbono)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</td></tr>';
+        html += '<tr style="background:#f0f7f0;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotal) + '</b></td></tr>';
+        if (resultados.correcao && resultados.correcao.aplicada) {
+            html += '<tr style="background:#fff8e1;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total atualizado (SELIC/IPCA-15)</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotalCorrigido) + '</b></td></tr>';
+        }
+        html += '</table>';
+    }
+
     // CENÁRIOS DE REPARAÇÃO
     html += '<hr style="border:1px solid #999; margin:20px 0;">';
     html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">CENÁRIOS QUANTO À REPARAÇÃO</h3>';
