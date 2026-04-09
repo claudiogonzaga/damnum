@@ -282,12 +282,28 @@ function atualizarImagemBioma(bioma) {
     }
 }
 
+function obterEntendimento() {
+    const el = document.getElementById('entendimento');
+    return el ? el.value : 'gonzaga';
+}
+
 function calcularDanoMaterial(bioma, areaForaAPP) {
     if (!bioma || !areaForaAPP || areaForaAPP <= 0) {
         return { menor: 0, media: 0, maior: 0 };
     }
 
+    const entendimento = obterEntendimento();
     const valores = valoresBiomasBase[bioma];
+
+    if (entendimento === 'irdr') {
+        // IRDR 13/TJMT: todo dano material fora de APP/ARL = 0 (fica só o extrapatrimonial)
+        return {
+            menor: 0,
+            media: 0,
+            maior: 0
+        };
+    }
+
     return {
         menor: areaForaAPP * valores.menor_valor,
         media: areaForaAPP * valores.media,
@@ -339,50 +355,181 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     const areaArredondada = Math.ceil(areaForaAPP || 0);
     const estoqueCO2 = obterEstoqueCO2PorBioma(bioma);
     const dataAtual = new Date().toLocaleDateString('pt-BR');
-    
-    const relatorio = `RELATÓRIO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL
+    const entendimento = obterEntendimento();
+    const valores = valoresBiomasBase[bioma];
+    const fator = parametros.taxaJurosAnual * (parametros.tempoRecuperacao + 1) / 2;
 
-Data da valoração: ${dataAtual}
-Bioma: ${bioma}
+    const nomeEntendimento = entendimento === 'irdr'
+        ? 'IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)'
+        : 'Gonzaga et al. (2025)';
 
-PARÂMETROS UTILIZADOS
+    // --- Seção de memória de cálculo detalhada ---
+    let memoriaCalculo = `MEMÓRIA DE CÁLCULO
 
-DANO CLIMÁTICO E EXTRAPATRIMONIAL
-Preço Social da tonelada de CO2 (US$) Cenário SSP2/RCP6.0 para o BR (RICKE et al., 2018): US$ ${parametros.precoSocialCO2USD.toFixed(2)}
-Cotação Dólar hoje: R$ ${parametros.cotacaoDolar.toFixed(2)}
-Preço Social da tonelada de CO2 (R$): ${formatarMoeda(parametros.precoSocialCO2BRL)}
+═══════════════════════════════════════════════════
+ DADOS DO CASO
+═══════════════════════════════════════════════════
 
-Preço da tonelada CO2 (US$) no Mercado Voluntário de CO2: US$ ${parametros.precoMercadoCO2USD.toFixed(2)}
-Preço da tonelada CO2 (R$) no Mercado Voluntário de CO2: ${formatarMoeda(parametros.precoMercadoCO2BRL)}
+  Bioma selecionado: ${bioma}
+  Entendimento adotado: ${nomeEntendimento}
+  Área desmatada fora de APP e ARL (A₁): ${(areaForaAPP || 0).toFixed(4)} ha
+  Área desmatada em APP e ARL (A₂): ${(areaEmAPP || 0).toFixed(4)} ha
+  Área total desmatada (A₁ + A₂): ${areaTotal.toFixed(4)} ha
 
-ESTOQUE DE TONELADAS DE CO2/HA
-${bioma}: ${estoqueCO2} tCO2/ha
+═══════════════════════════════════════════════════
+ PARÂMETROS UTILIZADOS
+═══════════════════════════════════════════════════
 
-Taxa de juros anual (para o dano interino): ${(parametros.taxaJurosAnual * 100).toFixed(2)}%
-Tempo mínimo para recuperação dos serviços ecossistêmicos básicos: ${parametros.tempoRecuperacao} anos
+  Custos de reparação por hectare (Portaria 118/2022 - IBAMA):
+    Custo mínimo (Cmin): ${formatarMoeda(valores.menor_valor)}/ha
+    Custo médio (Cmed): ${formatarMoeda(valores.media)}/ha
+    Custo máximo (Cmax): ${formatarMoeda(valores.maior_valor)}/ha
 
-DANOS AMBIENTAIS
+  Preço Social CO₂ (US$): US$ ${parametros.precoSocialCO2USD.toFixed(2)}
+  Cotação Dólar: R$ ${parametros.cotacaoDolar.toFixed(2)}
+  Preço Social CO₂ (R$): ${formatarMoeda(parametros.precoSocialCO2BRL)}
+    ► Cálculo: US$ ${parametros.precoSocialCO2USD.toFixed(2)} × R$ ${parametros.cotacaoDolar.toFixed(2)} = ${formatarMoeda(parametros.precoSocialCO2BRL)}
 
-Dano ecológico, dano material, dano direto:
-Mínimo: ${formatarMoeda(resultados.danoMaterial.menor)}
-Média: ${formatarMoeda(resultados.danoMaterial.media)}
-Máximo: ${formatarMoeda(resultados.danoMaterial.maior)}
+  Preço Mercado Voluntário CO₂ (US$): US$ ${parametros.precoMercadoCO2USD.toFixed(2)}
+  Preço Mercado Voluntário CO₂ (R$): ${formatarMoeda(parametros.precoMercadoCO2BRL)}
+    ► Cálculo: US$ ${parametros.precoMercadoCO2USD.toFixed(2)} × R$ ${parametros.cotacaoDolar.toFixed(2)} = ${formatarMoeda(parametros.precoMercadoCO2BRL)}
 
-Dano interino (em relação às áreas que serão recuperadas):
-Mínimo: ${formatarMoeda(resultados.danoInterino.menor)}
-Média: ${formatarMoeda(resultados.danoInterino.media)}
-Máximo: ${formatarMoeda(resultados.danoInterino.maior)}
+  Estoque de CO₂ do bioma ${bioma}: ${estoqueCO2} tCO₂/ha
 
-Dano Extrapatrimonial (proxy preço do carbono no mercado voluntário): ${formatarMoeda(resultados.danoExtrapatrimonialMercado)}
+  Taxa de juros anual (i): ${(parametros.taxaJurosAnual * 100).toFixed(2)}%
+  Tempo de recuperação (t): ${parametros.tempoRecuperacao} anos
 
-Dano Extrapatrimonial (CSC - Cenário SSP2/RCP6.0 para o Brasil, cf. RICKE et al., 2018): ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+`;
 
-CENÁRIOS QUANTO À REPARAÇÃO
+    // --- 1. DANO MATERIAL ---
+    memoriaCalculo += `═══════════════════════════════════════════════════
+ 1. DANO MATERIAL (Dano Ecológico / Dano Direto)
+═══════════════════════════════════════════════════
 
-Hipótese da recuperação da área desmatada (recuperação in situ)
+  Fórmula: Dano Material = A₁ × Custo de Reparação/ha
+
+  Onde:
+    A₁ = Área desmatada fora de APP e ARL = ${(areaForaAPP || 0).toFixed(4)} ha
+`;
+
+    if (!areaForaAPP || areaForaAPP <= 0) {
+        memoriaCalculo += `
+  ⚠ Não há área fora de APP/ARL informada, portanto:
+    Dano Material (mín.) = R$ 0,00
+    Dano Material (méd.) = R$ 0,00
+    Dano Material (máx.) = R$ 0,00
+`;
+    } else if (entendimento === 'irdr') {
+        memoriaCalculo += `
+  ⚠ Entendimento IRDR 13/TJMT: todo o dano material para área fora de APP e ARL é igual a zero (remanesce apenas o dano extrapatrimonial).
+
+    Dano Material (mín.) = R$ 0,00
+    Dano Material (méd.) = R$ 0,00
+    Dano Material (máx.) = R$ 0,00
+`;
+    } else {
+        memoriaCalculo += `
+  ► Menor valor:
+    ${(areaForaAPP).toFixed(4)} ha × ${formatarMoeda(valores.menor_valor)}/ha = ${formatarMoeda(resultados.danoMaterial.menor)}
+
+  ► Média:
+    ${(areaForaAPP).toFixed(4)} ha × ${formatarMoeda(valores.media)}/ha = ${formatarMoeda(resultados.danoMaterial.media)}
+
+  ► Maior valor:
+    ${(areaForaAPP).toFixed(4)} ha × ${formatarMoeda(valores.maior_valor)}/ha = ${formatarMoeda(resultados.danoMaterial.maior)}
+`;
+    }
+
+    // --- 2. DANO INTERINO ---
+    memoriaCalculo += `
+═══════════════════════════════════════════════════
+ 2. DANO INTERINO
+═══════════════════════════════════════════════════
+
+  Fórmula: Dano Interino = A₂ × Custo de Reparação/ha × Fator
+
+  Onde:
+    A₂ = Área desmatada em APP e ARL = ${(areaEmAPP || 0).toFixed(4)} ha
+    Fator = i × (t + 1) / 2
+
+  Cálculo do Fator:
+    Fator = ${parametros.taxaJurosAnual} × (${parametros.tempoRecuperacao} + 1) / 2
+    Fator = ${parametros.taxaJurosAnual} × ${parametros.tempoRecuperacao + 1} / 2
+    Fator = ${fator.toFixed(4)}
+`;
+
+    if (!areaEmAPP || areaEmAPP <= 0) {
+        memoriaCalculo += `
+  ⚠ Não há área em APP/ARL informada, portanto:
+    Dano Interino (mín.) = R$ 0,00
+    Dano Interino (méd.) = R$ 0,00
+    Dano Interino (máx.) = R$ 0,00
+`;
+    } else {
+        memoriaCalculo += `
+  ► Menor valor:
+    ${(areaEmAPP).toFixed(4)} ha × ${formatarMoeda(valores.menor_valor)}/ha × ${fator.toFixed(4)} = ${formatarMoeda(resultados.danoInterino.menor)}
+
+  ► Média:
+    ${(areaEmAPP).toFixed(4)} ha × ${formatarMoeda(valores.media)}/ha × ${fator.toFixed(4)} = ${formatarMoeda(resultados.danoInterino.media)}
+
+  ► Maior valor:
+    ${(areaEmAPP).toFixed(4)} ha × ${formatarMoeda(valores.maior_valor)}/ha × ${fator.toFixed(4)} = ${formatarMoeda(resultados.danoInterino.maior)}
+`;
+    }
+
+    // --- 3. DANO EXTRAPATRIMONIAL ---
+    memoriaCalculo += `
+═══════════════════════════════════════════════════
+ 3. DANO EXTRAPATRIMONIAL
+═══════════════════════════════════════════════════
+
+  3a) Mercado Voluntário de Carbono
+  Fórmula: (A₁ + A₂) × Preço CO₂ Mercado (R$) × Estoque CO₂/ha
+
+  ► Cálculo:
+    ${areaTotal.toFixed(4)} ha × ${formatarMoeda(parametros.precoMercadoCO2BRL)}/tCO₂ × ${estoqueCO2} tCO₂/ha
+    = ${formatarMoeda(resultados.danoExtrapatrimonialMercado)}
+
+  3b) Custo Social do Carbono (CSC - Cenário SSP2/RCP6.0)
+  Fórmula: (A₁ + A₂) × Preço Social CO₂ (R$) × Estoque CO₂/ha
+
+  ► Cálculo:
+    ${areaTotal.toFixed(4)} ha × ${formatarMoeda(parametros.precoSocialCO2BRL)}/tCO₂ × ${estoqueCO2} tCO₂/ha
+    = ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+
+`;
+
+    // --- 4. TOTAIS ---
+    memoriaCalculo += `═══════════════════════════════════════════════════
+ 4. TOTAIS (Material + Interino + Extrapatrimonial)
+═══════════════════════════════════════════════════
+
+  Fórmula: Total = Dano Material + Dano Interino + Dano Extrapatrimonial (mercado) + Dano Climático
+
+  ► Total (menor valor):
+    ${formatarMoeda(resultados.danoMaterial.menor)} + ${formatarMoeda(resultados.danoInterino.menor)} + ${formatarMoeda(resultados.danoExtrapatrimonialMercado)} + ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+    = ${formatarMoeda(resultados.totais.menor)}
+
+  ► Total (média):
+    ${formatarMoeda(resultados.danoMaterial.media)} + ${formatarMoeda(resultados.danoInterino.media)} + ${formatarMoeda(resultados.danoExtrapatrimonialMercado)} + ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+    = ${formatarMoeda(resultados.totais.media)}
+
+  ► Total (maior valor):
+    ${formatarMoeda(resultados.danoMaterial.maior)} + ${formatarMoeda(resultados.danoInterino.maior)} + ${formatarMoeda(resultados.danoExtrapatrimonialMercado)} + ${formatarMoeda(resultados.danoExtrapatrimonialSocial)}
+    = ${formatarMoeda(resultados.totais.maior)}
+
+`;
+
+    // --- Cenários de reparação ---
+    memoriaCalculo += `═══════════════════════════════════════════════════
+ CENÁRIOS QUANTO À REPARAÇÃO
+═══════════════════════════════════════════════════
+
+1) Hipótese da recuperação da área desmatada (recuperação in situ):
 Quando houver recuperação da área desmatada (recuperação in situ) por danos em área de reserva legal (ARL), área de preservação permanente (APP) ou áreas excedentes caso ele opte pela reparação in natura e in situ, degradador deverá indenizar os danos interinos no valor de ${formatarMoeda(resultados.danoInterino.media)} (além de indenizar os danos extrapatrimoniais). Neste cenário, o proprietário deverá apresentar e executar Projeto de Recuperação de Áreas Degradadas (PRADA) ou laudo de constatação de reparação do dano ambiental. Alternativamente, a parte requerida poderá realizar a compensação ecológica do dano interino e extrapatrimonial (veja a seguir).
 
-Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado)
+2) Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):
 Quando não houver reparação in situ (área passível de exploração), deverá ser realizada a compensação ecológica ou o pagamento de indenização, para que o proprietário possa regularizar a exploração da área. Neste caso, a valoração (dano material) varia de ${formatarMoeda(resultados.danoMaterial.menor)} a ${formatarMoeda(resultados.danoMaterial.maior)}, tendo como média ${formatarMoeda(resultados.danoMaterial.media)}. Também deverão ser reparados os danos climáticos, estimados em ${formatarMoeda(resultados.danoExtrapatrimonialSocial)} e extrapatrimoniais (${formatarMoeda(resultados.danoExtrapatrimonialMercado)}).
 
 COMPENSAÇÃO ECOLÓGICA
@@ -396,7 +543,9 @@ Regras para a instituição de RPPN:
 
 Na hipótese de RPPN, toda a área protegida continuará ser de propriedade da parte requerida, que poderá aferir renda com a venda de créditos de carbono e cotas de reserva ambiental (CRA) para imóveis com déficit de áreas de reserva legal.
 
-REFERÊNCIAS BIBLIOGRÁFICAS
+═══════════════════════════════════════════════════
+ REFERÊNCIAS BIBLIOGRÁFICAS
+═══════════════════════════════════════════════════
 
 GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM), 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em <https://damnum.netlify.app/metodologia.pdf>.
 
@@ -404,7 +553,16 @@ BRASIL. Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renovávei
 
 RICKE, Katharine et al. Country-level social cost of carbon. Nature Climate Change, v. 8, n. 10, p. 895-900, 2018. Disponível em: <https://www.nature.com/articles/s41558-018-0282-y>.`;
 
-    return relatorio;
+    const cabecalho = `RELATÓRIO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL
+
+Data da valoração: ${dataAtual}
+Bioma: ${bioma}
+Entendimento: ${nomeEntendimento}
+DAMNUM v. 5.0
+
+`;
+
+    return cabecalho + memoriaCalculo;
 }
 
 function baixarRelatorioPDF() {
@@ -627,11 +785,11 @@ function calcularValoracao() {
     const danoExtrapatrimonialMercado = calcularDanoExtrapatrimonialMercado(bioma, areaForaAPP, areaEmAPP);
     const danoExtrapatrimonialSocial = calcularDanoExtrapatrimonialSocial(bioma, areaForaAPP, areaEmAPP);
 
-    // Calcular totais
+    // Calcular totais (material + interino + extrapatrimonial mercado + dano climático social)
     const totais = {
-        menor: danoMaterial.menor + danoInterino.menor + danoExtrapatrimonialMercado,
-        media: danoMaterial.media + danoInterino.media + danoExtrapatrimonialMercado,
-        maior: danoMaterial.maior + danoInterino.maior + danoExtrapatrimonialMercado
+        menor: danoMaterial.menor + danoInterino.menor + danoExtrapatrimonialMercado + danoExtrapatrimonialSocial,
+        media: danoMaterial.media + danoInterino.media + danoExtrapatrimonialMercado + danoExtrapatrimonialSocial,
+        maior: danoMaterial.maior + danoInterino.maior + danoExtrapatrimonialMercado + danoExtrapatrimonialSocial
     };
 
     // Atualizar interface
