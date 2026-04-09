@@ -501,43 +501,61 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     // 1. DANO MATERIAL
     html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
     html += '<h4 style="font-size:12pt; color:#2c3e50;">1. DANO MATERIAL (Dano Ecológico / Dano Direto)</h4>';
-    html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Material = A<sub>1</sub> × Custo de Reparação/ha</p>';
-    html += '<p style="margin-left:10px;">Onde: A<sub>1</sub> = Área desmatada fora de APP e ARL = ' + (areaForaAPP || 0).toFixed(4) + ' ha</p>';
 
-    if (!areaForaAPP || areaForaAPP <= 0) {
-        html += '<p style="margin-left:10px; color:#888;"><em>Não há área fora de APP/ARL informada, portanto: Dano Material = R$ 0,00</em></p>';
+    const areaDanoMaterial = resultados.reparacaoInSitu ? (areaForaAPP || 0) : ((areaForaAPP || 0) + (areaEmAPP || 0));
+
+    if (!resultados.reparacaoInSitu && areaEmAPP > 0) {
+        html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Material = (A<sub>1</sub> + A<sub>2</sub>) × Custo de Reparação/ha</p>';
+        html += '<p style="margin-left:10px;">Onde: A<sub>1</sub> + A<sub>2</sub> = Área total desmatada = ' + areaDanoMaterial.toFixed(4) + ' ha</p>';
+        html += '<p style="margin-left:10px; font-size:10pt; color:#666;"><em>(Inclui a área em APP/ARL pois a reparação in situ não será promovida)</em></p>';
+    } else {
+        html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Material = A<sub>1</sub> × Custo de Reparação/ha</p>';
+        html += '<p style="margin-left:10px;">Onde: A<sub>1</sub> = Área desmatada fora de APP e ARL = ' + (areaForaAPP || 0).toFixed(4) + ' ha</p>';
+    }
+
+    if (areaDanoMaterial <= 0) {
+        html += '<p style="margin-left:10px; color:#888;"><em>Não há área informada para cálculo do dano material, portanto: Dano Material = R$ 0,00</em></p>';
     } else if (entendimento === 'irdr') {
-        html += '<p style="margin-left:10px; color:#888;"><em>Entendimento IRDR 13/TJMT: todo o dano material para área fora de APP e ARL é igual a zero (remanesce apenas o dano extrapatrimonial). Dano Material = R$ 0,00</em></p>';
+        html += '<p style="margin-left:10px; color:#888;"><em>Entendimento IRDR 13/TJMT: todo o dano material é igual a zero (remanesce apenas o dano extrapatrimonial). Dano Material = R$ 0,00</em></p>';
     } else {
         html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-        html += '&nbsp;&nbsp;' + (areaForaAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha = ' + formatarMoeda(resultados.danoMaterial) + '</p>';
+        html += '&nbsp;&nbsp;' + areaDanoMaterial.toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha = ' + formatarMoeda(resultados.danoMaterial) + '</p>';
         html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO MATERIAL = ' + formatarMoeda(resultados.danoMaterial) + '</div>';
     }
 
-    if (resultados.reparacaoInSitu) {
+    if (areaEmAPP > 0) {
         html += '<div style="background:#fef9e7; padding:8px 12px; margin:8px 10px; border-left:3px solid #d4ac0d; border-radius:3px; font-size:11pt;">';
-        html += '<b>Nota:</b> Havendo reparação <em>in situ</em> da área em APP/ARL, o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b> (abaixo).';
+        if (resultados.reparacaoInSitu) {
+            html += '<b>Nota:</b> Havendo reparação <em>in situ</em> da área em APP/ARL, o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b> (abaixo).';
+        } else {
+            html += '<b>Nota:</b> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + (areaEmAPP || 0).toFixed(4) + ' ha).';
+        }
         html += '</div>';
     }
 
     // 2. DANO INTERINO
     html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
     html += '<h4 style="font-size:12pt; color:#2c3e50;">2. DANO INTERINO</h4>';
-    html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Interino = A<sub>2</sub> × Custo de Reparação/ha × Fator</p>';
-    html += '<p style="margin-left:10px;">Onde:<br>';
-    html += '&nbsp;&nbsp;A<sub>2</sub> = Área desmatada em APP e ARL = ' + (areaEmAPP || 0).toFixed(4) + ' ha<br>';
-    html += '&nbsp;&nbsp;Fator = i × (t + 1) / 2</p>';
-    html += '<p style="margin-left:20px;"><b>Cálculo do Fator:</b><br>';
-    html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × (' + parametros.tempoRecuperacao + ' + 1) / 2<br>';
-    html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × ' + (parametros.tempoRecuperacao + 1) + ' / 2<br>';
-    html += '&nbsp;&nbsp;Fator = ' + fator.toFixed(4) + '</p>';
 
-    if (!areaEmAPP || areaEmAPP <= 0) {
-        html += '<p style="margin-left:10px; color:#888;"><em>Não há área em APP/ARL informada, portanto: Dano Interino = R$ 0,00</em></p>';
+    if (!resultados.reparacaoInSitu && areaEmAPP > 0) {
+        html += '<p style="margin-left:10px; color:#888;"><em>Considerando que a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área em APP/ARL). Dano Interino = R$ 0,00</em></p>';
     } else {
-        html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-        html += '&nbsp;&nbsp;' + (areaEmAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha × ' + fator.toFixed(4) + ' = ' + formatarMoeda(resultados.danoInterino) + '</p>';
-        html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO INTERINO = ' + formatarMoeda(resultados.danoInterino) + '</div>';
+        html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Interino = A<sub>2</sub> × Custo de Reparação/ha × Fator</p>';
+        html += '<p style="margin-left:10px;">Onde:<br>';
+        html += '&nbsp;&nbsp;A<sub>2</sub> = Área desmatada em APP e ARL = ' + (areaEmAPP || 0).toFixed(4) + ' ha<br>';
+        html += '&nbsp;&nbsp;Fator = i × (t + 1) / 2</p>';
+        html += '<p style="margin-left:20px;"><b>Cálculo do Fator:</b><br>';
+        html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × (' + parametros.tempoRecuperacao + ' + 1) / 2<br>';
+        html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × ' + (parametros.tempoRecuperacao + 1) + ' / 2<br>';
+        html += '&nbsp;&nbsp;Fator = ' + fator.toFixed(4) + '</p>';
+
+        if (!areaEmAPP || areaEmAPP <= 0) {
+            html += '<p style="margin-left:10px; color:#888;"><em>Não há área em APP/ARL informada, portanto: Dano Interino = R$ 0,00</em></p>';
+        } else {
+            html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+            html += '&nbsp;&nbsp;' + (areaEmAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha × ' + fator.toFixed(4) + ' = ' + formatarMoeda(resultados.danoInterino) + '</p>';
+            html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO INTERINO = ' + formatarMoeda(resultados.danoInterino) + '</div>';
+        }
     }
 
     // 3. DANO EXTRAPATRIMONIAL
@@ -688,9 +706,22 @@ function calcularValoracao() {
     const areaTotal = areaForaAPP + areaEmAPP;
     registrarValoracaoGlobal(bioma, areaTotal);
 
+    // Verificar estado do checkbox de reparação in situ
+    const reparacaoInSitu = document.getElementById('reparacaoInSitu').checked && areaEmAPP > 0;
+
     // Calcular todos os danos
-    const danoMaterial = calcularDanoMaterial(bioma, areaForaAPP);
-    const danoInterino = calcularDanoInterino(bioma, areaEmAPP);
+    let danoMaterial, danoInterino;
+
+    if (reparacaoInSitu) {
+        // Com reparação in situ: dano material só para área fora APP; dano interino para área em APP
+        danoMaterial = calcularDanoMaterial(bioma, areaForaAPP);
+        danoInterino = calcularDanoInterino(bioma, areaEmAPP);
+    } else {
+        // Sem reparação in situ: dano material inclui área em APP; sem dano interino
+        danoMaterial = calcularDanoMaterial(bioma, areaForaAPP + areaEmAPP);
+        danoInterino = 0;
+    }
+
     const danoExtrapatrimonialMercado = calcularDanoExtrapatrimonialMercado(bioma, areaForaAPP, areaEmAPP);
     const danoExtrapatrimonialSocial = calcularDanoExtrapatrimonialSocial(bioma, areaForaAPP, areaEmAPP);
     const total = danoMaterial + danoInterino + danoExtrapatrimonialMercado + danoExtrapatrimonialSocial;
@@ -702,10 +733,18 @@ function calcularValoracao() {
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(danoExtrapatrimonialSocial);
     document.getElementById('totalMedia').textContent = formatarMoeda(total);
 
-    // Mostrar nota do dano material quando há área em APP com reparação in situ
-    const reparacaoInSitu = document.getElementById('reparacaoInSitu').checked;
+    // Mostrar nota do dano material
     const notaDanoMaterial = document.getElementById('notaDanoMaterial');
-    notaDanoMaterial.style.display = (areaEmAPP > 0 && reparacaoInSitu) ? '' : 'none';
+    if (areaEmAPP > 0) {
+        notaDanoMaterial.style.display = '';
+        if (reparacaoInSitu) {
+            notaDanoMaterial.innerHTML = '<strong>Nota:</strong> Se o dano é em área protegida (APP/ARL) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.';
+        } else {
+            notaDanoMaterial.innerHTML = '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + areaEmAPP.toFixed(4) + ' ha).';
+        }
+    } else {
+        notaDanoMaterial.style.display = 'none';
+    }
 
     // Gerar relatório
     const resultados = {
@@ -714,7 +753,7 @@ function calcularValoracao() {
         danoExtrapatrimonialMercado,
         danoExtrapatrimonialSocial,
         total,
-        reparacaoInSitu: reparacaoInSitu && areaEmAPP > 0
+        reparacaoInSitu: reparacaoInSitu
     };
 
     const relatorio = gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados);
