@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- docx e FileSaver removidos - usando apenas PDF e copiar -->
 </head>
 <body>
     <!-- Barra de Cookies -->
@@ -149,72 +148,42 @@
 
             <div id="resultado" class="resultado-container" style="display: none;">
                 <h3>Resultado da Valoração</h3>
-                
+
                 <div class="resultado-secao">
                     <h4>Dano Material (área fora de APP e ARL)</h4>
-                    <div class="valores-container">
-                        <div class="valor-item">
-                            <span class="label">Menor valor:</span>
-                            <span id="danoMaterialMenor" class="valor"></span>
-                        </div>
-                        <div class="valor-item valor-destaque-medio">
-                            <span class="label">Média:</span>
-                            <span id="danoMaterialMedia" class="valor"></span>
-                        </div>
-                        <div class="valor-item">
-                            <span class="label">Maior valor:</span>
-                            <span id="danoMaterialMaior" class="valor"></span>
-                        </div>
+                    <div class="valor-item valor-destaque-medio">
+                        <span class="label">Valor:</span>
+                        <span id="danoMaterialMedia" class="valor"></span>
                     </div>
                 </div>
 
                 <div class="resultado-secao">
                     <h4>Dano Interino (área em APP e ARL)</h4>
-                    <div class="valores-container">
-                        <div class="valor-item">
-                            <span class="label">Menor valor:</span>
-                            <span id="danoInterinoMenor" class="valor"></span>
-                        </div>
-                        <div class="valor-item valor-destaque-medio">
-                            <span class="label">Média:</span>
-                            <span id="danoInterinoMedia" class="valor"></span>
-                        </div>
-                        <div class="valor-item">
-                            <span class="label">Maior valor:</span>
-                            <span id="danoInterinoMaior" class="valor"></span>
-                        </div>
+                    <div class="valor-item valor-destaque-medio">
+                        <span class="label">Valor:</span>
+                        <span id="danoInterinoMedia" class="valor"></span>
                     </div>
                 </div>
 
                 <div class="resultado-secao">
-                    <h4>Dano Extrapatrimonial (Mercado Voluntário)</h4>
+                    <h4>Dano Extrapatrimonial (Mercado Voluntário de Carbono)</h4>
                     <div class="valor-item">
                         <span id="danoExtrapatrimonialMercado" class="valor-destaque"></span>
                     </div>
                 </div>
 
                 <div class="resultado-secao">
-                    <h4>Dano Extrapatrimonial (Cenário SSP2/RCP6.0)</h4>
+                    <h4>Dano Climático (Custo Social do Carbono)</h4>
                     <div class="valor-item">
                         <span id="danoExtrapatrimonialSocial" class="valor-destaque"></span>
                     </div>
                 </div>
 
                 <div class="resultado-secao totais">
-                    <h4>Totais</h4>
-                    <div class="valores-container">
-                        <div class="valor-item">
-                            <span class="label">Total (menor valor):</span>
-                            <span id="totalMenor" class="valor-total"></span>
-                        </div>
-                        <div class="valor-item valor-destaque-medio">
-                            <span class="label">Total (média):</span>
-                            <span id="totalMedia" class="valor-total"></span>
-                        </div>
-                        <div class="valor-item">
-                            <span class="label">Total (maior valor):</span>
-                            <span id="totalMaior" class="valor-total"></span>
-                        </div>
+                    <h4>Total</h4>
+                    <div class="valor-item valor-destaque-medio">
+                        <span class="label">Valor total:</span>
+                        <span id="totalMedia" class="valor-total"></span>
                     </div>
                 </div>
 
@@ -222,8 +191,8 @@
                     <div class="relatorio-header">
                         <h4>Relatório de Valoração dos Danos Ambientais Decorrentes de Desmatamento Ilegal</h4>
                         <div class="relatorio-acoes">
+                            <button id="btnCopiar" class="btn-download">📋 Copiar</button>
                             <button id="btnDownloadPDF" class="btn-download">📄 Baixar PDF</button>
-                            <button id="btnDownloadDOCX" class="btn-download">📝 Baixar DOCX</button>
                             <a href="contato.html" class="btn-feedback">💬 Dê o feedback sobre a aplicação</a>
                         </div>
                     </div>
