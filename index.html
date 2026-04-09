@@ -29,6 +29,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link active">Início</a></li>
                 <li><a href="metodologia.html" class="nav-link">Metodologia</a></li>
+                <li><a href="entendimentos.html" class="nav-link">Entendimentos</a></li>
                 <li><a href="contato.html" class="nav-link">Contato</a></li>
             </ul>
         </div>
@@ -38,7 +39,7 @@
         <header>
             <h1>DAMNUM</h1>
             <h2>Valoração de Danos Ambientais Decorrentes de Desmatamento Ilegal</h2>
-            <p class="version">v. 5.6</p>
+            <p class="version">v. 6.0</p>
         </header>
 
         <main>
@@ -63,7 +64,7 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="entendimento">Selecione o Entendimento:</label>
+                    <label for="entendimento">Selecione o Entendimento: <a href="entendimentos.html" target="_blank" title="Saiba mais sobre os entendimentos" style="text-decoration:none; font-size:1.1em; vertical-align:middle; color:#2c5530;">&#9432;</a></label>
                     <select id="entendimento" name="entendimento" required>
                         <option value="gonzaga">Gonzaga et al. (2025)</option>
                         <option value="irdr">IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)</option>
@@ -199,10 +200,10 @@
                     </div>
                     <div id="correcaoMonetariaContainer" style="display:none; margin-top:10px;">
                         <div class="valor-item valor-destaque-medio" style="background:#fff3cd; border-color:#ffc107;">
-                            <span class="label">Valor total corrigido (IPCA):</span>
+                            <span class="label">Valor total atualizado (SELIC/IPCA-15): <a href="entendimentos.html#atualizacao" target="_blank" title="Saiba mais sobre a atualização monetária" style="text-decoration:none; font-size:1.1em; color:#2c5530;">&#9432;</a></span>
                             <span id="totalCorrigido" class="valor-total"></span>
                         </div>
-                        <p id="correcaoInfo" style="font-size:0.8em; color:#666; margin:5px 0 0 0;"></p>
+                        <p id="correcaoInfo" style="font-size:0.75em; color:#666; margin:5px 0 0 0; line-height:1.4;"></p>
                     </div>
                     <p id="notaDataDano" style="display:none; font-size:0.85em; color:#8b4513; margin:8px 0 0 0; padding:8px 12px; background:#fef9e7; border-left:3px solid #d4ac0d; border-radius:3px; line-height:1.5;"></p>
                 </div>

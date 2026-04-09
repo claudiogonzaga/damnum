@@ -424,108 +424,208 @@ function formatarData(data) {
     return data.toLocaleDateString('pt-BR');
 }
 
-// Buscar índice IPCA para um período específico (YYYYMM) via API do IBGE
-async function buscarIndiceIPCA(periodo) {
-    try {
-        const url = 'https://servicodados.ibge.gov.br/api/v3/agregados/1737/periodos/'
-            + periodo
-            + '/variaveis/2266?localidades=N1[all]';
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Erro IBGE');
-        const data = await response.json();
-        const valor = data[0].resultados[0].series[0].serie[periodo];
-        if (!valor || valor === '...') return null;
-        return parseFloat(valor);
-    } catch (e) {
-        console.error('Erro ao buscar IPCA para ' + periodo + ':', e);
-        return null;
-    }
+// ============================================================
+// ATUALIZAÇÃO MONETÁRIA JUDICIAL (SELIC + IPCA-15)
+// Conforme Tema 1.368/STJ e Lei 14.905/2024
+// ============================================================
+
+// Data de corte: entrada em vigor da Lei 14.905/2024
+var DATA_CORTE_LEI_14905 = new Date(2024, 7, 30); // 30/08/2024
+
+// Formatar data para API do BCB (DD/MM/YYYY)
+function formatarDataBCB(d) {
+    return d.getDate().toString().padStart(2, '0') + '/' +
+           (d.getMonth() + 1).toString().padStart(2, '0') + '/' +
+           d.getFullYear();
 }
 
-// Calcular correção monetária entre data do dano e data atual
-async function calcularCorrecaoMonetaria() {
-    const dataDano = obterDataDano();
-    const dataAtual = new Date();
-    const usouDataHoje = !document.getElementById('dataDano').value;
+// Buscar fator SELIC acumulado entre duas datas via API do BCB
+// Usa série 11 (taxa diária efetiva, % a.d.)
+async function buscarFatorSELIC(dataInicio, dataFim) {
+    var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json'
+        + '&dataInicial=' + formatarDataBCB(dataInicio)
+        + '&dataFinal=' + formatarDataBCB(dataFim);
 
-    // Se não informou data do dano ou data é do mês atual, sem correção
+    var response = await fetch(url);
+    if (!response.ok) throw new Error('Erro ao acessar API do Banco Central (série 11)');
+    var dados = await response.json();
+
+    if (!dados || dados.length === 0) {
+        throw new Error('Sem dados SELIC para o período solicitado');
+    }
+
+    // Compor fator acumulado: cada valor é % a.d. (ex: 0.043739)
+    var fator = 1.0;
+    for (var i = 0; i < dados.length; i++) {
+        var taxa = parseFloat(dados[i].valor);
+        if (!isNaN(taxa)) {
+            fator *= (1 + taxa / 100);
+        }
+    }
+
+    return {
+        fator: fator,
+        diasUteis: dados.length,
+        dataInicio: dados[0].data,
+        dataFim: dados[dados.length - 1].data
+    };
+}
+
+// Buscar variações mensais do IPCA-15 via IBGE (tabela 7062, variável 355)
+// Retorna objeto com fator acumulado e detalhes mensais
+async function buscarFatorIPCA15(dataInicio, dataFim) {
+    var periodos = [];
+    var d = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
+    var fim = new Date(dataFim.getFullYear(), dataFim.getMonth(), 1);
+    while (d <= fim) {
+        periodos.push(d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0'));
+        d.setMonth(d.getMonth() + 1);
+    }
+
+    if (periodos.length === 0) return { fator: 1.0, periodos: 0 };
+
+    var url = 'https://servicodados.ibge.gov.br/api/v3/agregados/7062/periodos/'
+        + periodos.join('|')
+        + '/variaveis/355?localidades=N1[all]';
+
+    var response = await fetch(url);
+    if (!response.ok) throw new Error('Erro IBGE IPCA-15');
+    var data = await response.json();
+
+    var series = data[0].resultados[0].series[0].serie;
+    var fator = 1.0;
+    var mesesUsados = 0;
+    var variacoes = [];
+    for (var j = 0; j < periodos.length; j++) {
+        var p = periodos[j];
+        if (series[p] && series[p] !== '...') {
+            var val = parseFloat(series[p]);
+            if (!isNaN(val)) {
+                fator *= (1 + val / 100);
+                mesesUsados++;
+                variacoes.push({ periodo: p, variacao: val });
+            }
+        }
+    }
+
+    return { fator: fator, periodos: mesesUsados, variacoes: variacoes };
+}
+
+// Buscar SELIC mensal acumulada via BCB (série 4390)
+// Retorna array de {periodo: 'MM/YYYY', taxa: X}
+async function buscarSELICMensal(dataInicio, dataFim) {
+    var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json'
+        + '&dataInicial=' + formatarDataBCB(dataInicio)
+        + '&dataFinal=' + formatarDataBCB(dataFim);
+
+    var response = await fetch(url);
+    if (!response.ok) throw new Error('Erro BCB série 4390');
+    var dados = await response.json();
+
+    return dados.map(function(item) {
+        return { data: item.data, taxa: parseFloat(item.valor) };
+    });
+}
+
+// Calcular correção judicial conforme Tema 1.368/STJ e Lei 14.905/2024
+// Aplica-se APENAS a danos patrimoniais (material + interino)
+// Danos extrapatrimoniais: correção desde arbitramento (= hoje), sem aplicação
+async function calcularCorrecaoJudicial() {
+    var dataDano = obterDataDano();
+    var dataAtual = new Date();
+    var usouDataHoje = !document.getElementById('dataDano').value;
+
     if (usouDataHoje) {
-        return { fator: 1.0, aplicada: false, motivo: 'Data do dano não informada (usando data de hoje)' };
+        return { aplicada: false, motivo: 'Data do dano não informada (usando data de hoje)' };
     }
 
-    const mesAtual = dataAtual.getFullYear().toString() + (dataAtual.getMonth() + 1).toString().padStart(2, '0');
-    const mesDano = dataDano.getFullYear().toString() + (dataDano.getMonth() + 1).toString().padStart(2, '0');
-
-    if (mesDano >= mesAtual) {
-        return { fator: 1.0, aplicada: false, motivo: 'Data do dano é do mês atual ou futura' };
-    }
-
-    // Buscar os últimos meses disponíveis para o período atual
-    var periodoAtualBusca = [];
-    for (var i = 0; i < 6; i++) {
-        var d = new Date(dataAtual.getFullYear(), dataAtual.getMonth() - i, 1);
-        periodoAtualBusca.push(d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0'));
+    // Verificar se data é atual ou futura
+    if (dataDano.toDateString() === dataAtual.toDateString() || dataDano > dataAtual) {
+        return { aplicada: false, motivo: 'Data do dano é atual ou futura' };
     }
 
     try {
-        // Buscar índice do mês do dano
-        var indiceDano = await buscarIndiceIPCA(mesDano);
+        var resultado = {
+            aplicada: true,
+            fatorTotal: 1.0,
+            periodo1: null,
+            periodo2: null,
+            dataCorte: '30/08/2024'
+        };
 
-        // Se o IPCA do mês exato não existe, tentar o mês seguinte
-        if (!indiceDano) {
-            var dSeg = new Date(dataDano.getFullYear(), dataDano.getMonth() + 1, 1);
-            var mesSeg = dSeg.getFullYear().toString() + (dSeg.getMonth() + 1).toString().padStart(2, '0');
-            indiceDano = await buscarIndiceIPCA(mesSeg);
+        // ============================
+        // PERÍODO 1: até 29/08/2024
+        // SELIC = correção + juros
+        // ============================
+        if (dataDano < DATA_CORTE_LEI_14905) {
+            var fimP1 = dataAtual < DATA_CORTE_LEI_14905 ? dataAtual : new Date(2024, 7, 29);
+            var selicP1 = await buscarFatorSELIC(dataDano, fimP1);
+            resultado.periodo1 = {
+                fator: selicP1.fator,
+                diasUteis: selicP1.diasUteis,
+                dataInicio: selicP1.dataInicio,
+                dataFim: selicP1.dataFim,
+                indice: 'SELIC',
+                fundamento: 'Tema 1.368/STJ (art. 406 CC)'
+            };
+            resultado.fatorTotal *= selicP1.fator;
         }
 
-        if (!indiceDano) {
-            return { fator: 1.0, aplicada: false, motivo: 'Não foi possível obter o IPCA para o período do dano (' + mesDano + ')' };
-        }
+        // ============================
+        // PERÍODO 2: a partir de 30/08/2024
+        // IPCA-15 (correção) + max(SELIC-IPCA15, 0) (juros)
+        // ============================
+        if (dataAtual > DATA_CORTE_LEI_14905) {
+            var inicioP2 = dataDano > DATA_CORTE_LEI_14905 ? dataDano : DATA_CORTE_LEI_14905;
 
-        // Buscar índice mais recente
-        var indiceAtual = null;
-        var periodoUsado = null;
-        var urlAtual = 'https://servicodados.ibge.gov.br/api/v3/agregados/1737/periodos/'
-            + periodoAtualBusca.join('|')
-            + '/variaveis/2266?localidades=N1[all]';
-        var respAtual = await fetch(urlAtual);
-        if (respAtual.ok) {
-            var dataResp = await respAtual.json();
-            var series = dataResp[0].resultados[0].series[0].serie;
-            for (var j = 0; j < periodoAtualBusca.length; j++) {
-                var p = periodoAtualBusca[j];
-                if (series[p] && series[p] !== '...') {
-                    var val = parseFloat(series[p]);
-                    if (!isNaN(val) && val > 0) {
-                        if (!periodoUsado || p > periodoUsado) {
-                            indiceAtual = val;
-                            periodoUsado = p;
-                        }
+            // Buscar SELIC diária para o Período 2 (resultado preciso)
+            var selicP2 = await buscarFatorSELIC(inicioP2, dataAtual);
+
+            // Tentar buscar IPCA-15 e SELIC mensal para decomposição
+            var ipca15Info = null;
+            var jurosInfo = null;
+            try {
+                var ipca15 = await buscarFatorIPCA15(inicioP2, dataAtual);
+                var selicMensal = await buscarSELICMensal(inicioP2, dataAtual);
+
+                // Calcular juros = max(SELIC_mensal - IPCA15_mensal, 0) para cada mês
+                var fatorJuros = 1.0;
+                if (ipca15.variacoes && selicMensal) {
+                    for (var k = 0; k < Math.min(ipca15.variacoes.length, selicMensal.length); k++) {
+                        var jurosMes = Math.max(selicMensal[k].taxa - ipca15.variacoes[k].variacao, 0);
+                        fatorJuros *= (1 + jurosMes / 100);
                     }
                 }
+
+                ipca15Info = {
+                    fator: ipca15.fator,
+                    periodos: ipca15.periodos
+                };
+                jurosInfo = {
+                    fator: fatorJuros
+                };
+            } catch (e) {
+                console.warn('Não foi possível decompor IPCA-15/juros no Período 2:', e.message);
             }
+
+            resultado.periodo2 = {
+                fator: selicP2.fator,
+                diasUteis: selicP2.diasUteis,
+                dataInicio: selicP2.dataInicio,
+                dataFim: selicP2.dataFim,
+                indice: 'IPCA-15 + juros legais',
+                fundamento: 'Lei 14.905/2024 + Res. CMN 5.171/2024',
+                ipca15: ipca15Info,
+                juros: jurosInfo
+            };
+            resultado.fatorTotal *= selicP2.fator;
         }
 
-        if (!indiceAtual) {
-            return { fator: 1.0, aplicada: false, motivo: 'Não foi possível obter o IPCA atual' };
-        }
+        return resultado;
 
-        var fator = indiceAtual / indiceDano;
-        var meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-                     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-
-        return {
-            fator: fator,
-            aplicada: true,
-            indiceDano: indiceDano,
-            indiceAtual: indiceAtual,
-            periodoDano: meses[parseInt(mesDano.substring(4))] + '/' + mesDano.substring(0, 4),
-            periodoAtual: meses[parseInt(periodoUsado.substring(4))] + '/' + periodoUsado.substring(0, 4),
-            motivo: null
-        };
     } catch (e) {
-        console.error('Erro ao calcular correção monetária:', e);
-        return { fator: 1.0, aplicada: false, motivo: 'Erro ao consultar o IBGE: ' + e.message };
+        console.error('Erro na correção judicial:', e);
+        return { aplicada: false, motivo: 'Erro ao consultar o Banco Central: ' + e.message };
     }
 }
 
@@ -558,7 +658,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += 'Data do dano: ' + textoDataDano + '<br>';
     html += 'Bioma: ' + bioma + '<br>';
     html += 'Entendimento: ' + nomeEntendimento + '<br>';
-    html += 'DAMNUM v. 5.6</p>';
+    html += 'DAMNUM v. 6.0</p>';
     html += '<hr style="border:1px solid #999;">';
 
     // NOTA SOBRE VALORES (agora no início)
@@ -692,33 +792,63 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.total) + '</p>';
     html += '<div style="background:#c8e6c9; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">VALOR TOTAL = ' + formatarMoeda(resultados.total) + '</div>';
 
-    // 5. CORREÇÃO MONETÁRIA (se aplicável)
+    // 5. ATUALIZAÇÃO MONETÁRIA JUDICIAL
+    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
+    html += '<h4 style="font-size:12pt; color:#2c3e50;">5. ATUALIZAÇÃO MONETÁRIA E JUROS DE MORA</h4>';
+
     if (resultados.correcao && resultados.correcao.aplicada) {
-        html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
-        html += '<h4 style="font-size:12pt; color:#2c3e50;">5. CORREÇÃO MONETÁRIA (IPCA)</h4>';
-        html += '<p style="margin-left:10px;">Os valores acima foram calculados a preços da data do dano. Para atualização monetária, aplica-se a correção pelo IPCA/IBGE entre a data do dano e o período mais recente disponível.</p>';
-        html += '<table style="font-size:11pt; border-collapse:collapse; margin-left:10px;">';
-        html += '<tr><td style="padding:2px 10px;">Período do dano:</td><td><b>' + resultados.correcao.periodoDano + '</b></td></tr>';
-        html += '<tr><td style="padding:2px 10px;">Período atual:</td><td><b>' + resultados.correcao.periodoAtual + '</b></td></tr>';
-        html += '<tr><td style="padding:2px 10px;">Índice IPCA na data do dano:</td><td>' + resultados.correcao.indiceDano.toFixed(2) + '</td></tr>';
-        html += '<tr><td style="padding:2px 10px;">Índice IPCA atual:</td><td>' + resultados.correcao.indiceAtual.toFixed(2) + '</td></tr>';
-        html += '<tr><td style="padding:2px 10px;">Fator de correção:</td><td><b>' + resultados.correcao.fator.toFixed(4) + '</b></td></tr>';
+        // Explicação do framework jurídico
+        html += '<p style="margin-left:10px; text-align:justify;">A atualização monetária dos danos patrimoniais (material e interino) segue o regime do art. 406 do Código Civil, conforme interpretação do <b>Tema Repetitivo 1.368/STJ</b> (REsp 2.199.164/PR) e da <b>Lei 14.905/2024</b>, em dois períodos:</p>';
+
+        // Período 1
+        if (resultados.correcao.periodo1) {
+            html += '<div style="background:#e3f2fd; padding:8px 12px; margin:8px 10px; border-left:3px solid #1565c0; border-radius:3px; font-size:11pt;">';
+            html += '<b>Período 1</b> (' + resultados.correcao.periodo1.dataInicio + ' a ' + resultados.correcao.periodo1.dataFim + '): ';
+            html += '<b>Taxa SELIC</b> (engloba correção monetária + juros de mora). ';
+            html += 'Fator acumulado: <b>' + resultados.correcao.periodo1.fator.toFixed(6) + '</b> (' + resultados.correcao.periodo1.diasUteis + ' dias úteis). ';
+            html += '<br><em>Fundamento: ' + resultados.correcao.periodo1.fundamento + '.</em></div>';
+        }
+
+        // Período 2
+        if (resultados.correcao.periodo2) {
+            html += '<div style="background:#fff8e1; padding:8px 12px; margin:8px 10px; border-left:3px solid #f9a825; border-radius:3px; font-size:11pt;">';
+            html += '<b>Período 2</b> (' + resultados.correcao.periodo2.dataInicio + ' a ' + resultados.correcao.periodo2.dataFim + '): ';
+            html += '<b>IPCA-15</b> (correção monetária) + <b>juros legais</b> (SELIC – IPCA-15, mínimo de 0%). ';
+            html += 'Fator acumulado: <b>' + resultados.correcao.periodo2.fator.toFixed(6) + '</b>';
+            if (resultados.correcao.periodo2.ipca15) {
+                html += ' [IPCA-15: ' + resultados.correcao.periodo2.ipca15.fator.toFixed(6) + '; juros: ' + (resultados.correcao.periodo2.juros ? resultados.correcao.periodo2.juros.fator.toFixed(6) : 'n/d') + ']';
+            }
+            html += '. ';
+            html += '<br><em>Fundamento: ' + resultados.correcao.periodo2.fundamento + '.</em></div>';
+        }
+
+        // Cálculo
+        html += '<p style="margin-left:10px; font-size:11pt;"><b>Fator de atualização total:</b> ' + resultados.correcao.fatorTotal.toFixed(6) + '</p>';
+
+        // Aplicação apenas a danos patrimoniais
+        html += '<table style="font-size:11pt; border-collapse:collapse; margin:8px 10px; border:1px solid #ccc;">';
+        html += '<tr style="background:#f5f5f5;"><th style="padding:4px 10px; text-align:left; border:1px solid #ccc;">Parcela</th><th style="padding:4px 10px; text-align:right; border:1px solid #ccc;">Valor original</th><th style="padding:4px 10px; text-align:right; border:1px solid #ccc;">Atualização</th><th style="padding:4px 10px; text-align:right; border:1px solid #ccc;">Valor atualizado</th></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Material + Interino</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.totalPatrimonial) + '</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">× ' + resultados.correcao.fatorTotal.toFixed(4) + '</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(resultados.totalPatrimonialCorrigido) + '</b></td></tr>';
+        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Extrapatrimonial</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.totalExtrapatrimonial) + '</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc; color:#888;">sem correção *</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(resultados.totalExtrapatrimonial) + '</b></td></tr>';
+        html += '<tr style="background:#f0f7f0;"><td style="padding:4px 10px; border:1px solid #ccc;"><b>TOTAL ATUALIZADO</b></td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.total) + '</td><td style="padding:4px 10px; border:1px solid #ccc;"></td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(resultados.totalCorrigido) + '</b></td></tr>';
         html += '</table>';
-        html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-        html += '&nbsp;&nbsp;Valor Total Corrigido = ' + formatarMoeda(resultados.total) + ' × ' + resultados.correcao.fator.toFixed(4) + '<br>';
-        html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.totalCorrigido) + '</p>';
-        html += '<div style="background:#fff3cd; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">VALOR TOTAL CORRIGIDO (IPCA) = ' + formatarMoeda(resultados.totalCorrigido) + '</div>';
+
+        html += '<p style="margin-left:10px; font-size:10pt; color:#666;">* Danos extrapatrimoniais: correção monetária a partir do arbitramento (Súmula 362/STJ). Na presente valoração (pré-processual), equivale à data do cálculo (hoje), não havendo correção a aplicar. Juros de mora incidirão a partir do evento danoso quando fixados em sentença ou TAC (Súmula 54/STJ).</p>';
+
+        html += '<div style="background:#fff3cd; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">VALOR TOTAL ATUALIZADO = ' + formatarMoeda(resultados.totalCorrigido) + '</div>';
+
+    } else if (usouDataHoje) {
+        // Data não informada
+        html += '<div style="background:#fce4ec; padding:10px 14px; border-left:4px solid #c62828; margin:12px 0; font-size:11pt;">';
+        html += '<b>Atenção:</b> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje e não houve atualização monetária. ';
+        html += 'Todavia, conforme a <b>Súmula 43/STJ</b>, a correção monetária dos danos materiais incide desde o efetivo prejuízo; e conforme a <b>Súmula 54/STJ</b>, os juros de mora incidem desde o evento danoso (responsabilidade extracontratual). ';
+        html += 'Os danos extrapatrimoniais são corrigidos desde o arbitramento (<b>Súmula 362/STJ</b>). ';
+        html += '<b>Recomenda-se inserir a data do dano</b> para que a atualização monetária pela SELIC/IPCA-15 seja calculada nos termos do <b>Tema 1.368/STJ</b> e da <b>Lei 14.905/2024</b>.</div>';
+    } else {
+        html += '<p style="margin-left:10px; color:#888;"><em>Sem atualização monetária aplicável: ' + (resultados.correcao ? resultados.correcao.motivo : 'data do dano é a data atual') + '.</em></p>';
     }
 
-    // Nota quando a data do dano não foi informada
-    if (usouDataHoje) {
-        html += '<div style="background:#fce4ec; padding:10px 14px; border-left:4px solid #c62828; margin:12px 0; font-size:11pt;">';
-        html += '<b>Atenção:</b> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. ';
-        html += 'Todavia, nos termos da <b>Súmula 43 do STJ</b> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) ';
-        html += 'e do entendimento consolidado do Superior Tribunal de Justiça (REsp 1.347.978/MG, entre outros), ';
-        html += '<b>a data correta para fins de correção monetária é a data do evento danoso</b>. ';
-        html += 'Recomenda-se inserir a data do dano no campo correspondente para que a correção monetária pelo IPCA seja calculada adequadamente.</div>';
-    }
+    html += '<p style="margin-left:10px; font-size:10pt; color:#555;"><em>Para detalhes sobre a metodologia de atualização monetária, consulte a aba <a href="entendimentos.html" target="_blank">Entendimentos</a>.</em></p>';
 
     // CENÁRIOS DE REPARAÇÃO
     html += '<hr style="border:1px solid #999; margin:20px 0;">';
@@ -898,15 +1028,29 @@ async function calcularValoracao() {
         notaDanoMaterial.style.display = 'none';
     }
 
-    // Correção monetária pela data do dano
+    // Correção judicial (SELIC/IPCA-15) — aplica-se apenas a danos patrimoniais
     var correcaoContainer = document.getElementById('correcaoMonetariaContainer');
-    var correcao = await calcularCorrecaoMonetaria();
+    var correcao = await calcularCorrecaoJudicial();
+    var totalPatrimonial = danoMaterial + danoInterino;
+    var totalExtrapatrimonial = danoExtrapatrimonialMercado + danoExtrapatrimonialSocial;
+    var totalPatrimonialCorrigido = totalPatrimonial;
     var totalCorrigido = total;
 
     if (correcao.aplicada) {
-        totalCorrigido = total * correcao.fator;
+        totalPatrimonialCorrigido = totalPatrimonial * correcao.fatorTotal;
+        totalCorrigido = totalPatrimonialCorrigido + totalExtrapatrimonial;
         document.getElementById('totalCorrigido').textContent = formatarMoeda(totalCorrigido);
-        document.getElementById('correcaoInfo').textContent = 'Correção pelo IPCA de ' + correcao.periodoDano + ' a ' + correcao.periodoAtual + ' (fator: ' + correcao.fator.toFixed(4) + ')';
+
+        var infoTexto = 'Correção aplicada aos danos patrimoniais (material + interino) pela SELIC';
+        if (correcao.periodo1 && correcao.periodo2) {
+            infoTexto += ': Período 1 (SELIC, fator ' + correcao.periodo1.fator.toFixed(4) + ') + Período 2 (IPCA-15 + juros, fator ' + correcao.periodo2.fator.toFixed(4) + ')';
+        } else if (correcao.periodo1) {
+            infoTexto += ' (fator: ' + correcao.periodo1.fator.toFixed(4) + ')';
+        } else if (correcao.periodo2) {
+            infoTexto += ' — Período 2: IPCA-15 + juros (fator: ' + correcao.periodo2.fator.toFixed(4) + ')';
+        }
+        infoTexto += '. Danos extrapatrimoniais sem correção (Súmula 362/STJ — arbitramento = hoje).';
+        document.getElementById('correcaoInfo').textContent = infoTexto;
         correcaoContainer.style.display = '';
     } else {
         correcaoContainer.style.display = 'none';
@@ -917,7 +1061,7 @@ async function calcularValoracao() {
     var usouDataHoje = !document.getElementById('dataDano').value;
     if (usouDataHoje) {
         notaDataDano.style.display = '';
-        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. Todavia, nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e do entendimento consolidado do Superior Tribunal de Justiça (REsp 1.347.978/MG, entre outros), <strong>a data correta para fins de correção monetária é a data do evento danoso</strong>. Recomenda-se inserir a data do dano no campo correspondente para que a correção monetária pelo IPCA seja calculada adequadamente.';
+        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. Todavia, nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a data correta para fins de atualização monetária dos danos patrimoniais (material e interino) é a <strong>data do evento danoso</strong>. Os danos extrapatrimoniais são corrigidos desde o arbitramento (Súmula 362/STJ). <a href="entendimentos.html" target="_blank" style="color:#2c5530;">Saiba mais sobre a metodologia de atualização →</a>';
     } else {
         notaDataDano.style.display = 'none';
     }
@@ -929,6 +1073,9 @@ async function calcularValoracao() {
         danoExtrapatrimonialMercado,
         danoExtrapatrimonialSocial,
         total,
+        totalPatrimonial: totalPatrimonial,
+        totalExtrapatrimonial: totalExtrapatrimonial,
+        totalPatrimonialCorrigido: totalPatrimonialCorrigido,
         totalCorrigido: totalCorrigido,
         correcao: correcao,
         reparacaoInSitu: reparacaoInSitu
