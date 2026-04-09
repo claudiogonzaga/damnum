@@ -943,22 +943,22 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 function baixarRelatorioPDF() {
     const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
 
-    // Criar container temporário fora da tela para o html2canvas capturar
-    const container = document.createElement('div');
+    // Criar container visível (não off-screen) para html2canvas renderizar corretamente
+    var container = document.createElement('div');
     container.innerHTML = document.getElementById('textoRelatorio').innerHTML;
-    container.style.cssText = 'position:absolute; left:-9999px; top:0; width:700px; padding:30px; background:white; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222;';
+    container.style.cssText = 'position:fixed; left:0; top:0; width:700px; padding:30px; background:white; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222; z-index:-1; opacity:0; pointer-events:none;';
     document.body.appendChild(container);
 
     var btn = document.getElementById('btnDownloadPDF');
     var textoOriginal = btn.innerHTML;
-    btn.innerHTML = 'Gerando PDF...';
+    btn.innerHTML = '<span class="btn-spinner"></span> Gerando PDF...';
     btn.disabled = true;
 
     var opt = {
         margin: [10, 10, 10, 15],
         filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: 700 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] }
     };
