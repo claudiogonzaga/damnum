@@ -981,6 +981,13 @@ async function calcularValoracao() {
         return;
     }
 
+  // Mostrar loading no botão
+    var btnCalc = document.querySelector('.btn-calcular');
+    var btnTextoOriginal = btnCalc.innerHTML;
+    btnCalc.innerHTML = '⏳ Calculando...';
+    btnCalc.disabled = true;
+    btnCalc.style.opacity = '0.7';
+
   try {
 
     // Incrementar contador local
@@ -1093,6 +1100,11 @@ async function calcularValoracao() {
   } catch (erro) {
     console.error('Erro ao calcular valoração:', erro);
     alert('Ocorreu um erro ao calcular a valoração: ' + erro.message + '\nVerifique o console do navegador para mais detalhes.');
+  } finally {
+    // Restaurar botão
+    btnCalc.innerHTML = btnTextoOriginal;
+    btnCalc.disabled = false;
+    btnCalc.style.opacity = '';
   }
 }
 
