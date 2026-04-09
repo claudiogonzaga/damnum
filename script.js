@@ -424,6 +424,111 @@ function formatarData(data) {
     return data.toLocaleDateString('pt-BR');
 }
 
+// Buscar índice IPCA para um período específico (YYYYMM) via API do IBGE
+async function buscarIndiceIPCA(periodo) {
+    try {
+        const url = 'https://servicodados.ibge.gov.br/api/v3/agregados/1737/periodos/'
+            + periodo
+            + '/variaveis/2266?localidades=N1[all]';
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Erro IBGE');
+        const data = await response.json();
+        const valor = data[0].resultados[0].series[0].serie[periodo];
+        if (!valor || valor === '...') return null;
+        return parseFloat(valor);
+    } catch (e) {
+        console.error('Erro ao buscar IPCA para ' + periodo + ':', e);
+        return null;
+    }
+}
+
+// Calcular correção monetária entre data do dano e data atual
+async function calcularCorrecaoMonetaria() {
+    const dataDano = obterDataDano();
+    const dataAtual = new Date();
+    const usouDataHoje = !document.getElementById('dataDano').value;
+
+    // Se não informou data do dano ou data é do mês atual, sem correção
+    if (usouDataHoje) {
+        return { fator: 1.0, aplicada: false, motivo: 'Data do dano não informada (usando data de hoje)' };
+    }
+
+    const mesAtual = dataAtual.getFullYear().toString() + (dataAtual.getMonth() + 1).toString().padStart(2, '0');
+    const mesDano = dataDano.getFullYear().toString() + (dataDano.getMonth() + 1).toString().padStart(2, '0');
+
+    if (mesDano >= mesAtual) {
+        return { fator: 1.0, aplicada: false, motivo: 'Data do dano é do mês atual ou futura' };
+    }
+
+    // Buscar os últimos meses disponíveis para o período atual
+    var periodoAtualBusca = [];
+    for (var i = 0; i < 6; i++) {
+        var d = new Date(dataAtual.getFullYear(), dataAtual.getMonth() - i, 1);
+        periodoAtualBusca.push(d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0'));
+    }
+
+    try {
+        // Buscar índice do mês do dano
+        var indiceDano = await buscarIndiceIPCA(mesDano);
+
+        // Se o IPCA do mês exato não existe, tentar o mês seguinte
+        if (!indiceDano) {
+            var dSeg = new Date(dataDano.getFullYear(), dataDano.getMonth() + 1, 1);
+            var mesSeg = dSeg.getFullYear().toString() + (dSeg.getMonth() + 1).toString().padStart(2, '0');
+            indiceDano = await buscarIndiceIPCA(mesSeg);
+        }
+
+        if (!indiceDano) {
+            return { fator: 1.0, aplicada: false, motivo: 'Não foi possível obter o IPCA para o período do dano (' + mesDano + ')' };
+        }
+
+        // Buscar índice mais recente
+        var indiceAtual = null;
+        var periodoUsado = null;
+        var urlAtual = 'https://servicodados.ibge.gov.br/api/v3/agregados/1737/periodos/'
+            + periodoAtualBusca.join('|')
+            + '/variaveis/2266?localidades=N1[all]';
+        var respAtual = await fetch(urlAtual);
+        if (respAtual.ok) {
+            var dataResp = await respAtual.json();
+            var series = dataResp[0].resultados[0].series[0].serie;
+            for (var j = 0; j < periodoAtualBusca.length; j++) {
+                var p = periodoAtualBusca[j];
+                if (series[p] && series[p] !== '...') {
+                    var val = parseFloat(series[p]);
+                    if (!isNaN(val) && val > 0) {
+                        if (!periodoUsado || p > periodoUsado) {
+                            indiceAtual = val;
+                            periodoUsado = p;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!indiceAtual) {
+            return { fator: 1.0, aplicada: false, motivo: 'Não foi possível obter o IPCA atual' };
+        }
+
+        var fator = indiceAtual / indiceDano;
+        var meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+        return {
+            fator: fator,
+            aplicada: true,
+            indiceDano: indiceDano,
+            indiceAtual: indiceAtual,
+            periodoDano: meses[parseInt(mesDano.substring(4))] + '/' + mesDano.substring(0, 4),
+            periodoAtual: meses[parseInt(periodoUsado.substring(4))] + '/' + periodoUsado.substring(0, 4),
+            motivo: null
+        };
+    } catch (e) {
+        console.error('Erro ao calcular correção monetária:', e);
+        return { fator: 1.0, aplicada: false, motivo: 'Erro ao consultar o IBGE: ' + e.message };
+    }
+}
+
 function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     const parametros = obterParametrosAtuais();
     const areaTotal = (areaForaAPP || 0) + (areaEmAPP || 0);
@@ -453,7 +558,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += 'Data do dano: ' + textoDataDano + '<br>';
     html += 'Bioma: ' + bioma + '<br>';
     html += 'Entendimento: ' + nomeEntendimento + '<br>';
-    html += 'DAMNUM v. 5.1</p>';
+    html += 'DAMNUM v. 5.6</p>';
     html += '<hr style="border:1px solid #999;">';
 
     // NOTA SOBRE VALORES (agora no início)
@@ -587,6 +692,24 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.total) + '</p>';
     html += '<div style="background:#c8e6c9; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">VALOR TOTAL = ' + formatarMoeda(resultados.total) + '</div>';
 
+    // 5. CORREÇÃO MONETÁRIA (se aplicável)
+    if (resultados.correcao && resultados.correcao.aplicada) {
+        html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
+        html += '<h4 style="font-size:12pt; color:#2c3e50;">5. CORREÇÃO MONETÁRIA (IPCA)</h4>';
+        html += '<p style="margin-left:10px;">Os valores acima foram calculados a preços da data do dano. Para atualização monetária, aplica-se a correção pelo IPCA/IBGE entre a data do dano e o período mais recente disponível.</p>';
+        html += '<table style="font-size:11pt; border-collapse:collapse; margin-left:10px;">';
+        html += '<tr><td style="padding:2px 10px;">Período do dano:</td><td><b>' + resultados.correcao.periodoDano + '</b></td></tr>';
+        html += '<tr><td style="padding:2px 10px;">Período atual:</td><td><b>' + resultados.correcao.periodoAtual + '</b></td></tr>';
+        html += '<tr><td style="padding:2px 10px;">Índice IPCA na data do dano:</td><td>' + resultados.correcao.indiceDano.toFixed(2) + '</td></tr>';
+        html += '<tr><td style="padding:2px 10px;">Índice IPCA atual:</td><td>' + resultados.correcao.indiceAtual.toFixed(2) + '</td></tr>';
+        html += '<tr><td style="padding:2px 10px;">Fator de correção:</td><td><b>' + resultados.correcao.fator.toFixed(4) + '</b></td></tr>';
+        html += '</table>';
+        html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
+        html += '&nbsp;&nbsp;Valor Total Corrigido = ' + formatarMoeda(resultados.total) + ' × ' + resultados.correcao.fator.toFixed(4) + '<br>';
+        html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.totalCorrigido) + '</p>';
+        html += '<div style="background:#fff3cd; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">VALOR TOTAL CORRIGIDO (IPCA) = ' + formatarMoeda(resultados.totalCorrigido) + '</div>';
+    }
+
     // CENÁRIOS DE REPARAÇÃO
     html += '<hr style="border:1px solid #999; margin:20px 0;">';
     html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">CENÁRIOS QUANTO À REPARAÇÃO</h3>';
@@ -625,25 +748,25 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 function baixarRelatorioPDF() {
     const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
 
-    // Criar container temporário isolado do layout da página
+    // Criar container temporário fora da tela para o html2canvas capturar
     const container = document.createElement('div');
     container.innerHTML = document.getElementById('textoRelatorio').innerHTML;
-    container.style.cssText = 'position:fixed; top:0; left:0; width:210mm; padding:20mm 15mm; background:white; z-index:-9999; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222;';
+    container.style.cssText = 'position:absolute; left:-9999px; top:0; width:700px; padding:30px; background:white; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222;';
     document.body.appendChild(container);
-
-    const opt = {
-        margin: [15, 15, 15, 20],
-        filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0, windowWidth: container.scrollWidth },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
-    };
 
     var btn = document.getElementById('btnDownloadPDF');
     var textoOriginal = btn.innerHTML;
     btn.innerHTML = 'Gerando PDF...';
     btn.disabled = true;
+
+    var opt = {
+        margin: [10, 10, 10, 15],
+        filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
 
     html2pdf().set(opt).from(container).save().then(function() {
         document.body.removeChild(container);
@@ -703,7 +826,7 @@ function copiarRelatorio() {
     }
 }
 
-function calcularValoracao() {
+async function calcularValoracao() {
     const bioma = document.getElementById('bioma').value;
     const areaForaAPP = parseFloat(document.getElementById('areaForaAPP').value) || 0;
     const areaEmAPP = parseFloat(document.getElementById('areaEmAPP').value) || 0;
@@ -765,6 +888,20 @@ function calcularValoracao() {
         notaDanoMaterial.style.display = 'none';
     }
 
+    // Correção monetária pela data do dano
+    var correcaoContainer = document.getElementById('correcaoMonetariaContainer');
+    var correcao = await calcularCorrecaoMonetaria();
+    var totalCorrigido = total;
+
+    if (correcao.aplicada) {
+        totalCorrigido = total * correcao.fator;
+        document.getElementById('totalCorrigido').textContent = formatarMoeda(totalCorrigido);
+        document.getElementById('correcaoInfo').textContent = 'Correção pelo IPCA de ' + correcao.periodoDano + ' a ' + correcao.periodoAtual + ' (fator: ' + correcao.fator.toFixed(4) + ')';
+        correcaoContainer.style.display = '';
+    } else {
+        correcaoContainer.style.display = 'none';
+    }
+
     // Gerar relatório
     const resultados = {
         danoMaterial,
@@ -772,6 +909,8 @@ function calcularValoracao() {
         danoExtrapatrimonialMercado,
         danoExtrapatrimonialSocial,
         total,
+        totalCorrigido: totalCorrigido,
+        correcao: correcao,
         reparacaoInSitu: reparacaoInSitu
     };
 
