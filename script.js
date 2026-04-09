@@ -981,6 +981,8 @@ async function calcularValoracao() {
         return;
     }
 
+  try {
+
     // Incrementar contador local
     incrementarContador();
     
@@ -1087,6 +1089,11 @@ async function calcularValoracao() {
     // Mostrar resultado
     document.getElementById('resultado').style.display = 'block';
     document.getElementById('resultado').scrollIntoView({ behavior: 'smooth' });
+
+  } catch (erro) {
+    console.error('Erro ao calcular valoração:', erro);
+    alert('Ocorreu um erro ao calcular a valoração: ' + erro.message + '\nVerifique o console do navegador para mais detalhes.');
+  }
 }
 
 function atualizarParametrosCalculados() {
