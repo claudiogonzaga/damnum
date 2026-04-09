@@ -920,7 +920,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 
     html += '<p style="text-align:justify;">O valor dos danos extrapatrimoniais remanescente também poderá ser reduzido com o aumento da área a ser protegida, descontando-se o valor dos custos médios de reparação para cada hectare adicional de vegetação nativa no montante do dano extrapatrimonial (isto é, ' + formatarMoeda(valoresBiomasBase[bioma].media) + ' por hectare fora de ARL acrescentado na RPPN além da área desmatada).</p>';
 
-    html += '<p><b>Regras para a instituição de RPPN:</b></p>';
+    html += '<p><b>Regras para a instituição de RPPN (ou servidão ambiental perpétua):</b></p>';
     html += '<p style="text-align:justify;">1) A RPPN deverá abranger a área de reserva legal do imóvel, embora a ARL abrangida não será computada para fins da compensação ecológica;<br>';
     html += '2) A área protegida deverá, salvo absoluta impossibilidade, (2.1) consistir-se de um único bloco de vegetação nativa e (2.2) ser lindeira à área de reserva legal ou área de preservação permanente existente no imóvel, visando diminuir os efeitos da fragmentação de habitats e efeitos de borda.</p>';
 
