@@ -848,7 +848,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
         html += '<p style="margin-left:10px; color:#888;"><em>Sem atualização monetária aplicável: ' + (resultados.correcao ? resultados.correcao.motivo : 'data do dano é a data atual') + '.</em></p>';
     }
 
-    html += '<p style="margin-left:10px; font-size:10pt; color:#555;"><em>Para detalhes sobre a metodologia de atualização monetária, consulte a aba <a href="entendimentos.html" target="_blank">Entendimentos</a>.</em></p>';
+    html += '<p style="margin-left:10px; font-size:10pt; color:#555;"><em>Para detalhes sobre a metodologia de atualização monetária, consulte a aba <a href="metodologia.html#atualizacao" target="_blank">Metodologia</a>.</em></p>';
 
     // CENÁRIOS DE REPARAÇÃO
     html += '<hr style="border:1px solid #999; margin:20px 0;">';
@@ -1061,7 +1061,7 @@ async function calcularValoracao() {
     var usouDataHoje = !document.getElementById('dataDano').value;
     if (usouDataHoje) {
         notaDataDano.style.display = '';
-        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. Todavia, nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a data correta para fins de atualização monetária dos danos patrimoniais (material e interino) é a <strong>data do evento danoso</strong>. Os danos extrapatrimoniais são corrigidos desde o arbitramento (Súmula 362/STJ). <a href="entendimentos.html" target="_blank" style="color:#2c5530;">Saiba mais sobre a metodologia de atualização →</a>';
+        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. Todavia, nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a data correta para fins de atualização monetária dos danos patrimoniais (material e interino) é a <strong>data do evento danoso</strong>. Os danos extrapatrimoniais são corrigidos desde o arbitramento (Súmula 362/STJ). <a href="metodologia.html#atualizacao" target="_blank" style="color:#2c5530;">Saiba mais sobre a metodologia de atualização →</a>';
     } else {
         notaDataDano.style.display = 'none';
     }

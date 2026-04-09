@@ -6,6 +6,115 @@
     <title>DAMNUM - Metodologia</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .metodologia-secao {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            margin-bottom: 30px;
+            max-width: 960px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .metodologia-secao h2 {
+            font-family: 'Cinzel', serif;
+            color: #2c5530;
+            font-size: 1.6em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4a7c59;
+        }
+        .metodologia-secao h3 {
+            font-family: 'Cinzel', serif;
+            color: #1a3a2a;
+            font-size: 1.25em;
+            margin-top: 22px;
+            margin-bottom: 10px;
+        }
+        .metodologia-secao p, .metodologia-secao li {
+            font-family: 'Times New Roman', serif;
+            color: #333;
+            line-height: 1.8;
+            text-align: justify;
+        }
+        .metodologia-secao ul, .metodologia-secao ol {
+            margin-left: 20px;
+            margin-bottom: 14px;
+        }
+        .metodologia-secao li { margin-bottom: 8px; }
+        .bloco-destaque {
+            background: #f8f9fa;
+            border-left: 4px solid #4a7c59;
+            padding: 16px 20px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+        .bloco-destaque p { margin-bottom: 8px; }
+        .bloco-atencao {
+            background: #fff8e1;
+            border-left: 4px solid #d4ac0d;
+            padding: 14px 18px;
+            margin: 16px 0;
+            border-radius: 4px;
+            font-family: 'Times New Roman', serif;
+            line-height: 1.7;
+        }
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+        }
+        .ref-table thead { background: linear-gradient(135deg, #2c5530, #4a7c59); color: white; }
+        .ref-table th {
+            padding: 12px 14px;
+            text-align: left;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 0.95em;
+            border: 1px solid #4a7c59;
+        }
+        .ref-table td {
+            padding: 10px 14px;
+            border: 1px solid #e0e0e0;
+            font-family: 'Times New Roman', serif;
+            font-size: 0.97em;
+        }
+        .ref-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .ref-table tbody tr:hover { background-color: #e8f5e9; transition: 0.2s; }
+        .nao-aplica { background-color: #f8d7da; }
+        .nao-aplica:hover { background-color: #f5c6cb !important; }
+        .periodo-box {
+            background: white;
+            padding: 16px 20px;
+            margin: 14px 0;
+            border-radius: 6px;
+            border-left: 4px solid #4a7c59;
+        }
+        .periodo-box h4 {
+            font-family: 'Cinzel', serif;
+            color: #1a3a2a;
+            font-size: 1.05em;
+            margin-bottom: 8px;
+        }
+        .periodo-box p, .periodo-box li {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.7;
+            color: #333;
+        }
+        a.ref-link { color: #4a7c59; text-decoration: none; }
+        a.ref-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            .metodologia-secao { padding: 16px; }
+            .metodologia-secao h2 { font-size: 1.35em; }
+            .ref-table { font-size: 0.88em; }
+            .ref-table th, .ref-table td { padding: 8px; }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -14,7 +123,6 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Início</a></li>
                 <li><a href="metodologia.html" class="nav-link active">Metodologia</a></li>
-                <li><a href="entendimentos.html" class="nav-link">Entendimentos</a></li>
                 <li><a href="contato.html" class="nav-link">Contato</a></li>
             </ul>
         </div>
@@ -31,14 +139,202 @@
         </div>
 
         <main>
-            <div class="metodologia-container">
-                <div class="referencia-metodologia">
-                    <p class="citacao-texto" style="text-align: justify; font-size: 1.1em; line-height: 1.8; margin: 2rem 0; font-family: Arial, sans-serif; font-weight: normal;">
-                        GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM), 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em 
-                        <a href="https://damnum.netlify.app/metodologia.pdf" target="_blank" class="link-acesso">clique aqui</a> para acessar.
-                    </p>
+
+            <!-- REFERÊNCIA BIBLIOGRÁFICA -->
+            <div class="metodologia-secao">
+                <h2>Referência Bibliográfica</h2>
+                <p>
+                    GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM)</em>, 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em: <a href="https://damnum.netlify.app/metodologia.pdf" target="_blank" class="ref-link">https://damnum.netlify.app/metodologia.pdf</a>.
+                </p>
+            </div>
+
+            <!-- ENTENDIMENTOS SOBRE O DANO MATERIAL -->
+            <div class="metodologia-secao" id="entendimentos">
+                <h2>Entendimentos sobre o Dano Material</h2>
+
+                <p>A valoração do dano material decorrente de desmatamento ilegal admite diferentes abordagens conforme a orientação jurisprudencial adotada. O DAMNUM contempla dois entendimentos, que diferem sobretudo quanto à natureza jurídica da lesão ao meio ambiente em áreas não especialmente protegidas.</p>
+
+                <h3>a) Gonzaga et al. (2025)</h3>
+
+                <p>Conforme a metodologia proposta por Gonzaga et al. (2025), a valoração considera quatro categorias de danos:</p>
+
+                <ol>
+                    <li><strong>Dano material (dano ecológico direto):</strong> corresponde ao custo de reparação da vegetação nativa, calculado com base nos valores médios de implantação e manutenção de projetos de recuperação ambiental estabelecidos pela Portaria 118/2022 do IBAMA.</li>
+                    <li><strong>Dano interino:</strong> compensa a perda temporária dos serviços ecossistêmicos durante o período de recuperação da área degradada, aplicando-se taxa de juros e tempo de recuperação estimado.</li>
+                    <li><strong>Dano extrapatrimonial (mercado voluntário de carbono):</strong> mensura a perda do estoque de carbono pelo preço de mercado voluntário de créditos de carbono.</li>
+                    <li><strong>Dano climático (custo social do carbono):</strong> quantifica o impacto climático da emissão de CO₂ associada ao desmatamento, com base em estimativas do custo social do carbono (cenário SSP2/RCP6.0).</li>
+                </ol>
+
+                <p>Quando a reparação <em>in situ</em> é viável e será efetivamente promovida, o dano material referente à área de APP e ARL é objeto de reparação física — e não de cobrança monetária, sob pena de <em>bis in idem</em>. Nessa hipótese, incide o dano interino sobre essa área. Se a reparação <em>in situ</em> não é possível ou não será promovida, o dano material abrange toda a área desmatada (incluindo APP e ARL), e o dano interino é igual a zero.</p>
+
+                <div class="bloco-destaque">
+                    <p><strong>Referência:</strong> GONZAGA, Claudio Angelo Correa et al. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V SICAM/USP</em>, 2025. p. 210-217. Disponível em: <a href="https://damnum.netlify.app/metodologia.pdf" target="_blank" class="ref-link">https://damnum.netlify.app/metodologia.pdf</a>.</p>
+                </div>
+
+                <h3>b) IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)</h3>
+
+                <p>O Incidente de Resolução de Demandas Repetitivas n.º 13 do Tribunal de Justiça de Mato Grosso foi instaurado pelo Ministério Público do Estado, por meio da Promotoria de Justiça de Defesa do Meio Ambiente, diante da multiplicidade de ações e da existência de entendimentos divergentes entre juízos e câmaras cíveis acerca da reparação dos danos ambientais decorrentes de desmatamento ilegal.</p>
+
+                <p>A principal diferença em relação ao entendimento de Gonzaga et al. reside no tratamento do dano material: o IRDR 13/TJMT fixou a tese provisória de que o desmatamento em área não especialmente protegida configura <strong>dano extrapatrimonial <em>in re ipsa</em></strong> — isto é, presumido, independentemente de prova de prejuízo concreto — <strong>mas não dano material indenizável</strong>. Em consequência, na aplicação deste entendimento, o dano material (dano ecológico direto) é igual a zero, remanescendo apenas o dano extrapatrimonial para fins de compensação monetária.</p>
+
+                <p>As teses provisórias fixadas quando da admissão do IRDR 13/TJMT tratam, em síntese, das seguintes questões:</p>
+
+                <ol>
+                    <li><strong>Cumulação de obrigações:</strong> se o poluidor deve, simultaneamente, pagar indenização e promover a recuperação da área degradada;</li>
+                    <li><strong>Dano moral coletivo <em>in re ipsa</em>:</strong> reconhecimento de que o dano ambiental, por si só, configura ofensa a bem jurídico difuso, independentemente de demonstração de prejuízo concreto ou análise de aspectos subjetivos;</li>
+                    <li><strong>Responsabilidade objetiva:</strong> o dever de reparar independe de comprovação de culpa, exigindo-se apenas o nexo causal entre a conduta e o dano;</li>
+                    <li><strong>Responsabilidade <em>propter rem</em>:</strong> definição de quem responde pela obrigação de recuperar a área — se o responsável pelo desmatamento ou o atual proprietário do imóvel.</li>
+                </ol>
+
+                <div class="bloco-atencao">
+                    <strong>Observação:</strong> o IRDR 13/TJMT encontra-se em fase de julgamento de mérito. As teses aqui descritas são provisórias, fixadas quando da admissão do incidente. A decisão definitiva terá efeito vinculante em todo o estado de Mato Grosso e deverá ser observada por juízos e câmaras cíveis que tratem da mesma matéria.
                 </div>
             </div>
+
+            <!-- ATUALIZAÇÃO MONETÁRIA -->
+            <div class="metodologia-secao" id="atualizacao">
+                <h2>Atualização Monetária e Juros de Mora</h2>
+
+                <p>A atualização monetária e a incidência de juros de mora sobre indenizações por danos ambientais em ações civis públicas contra réus particulares (responsabilidade civil extracontratual) seguem o regime geral do Código Civil e a jurisprudência consolidada do Superior Tribunal de Justiça. As regras descritas a seguir não se aplicam a condenações contra a Fazenda Pública, que segue regime próprio (EC 113/2021, Temas 810/STF e 905/STJ).</p>
+
+                <h3>Termos iniciais</h3>
+
+                <div class="periodo-box">
+                    <h4>Danos patrimoniais (material e interino)</h4>
+                    <ul>
+                        <li><strong>Correção monetária:</strong> incide a partir da data do efetivo prejuízo (Súmula 43/STJ).</li>
+                        <li><strong>Juros de mora:</strong> incidem a partir da data do evento danoso (Súmula 54/STJ c/c art. 398 do CC).</li>
+                    </ul>
+                </div>
+
+                <div class="periodo-box">
+                    <h4>Danos extrapatrimoniais (mercado voluntário e custo social do carbono)</h4>
+                    <ul>
+                        <li><strong>Correção monetária:</strong> incide a partir da data do arbitramento — ou seja, da decisão judicial ou do TAC que fixou o valor (Súmula 362/STJ). No contexto do DAMNUM, que é ferramenta de valoração pré-processual, essa data equivale à data do cálculo (hoje). Por isso, não se aplica correção monetária aos valores extrapatrimoniais calculados pela ferramenta.</li>
+                        <li><strong>Juros de mora:</strong> incidem a partir da data do evento danoso (Súmula 54/STJ). No entanto, como os juros de mora apenas incidem após a constituição de título executivo (judicial ou extrajudicial), o DAMNUM não os computa para os danos extrapatrimoniais.</li>
+                    </ul>
+                </div>
+
+                <h3>Índices aplicáveis: sistema em dois períodos</h3>
+
+                <p>Com o advento do Tema Repetitivo 1.368/STJ e da Lei 14.905/2024, a atualização monetária das dívidas civis passou a ser segmentada em dois períodos distintos:</p>
+
+                <div class="periodo-box">
+                    <h4>Período 1: do termo inicial até 29 de agosto de 2024</h4>
+                    <p>Aplica-se exclusivamente a <strong>Taxa SELIC</strong>, que já engloba, simultaneamente, a correção monetária e os juros de mora. A SELIC não pode ser cumulada com nenhum outro índice de correção (INPC, IPCA, IGP-M) nem com taxa de juros autônoma (1% a.m., por exemplo).</p>
+                    <p><strong>Fundamento:</strong> art. 406 do Código Civil, conforme interpretação firmada no Tema Repetitivo 1.368/STJ (REsp 2.199.164/PR, Corte Especial, j. 15/10/2025).</p>
+                    <div class="bloco-destaque">
+                        <p><strong>Tese vinculante:</strong> <em>"O art. 406 do Código Civil de 2002, antes da entrada em vigor da Lei 14.905/2024, deve ser interpretado no sentido de que é a Selic a taxa de juros de mora aplicável às dívidas de natureza civil, por ser esta a taxa em vigor para a atualização monetária e a mora no pagamento de impostos devidos à Fazenda Nacional."</em></p>
+                    </div>
+                </div>
+
+                <div class="periodo-box">
+                    <h4>Período 2: a partir de 30 de agosto de 2024 (Lei 14.905/2024)</h4>
+                    <p>A partir da vigência da Lei 14.905/2024, a taxa legal do art. 406 do Código Civil passa a ser decomposta em dois componentes:</p>
+                    <ul>
+                        <li><strong>Correção monetária:</strong> pelo <strong>IPCA-15</strong> (Índice Nacional de Preços ao Consumidor Amplo 15), divulgado pelo IBGE. Ressalte-se que o índice adotado é o IPCA-15, e não o IPCA pleno; a opção decorre de razões operacionais, conforme a Resolução CMN 5.171/2024, que regulamentou o § 3.º do art. 406 do CC.</li>
+                        <li><strong>Juros de mora:</strong> correspondem à diferença entre a SELIC e o IPCA-15 do mesmo período. Caso essa diferença resulte negativa, os juros de mora serão iguais a zero.</li>
+                    </ul>
+                    <p><strong>Fundamento:</strong> art. 406, <em>caput</em> e §§ 1.º e 3.º, do CC (redação da Lei 14.905/2024), regulamentado pela Resolução CMN 5.171/2024.</p>
+                </div>
+
+                <p>Na prática, como o resultado econômico do Período 2 (IPCA-15 + juros legais) equivale aproximadamente à SELIC cheia, a aplicação de todo o período resulta em fator de atualização próximo ao da SELIC acumulada.</p>
+
+                <h3>Aplicação no DAMNUM</h3>
+
+                <p>O DAMNUM busca automaticamente as taxas SELIC diárias junto à API do Banco Central do Brasil (série temporal 11 do SGS/BCB) e as variações mensais do IPCA-15 junto à API do IBGE (tabela 7062 do SIDRA). Com base nesses dados, calcula o fator de atualização aplicável aos danos patrimoniais (material e interino) entre a data do evento danoso e a data do cálculo.</p>
+
+                <p>Os danos extrapatrimoniais (mercado voluntário de carbono e custo social do carbono) são expressos a valores de mercado vigentes na data do cálculo, equivalendo ao arbitramento nessa data. Por esse motivo, não se aplica correção monetária a esses valores.</p>
+            </div>
+
+            <!-- REFERÊNCIAS NORMATIVAS -->
+            <div class="metodologia-secao" id="referencias">
+                <h2>Referências Normativas e Jurisprudenciais</h2>
+
+                <h3>Referências aplicáveis</h3>
+                <table class="ref-table">
+                    <thead>
+                        <tr>
+                            <th>Referência</th>
+                            <th>Conteúdo</th>
+                            <th>Aplicação no DAMNUM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Súmula 43/STJ</strong></td>
+                            <td>Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo.</td>
+                            <td>Termo inicial da correção dos danos patrimoniais</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Súmula 54/STJ</strong></td>
+                            <td>Os juros moratórios fluem a partir do evento danoso, em caso de responsabilidade extracontratual.</td>
+                            <td>Termo inicial dos juros de mora</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Súmula 362/STJ</strong></td>
+                            <td>A correção monetária do valor da indenização do dano moral incide desde a data do arbitramento.</td>
+                            <td>Termo inicial da correção dos danos extrapatrimoniais</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Art. 398 do CC</strong></td>
+                            <td>Nas obrigações provenientes de ato ilícito, considera-se o devedor em mora desde que o praticou.</td>
+                            <td>Mora <em>ex re</em> na responsabilidade extracontratual</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Art. 406 do CC</strong></td>
+                            <td>Taxa legal de juros moratórios (antes e depois da Lei 14.905/2024).</td>
+                            <td>Fundamento geral da taxa de juros</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tema 1.368/STJ</strong></td>
+                            <td>A SELIC é a taxa legal do art. 406 do CC para o período anterior à Lei 14.905/2024 (REsp 2.199.164/PR, Corte Especial, j. 15/10/2025).</td>
+                            <td>Período 1 (até 29/08/2024)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Lei 14.905/2024</strong></td>
+                            <td>Altera o art. 406 do CC: correção pelo IPCA-15 e juros correspondentes à diferença entre a SELIC e o IPCA-15.</td>
+                            <td>Período 2 (a partir de 30/08/2024)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Res. CMN 5.171/2024</strong></td>
+                            <td>Regulamenta o § 3.º do art. 406 do CC; define o IPCA-15 como índice de correção monetária.</td>
+                            <td>Período 2 (a partir de 30/08/2024)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Portaria 118/2022 IBAMA</strong></td>
+                            <td>Institui POP para estimativa dos custos de implantação e manutenção de projetos de recuperação ambiental nos biomas brasileiros.</td>
+                            <td>Base de cálculo do dano material</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Referências não aplicáveis ao escopo do DAMNUM</h3>
+                <p>As referências abaixo dizem respeito exclusivamente a condenações envolvendo a Fazenda Pública e não se aplicam a ações civis públicas contra réus particulares:</p>
+                <table class="ref-table">
+                    <thead>
+                        <tr>
+                            <th>Referência</th>
+                            <th>Motivo da exclusão</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="nao-aplica">
+                            <td><strong>EC 113/2021, art. 3.º</strong></td>
+                            <td>Regime de atualização exclusivo para condenações envolvendo a Fazenda Pública.</td>
+                        </tr>
+                        <tr class="nao-aplica">
+                            <td><strong>Tema 810/STF (RE 870.947)</strong></td>
+                            <td>Trata de correção monetária e juros em condenações contra a Fazenda Pública.</td>
+                        </tr>
+                        <tr class="nao-aplica">
+                            <td><strong>Tema 905/STJ</strong></td>
+                            <td>Trata de correção monetária e juros em condenações contra a Fazenda Pública.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
         </main>
 
         <footer class="footer">
@@ -51,7 +347,6 @@
     </div>
 
     <script>
-        // Função para obter contador de valorações
         function obterContadorValoracoes() {
             const cookieConsent = localStorage.getItem('cookieConsent');
             if (cookieConsent === 'accepted') {
@@ -60,18 +355,13 @@
             }
             return 0;
         }
-
-        // Atualizar exibição do contador
         function atualizarExibicaoContador() {
             const contador = obterContadorValoracoes();
             document.getElementById('contadorValoracao').textContent = contador;
         }
-
-        // Inicializar contador ao carregar a página
         document.addEventListener('DOMContentLoaded', function() {
             atualizarExibicaoContador();
         });
     </script>
 </body>
 </html>
-
