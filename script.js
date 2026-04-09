@@ -658,7 +658,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += 'Data do dano: ' + textoDataDano + '<br>';
     html += 'Bioma: ' + bioma + '<br>';
     html += 'Entendimento: ' + nomeEntendimento + '<br>';
-    html += 'DAMNUM v. 6.1</p>';
+    html += 'DAMNUM v. 6.1 — <a href="https://damnum.netlify.app/" target="_blank" style="color:#1a5276;">https://damnum.netlify.app</a></p>';
     html += '<hr style="border:1px solid #999;">';
 
     // NOTA SOBRE VALORES (agora no início)
