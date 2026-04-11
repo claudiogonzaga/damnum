@@ -654,6 +654,11 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     // CABEÇALHO
     html += '<h2 style="text-align:center; font-size:14pt; margin-bottom:5px;">RELATÓRIO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL</h2>';
     html += '<p style="text-align:center; font-size:11pt; color:#555;">';
+    var numeroProcessoEl = document.getElementById('numeroProcesso');
+    var numeroProcesso = numeroProcessoEl ? (numeroProcessoEl.value || '').trim() : '';
+    if (numeroProcesso) {
+        html += 'Processo / procedimento: <b>' + numeroProcesso + '</b><br>';
+    }
     html += 'Data da valoração: ' + formatarData(dataAtual) + '<br>';
     html += 'Data do dano: ' + textoDataDano + '<br>';
     html += 'Bioma: ' + bioma + '<br>';
@@ -941,55 +946,49 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 }
 
 function baixarRelatorioPDF() {
-    const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-
-    var btn = document.getElementById('btnDownloadPDF');
-    var textoOriginal = btn.innerHTML;
-    btn.innerHTML = '<span class="btn-spinner"></span> Gerando PDF...';
-    btn.disabled = true;
-
-    // Criar container realmente visível dentro do body. Para evitar que o usuário veja
-    // o container "piscando", colocamos abaixo do conteúdo principal e usamos overflow
-    // hidden no body durante a geração. html2canvas precisa do elemento renderizado.
-    var container = document.createElement('div');
-    container.id = 'pdfRenderContainer';
-    container.innerHTML = document.getElementById('textoRelatorio').innerHTML;
-    container.style.cssText = 'position:absolute; left:0; top:0; width:700px; padding:30px; background:white; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222;';
-
-    // Overlay branco para esconder o container do usuário durante a renderização
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed; left:0; top:0; width:100vw; height:100vh; background:white; z-index:99998; display:flex; align-items:center; justify-content:center; font-family:sans-serif; font-size:14pt; color:#555;';
-    overlay.innerHTML = '<div><span class="btn-spinner" style="border-color:rgba(0,0,0,0.2); border-top-color:#333;"></span> Gerando PDF...</div>';
-
-    document.body.appendChild(container);
-    document.body.appendChild(overlay);
-
-    var opt = {
-        margin: [10, 10, 10, 15],
-        filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
-    };
-
-    function cleanup() {
-        if (container.parentNode) document.body.removeChild(container);
-        if (overlay.parentNode) document.body.removeChild(overlay);
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
+    var conteudo = document.getElementById('textoRelatorio').innerHTML;
+    if (!conteudo || !conteudo.trim()) {
+        alert('Gere o relatório primeiro clicando em "Proceder à valoração".');
+        return;
     }
 
-    // Pequeno delay para garantir que o DOM foi pintado antes de renderizar
-    setTimeout(function() {
-        html2pdf().set(opt).from(container).save().then(function() {
-            cleanup();
-        }).catch(function(err) {
-            console.error('Erro ao gerar PDF:', err);
-            cleanup();
-            alert('Erro ao gerar o PDF: ' + (err && err.message ? err.message : err));
-        });
-    }, 100);
+    var dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    var nomeArquivo = 'DAMNUM_Relatorio_' + dataAtual;
+
+    // Abre nova janela com o relatório formatado e dispara window.print().
+    // O usuário escolhe "Salvar como PDF" no diálogo de impressão do navegador.
+    var w = window.open('', '_blank', 'width=900,height=1100');
+    if (!w) {
+        alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-ups está desativado.');
+        return;
+    }
+
+    var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">';
+    html += '<title>' + nomeArquivo + '</title>';
+    html += '<style>';
+    html += '@page { size: A4; margin: 18mm 15mm; }';
+    html += 'html, body { margin: 0; padding: 0; background: white; }';
+    html += 'body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.6; color: #222; padding: 20px; }';
+    html += 'h2 { font-size: 14pt; text-align: center; margin-bottom: 5px; }';
+    html += 'h3 { font-size: 13pt; border-bottom: 2px solid #333; padding-bottom: 4px; margin-top: 18px; page-break-after: avoid; }';
+    html += 'table { border-collapse: collapse; width: 100%; margin: 10px 0; page-break-inside: avoid; }';
+    html += 'table, th, td { border: 1px solid #ccc; }';
+    html += 'th, td { padding: 6px 10px; }';
+    html += 'p { text-align: justify; }';
+    html += 'hr { border: 1px solid #999; }';
+    html += 'a { color: #1a5276; text-decoration: none; }';
+    html += '.no-print { display: none; }';
+    html += '@media print { .no-print { display: none !important; } body { padding: 0; } }';
+    html += '@media screen { .print-bar { position: fixed; top: 0; left: 0; right: 0; background: #1a5276; color: white; padding: 12px; text-align: center; z-index: 9999; font-family: sans-serif; font-size: 14px; } .print-bar button { background: white; color: #1a5276; border: none; padding: 8px 18px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 12px; } body { padding-top: 60px; } }';
+    html += '</style></head><body>';
+    html += '<div class="print-bar no-print">Use "Salvar como PDF" no diálogo de impressão. <button onclick="window.print()">Imprimir / Salvar PDF</button></div>';
+    html += conteudo;
+    html += '<script>window.addEventListener("load", function() { setTimeout(function() { window.print(); }, 300); });<\/script>';
+    html += '</body></html>';
+
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
 }
 
 function copiarRelatorio() {
