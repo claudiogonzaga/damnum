@@ -943,37 +943,53 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
 function baixarRelatorioPDF() {
     const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
 
-    // Criar container visível (não off-screen) para html2canvas renderizar corretamente
-    var container = document.createElement('div');
-    container.innerHTML = document.getElementById('textoRelatorio').innerHTML;
-    container.style.cssText = 'position:fixed; left:0; top:0; width:700px; padding:30px; background:white; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222; z-index:-1; opacity:0; pointer-events:none;';
-    document.body.appendChild(container);
-
     var btn = document.getElementById('btnDownloadPDF');
     var textoOriginal = btn.innerHTML;
     btn.innerHTML = '<span class="btn-spinner"></span> Gerando PDF...';
     btn.disabled = true;
 
+    // Criar container realmente visível dentro do body. Para evitar que o usuário veja
+    // o container "piscando", colocamos abaixo do conteúdo principal e usamos overflow
+    // hidden no body durante a geração. html2canvas precisa do elemento renderizado.
+    var container = document.createElement('div');
+    container.id = 'pdfRenderContainer';
+    container.innerHTML = document.getElementById('textoRelatorio').innerHTML;
+    container.style.cssText = 'position:absolute; left:0; top:0; width:700px; padding:30px; background:white; font-family:"Times New Roman",serif; font-size:12pt; line-height:1.6; color:#222;';
+
+    // Overlay branco para esconder o container do usuário durante a renderização
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; left:0; top:0; width:100vw; height:100vh; background:white; z-index:99998; display:flex; align-items:center; justify-content:center; font-family:sans-serif; font-size:14pt; color:#555;';
+    overlay.innerHTML = '<div><span class="btn-spinner" style="border-color:rgba(0,0,0,0.2); border-top-color:#333;"></span> Gerando PDF...</div>';
+
+    document.body.appendChild(container);
+    document.body.appendChild(overlay);
+
     var opt = {
         margin: [10, 10, 10, 15],
         filename: 'DAMNUM_Relatorio_' + dataAtual + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: 700 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    html2pdf().set(opt).from(container).save().then(function() {
-        document.body.removeChild(container);
+    function cleanup() {
+        if (container.parentNode) document.body.removeChild(container);
+        if (overlay.parentNode) document.body.removeChild(overlay);
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
-    }).catch(function(err) {
-        console.error('Erro ao gerar PDF:', err);
-        document.body.removeChild(container);
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
-        alert('Erro ao gerar o PDF. Tente novamente.');
-    });
+    }
+
+    // Pequeno delay para garantir que o DOM foi pintado antes de renderizar
+    setTimeout(function() {
+        html2pdf().set(opt).from(container).save().then(function() {
+            cleanup();
+        }).catch(function(err) {
+            console.error('Erro ao gerar PDF:', err);
+            cleanup();
+            alert('Erro ao gerar o PDF: ' + (err && err.message ? err.message : err));
+        });
+    }, 100);
 }
 
 function copiarRelatorio() {
