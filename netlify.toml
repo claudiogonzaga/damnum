@@ -1,0 +1,8 @@
+# O DAMNUM agora é publicado em https://damnum.consciencia.eco.br (Cloudflare Pages).
+# O endereço antigo no Netlify redireciona para lá preservando o caminho, para que
+# links já citados em relatórios e no artigo (ex.: /metodologia.pdf) continuem válidos.
+[[redirects]]
+  from = "https://damnum.netlify.app/*"
+  to = "https://damnum.consciencia.eco.br/:splat"
+  status = 301
+  force = true
