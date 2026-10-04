@@ -45,15 +45,13 @@ async function registrarValoracaoGlobal(bioma, area) {
             document.body.removeChild(iframe);
         }, 5000);
 
-        // Também incrementa o contador local como backup
-        incrementarContadorLocal();
-        
+        // O contador já foi incrementado por quem chamou (calcularValoracao);
+        // não incrementar de novo aqui, sob pena de contar duas vezes.
+
         // Tenta obter o total global após um pequeno delay
         setTimeout(obterTotalGlobal, 2000);
     } catch (error) {
         console.error("Erro ao registrar valoração global:", error);
-        // Em caso de erro, incrementa apenas localmente
-        incrementarContadorLocal();
     }
 }
 
@@ -61,30 +59,27 @@ async function registrarValoracaoGlobal(bioma, area) {
 async function obterTotalGlobal() {
     try {
         const response = await fetch(CONTADOR_API_URL);
-        const data = await response.json();
-        
-        if (data && data.total !== undefined) {
-            // Atualiza o contador na tela com o total global
-            document.getElementById('contadorValoracao').textContent = data.total;
-            
-            // Salva o valor no localStorage também como backup
-            localStorage.setItem('contadorValoracoes', data.total);
-            return data.total;
-        }
-    } catch (error) {
-        console.error("Erro ao obter total global de valorações:", error);
-    }
-    
-    // Em caso de erro, retorna o valor local
-    return parseInt(localStorage.getItem('contadorValoracoes') || '0');
-}
+        const texto = await response.text();
 
-// Função para incrementar o contador local (backup)
-function incrementarContadorLocal() {
-    const valorAtual = parseInt(localStorage.getItem('contadorValoracoes') || '0');
-    const novoValor = valorAtual + 1;
-    localStorage.setItem('contadorValoracoes', novoValor);
-    document.getElementById('contadorValoracao').textContent = novoValor;
+        let data;
+        try {
+            data = JSON.parse(texto);
+        } catch (erroJson) {
+            // O Apps Script devolve uma página HTML de erro quando quebra;
+            // sem esta checagem o JSON.parse estouraria silenciosamente.
+            console.error('Contador global: resposta não é JSON (Apps Script com erro?):', texto.slice(0, 300));
+            return contadorExibido;
+        }
+
+        if (data && data.total !== undefined) {
+            return definirContador(data.total);
+        }
+        console.error('Contador global: resposta sem campo "total":', data);
+    } catch (error) {
+        console.error('Erro ao obter total global de valorações:', error);
+    }
+
+    return contadorExibido;
 }
 
 // Dados extraídos da planilha Excel (valores base - Portaria 118/2022 IBAMA, outubro/2022)
@@ -246,28 +241,38 @@ function rejeitarCookies() {
 }
 
 // Contador de Valorações
+//
+// `contadorExibido` é a única fonte de verdade do número na tela. O total de
+// valorações do site não é dado pessoal, então a exibição nunca depende do
+// consentimento de cookies — só a gravação do backup em localStorage depende.
+let contadorExibido = 0;
+
 function obterContadorValoracoes() {
-    const cookieConsent = localStorage.getItem('cookieConsent');
-    if (cookieConsent === 'accepted') {
-        return parseInt(localStorage.getItem('contadorValoracoes') || '0');
+    return contadorExibido;
+}
+
+function definirContador(valor) {
+    contadorExibido = parseInt(valor, 10) || 0;
+    if (localStorage.getItem('cookieConsent') === 'accepted') {
+        localStorage.setItem('contadorValoracoes', String(contadorExibido));
     }
-    return 0;
+    atualizarExibicaoContador();
+    return contadorExibido;
 }
 
 function incrementarContador() {
-    const cookieConsent = localStorage.getItem('cookieConsent');
-    if (cookieConsent === 'accepted') {
-        const contador = obterContadorValoracoes() + 1;
-        localStorage.setItem('contadorValoracoes', contador.toString());
-        atualizarExibicaoContador();
-        return contador;
+    return definirContador(contadorExibido + 1);
+}
+
+function restaurarContadorLocal() {
+    if (localStorage.getItem('cookieConsent') === 'accepted') {
+        contadorExibido = parseInt(localStorage.getItem('contadorValoracoes') || '0', 10) || 0;
     }
-    return 0;
+    atualizarExibicaoContador();
 }
 
 function atualizarExibicaoContador() {
-    const contador = obterContadorValoracoes();
-    document.getElementById('contadorValoracao').textContent = contador;
+    document.getElementById('contadorValoracao').textContent = contadorExibido;
 }
 
 function formatarMoeda(valor) {
@@ -663,7 +668,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += 'Data do dano: ' + textoDataDano + '<br>';
     html += 'Bioma: ' + bioma + '<br>';
     html += 'Entendimento: ' + nomeEntendimento + '<br>';
-    html += 'DAMNUM v. 6.1 — <a href="https://damnum.netlify.app/" target="_blank" style="color:#1a5276;">https://damnum.netlify.app</a></p>';
+    html += 'DAMNUM v. 6.2 — <a href="https://damnum.consciencia.eco.br/" target="_blank" style="color:#1a5276;">https://damnum.consciencia.eco.br</a></p>';
     html += '<hr style="border:1px solid #999;">';
 
     // NOTA SOBRE VALORES (agora no início)
@@ -915,7 +920,7 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">CENÁRIOS QUANTO À REPARAÇÃO</h3>';
 
     html += '<p><b>1) Hipótese da recuperação da área desmatada (recuperação <em>in situ</em>):</b></p>';
-    html += '<p style="text-align:justify;">Quando houver recuperação da área desmatada (recuperação <em>in situ</em>) por danos em área de reserva legal (ARL), área de preservação permanente (APP) ou áreas excedentes caso ele opte pela reparação <em>in natura</em> e <em>in situ</em>, degradador deverá indenizar os danos interinos no valor de ' + formatarMoeda(resultados.danoInterino) + ' (além de indenizar os danos extrapatrimoniais). Neste cenário, o proprietário deverá apresentar e executar Projeto de Recuperação de Áreas Degradadas (PRADA) ou laudo de constatação de reparação do dano ambiental. Alternativamente, a parte requerida poderá realizar a compensação ecológica do dano interino e extrapatrimonial (veja a seguir).</p>';
+    html += '<p style="text-align:justify;">Quando houver recuperação da área desmatada (recuperação <em>in situ</em>) por danos em área de reserva legal (ARL), área de preservação permanente (APP) ou áreas excedentes caso ele opte pela reparação <em>in natura</em> e <em>in situ</em>, o degradador deverá indenizar os danos interinos no valor de ' + formatarMoeda(resultados.danoInterino) + ' (além de indenizar os danos extrapatrimoniais). Neste cenário, o proprietário deverá apresentar e executar Projeto de Recuperação de Áreas Degradadas (PRADA) ou laudo de constatação de reparação do dano ambiental. Alternativamente, a parte requerida poderá realizar a compensação ecológica do dano interino e extrapatrimonial (veja a seguir).</p>';
 
     html += '<p><b>2) Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):</b></p>';
     html += '<p style="text-align:justify;">Quando não houver reparação <em>in situ</em> (área passível de exploração), deverá ser realizada a compensação ecológica ou o pagamento de indenização, para que o proprietário possa regularizar a exploração da área. Neste caso, a valoração (dano material) é de ' + formatarMoeda(resultados.danoMaterial) + '. Também deverão ser reparados os danos climáticos, estimados em ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + ' e extrapatrimoniais (' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + ').</p>';
@@ -929,13 +934,13 @@ function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
     html += '<p style="text-align:justify;">1) A RPPN deverá abranger a área de reserva legal do imóvel, embora a ARL abrangida não será computada para fins da compensação ecológica;<br>';
     html += '2) A área protegida deverá, salvo absoluta impossibilidade, (2.1) consistir-se de um único bloco de vegetação nativa e (2.2) ser lindeira à área de reserva legal ou área de preservação permanente existente no imóvel, visando diminuir os efeitos da fragmentação de habitats e efeitos de borda.</p>';
 
-    html += '<p style="text-align:justify;">Na hipótese de RPPN, toda a área protegida continuará ser de propriedade da parte requerida, que poderá aferir renda com a venda de créditos de carbono e cotas de reserva ambiental (CRA) para imóveis com déficit de áreas de reserva legal.</p>';
+    html += '<p style="text-align:justify;">Na hipótese de RPPN, toda a área protegida continuará sendo de propriedade da parte requerida, que poderá aferir renda com a venda de créditos de carbono e cotas de reserva ambiental (CRA) para imóveis com déficit de áreas de reserva legal.</p>';
 
     // REFERÊNCIAS
     html += '<hr style="border:1px solid #999; margin:20px 0;">';
     html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">REFERÊNCIAS BIBLIOGRÁFICAS</h3>';
 
-    html += '<p style="text-align:justify; font-size:10pt;">GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM)</em>, 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em &lt;https://damnum.netlify.app/metodologia.pdf&gt;.</p>';
+    html += '<p style="text-align:justify; font-size:10pt;">GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM)</em>, 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em &lt;https://damnum.consciencia.eco.br/metodologia.pdf&gt;.</p>';
 
     html += '<p style="text-align:justify; font-size:10pt;">BRASIL. Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis – IBAMA. Portaria nº 118, de 3 de outubro de 2022. Institui Procedimento Operacional Padrão (POP) para Estimativa dos Custos de Implantação e Manutenção de Projeto de Recuperação Ambiental nos Biomas Brasileiros, para Compor Valor Mínimo da Reparação por Danos Ambientais à Vegetação Nativa, em Processos Administrativos no âmbito do Ibama. Disponível em: &lt;https://www.ibama.gov.br/component/legislacao/?view=legislacao&amp;force=1&amp;legislacao=139171&gt;.</p>';
 
@@ -1241,15 +1246,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Verificar cookies e inicializar contador
     verificarCookies();
     
-    // Tentar obter o contador global primeiro
-    try {
-        const total = await obterTotalGlobal();
-        document.getElementById('contadorValoracao').textContent = total;
-    } catch (error) {
-        console.error("Erro ao obter contador global:", error);
-        // Em caso de erro, usar o contador local
-        atualizarExibicaoContador();
-    }
+    // Contador: mostra o backup local na hora e tenta o total global em seguida
+    restaurarContadorLocal();
+    obterTotalGlobal();
     
     // Listeners da barra de cookies
     document.getElementById('acceptCookies').addEventListener('click', aceitarCookies);
