@@ -1,0 +1,3159 @@
+{
+ "fonte": "BRASIL. MCTI. Quarta Comunicação Nacional do Brasil à UNFCCC – Relatório de Referência: Setor Uso da Terra, Mudança do Uso da Terra e Florestas (RR_4CN_LU_4_LULUCF_2021-01-27), Tabelas 23 a 28, p. 112-157. Disponível em: https://www.gov.br/mcti/pt-br/acompanhe-o-mcti/sirene/publicacoes/relatorios-de-referencia-setorial/pdf/invetario4/lulucf-jan21.zip",
+ "unidade": "tC/ha (estoque total = biomassa aérea + subterrânea + madeira morta + serapilheira; sem carbono do solo)",
+ "conversao_CO2": "tCO2 = tC × 3,67 (44/12), fator adotado pelo Protocolo CNJ (2024, p. 59)",
+ "regra_media": "Fitofisionomia com mais de um valor (subvalores por estado/local, Tabela 24): média aritmética simples dos totais. Média do bioma: média dos totais ponderada pela % no bioma, apenas categorias F, G e OFL (exclui dunas e afloramentos).",
+ "biomas": {
+  "Amazônia": {
+   "tabela": 23,
+   "media_ponderada_tC_ha": 160.77,
+   "media_ponderada_tCO2_ha": 590.04,
+   "soma_pct_considerada": 97.519,
+   "fitofisionomias": [
+    {
+     "sigla": "Aa",
+     "nome": "Floresta Ombrófila Aberta Aluvial",
+     "pct_bioma": 2.3,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "AGB: valores calculados a partir da AGB (EBA)",
+     "total_tC_ha": 145.3,
+     "total_tCO2_ha": 533.25
+    },
+    {
+     "sigla": "Ab",
+     "nome": "Floresta Ombrófila Aberta Terras Baixas",
+     "pct_bioma": 9.75,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 165.9,
+     "total_tCO2_ha": 608.85
+    },
+    {
+     "sigla": "As",
+     "nome": "Floresta Ombrófila Aberta Submontana",
+     "pct_bioma": 14.35,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade); faixa serapilheira impressa '((0-11,4)'",
+     "total_tC_ha": 132.0,
+     "total_tCO2_ha": 484.44
+    },
+    {
+     "sigla": "Cb",
+     "nome": "Floresta Estacional Decidual Terras Baixas",
+     "pct_bioma": 0.02,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "",
+     "total_tC_ha": 59.1,
+     "total_tCO2_ha": 216.9
+    },
+    {
+     "sigla": "Cs",
+     "nome": "Floresta Estacional Decidual Submontana",
+     "pct_bioma": 0.19,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "",
+     "total_tC_ha": 129.8,
+     "total_tCO2_ha": 476.37
+    },
+    {
+     "sigla": "Da",
+     "nome": "Floresta Ombrófila Densa Aluvial",
+     "pct_bioma": 4.84,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 130.7,
+     "total_tCO2_ha": 479.67
+    },
+    {
+     "sigla": "Db",
+     "nome": "Floresta Ombrófila Densa de Terras Baixas",
+     "pct_bioma": 22.77,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 185.3,
+     "total_tCO2_ha": 680.05
+    },
+    {
+     "sigla": "Dm",
+     "nome": "Floresta Ombrófila Densa Montana",
+     "pct_bioma": 0.93,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "",
+     "total_tC_ha": 138.7,
+     "total_tCO2_ha": 509.03
+    },
+    {
+     "sigla": "Ds",
+     "nome": "Floresta Ombrófila Densa Submontana",
+     "pct_bioma": 23.67,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade); faixa BGB impressa '(0-75-5)'",
+     "total_tC_ha": 201.1,
+     "total_tCO2_ha": 738.04
+    },
+    {
+     "sigla": "Fa",
+     "nome": "Floresta Estacional Semidecidual aluvial",
+     "pct_bioma": 0.18,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "",
+     "total_tC_ha": 65.6,
+     "total_tCO2_ha": 240.75
+    },
+    {
+     "sigla": "Fb",
+     "nome": "Floresta Estacional Semidecidual de terras baixas",
+     "pct_bioma": 0.5,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "",
+     "total_tC_ha": 81.7,
+     "total_tCO2_ha": 299.84
+    },
+    {
+     "sigla": "Fm",
+     "nome": "Floresta Estacional Semidecidual montana",
+     "pct_bioma": 0.02,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "112"
+     ],
+     "obs": "",
+     "total_tC_ha": 125.8,
+     "total_tCO2_ha": 461.69
+    },
+    {
+     "sigla": "Fs",
+     "nome": "Floresta Estacional Semidecidual Submontana",
+     "pct_bioma": 4.53,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 88.9,
+     "total_tCO2_ha": 326.26
+    },
+    {
+     "sigla": "La",
+     "nome": "Campinarana Arborizada",
+     "pct_bioma": 0.58,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "",
+     "total_tC_ha": 302.7,
+     "total_tCO2_ha": 1110.91
+    },
+    {
+     "sigla": "Lb",
+     "nome": "Campinarana Arbustiva",
+     "pct_bioma": 0.3,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "madeira morta: considerado não significativo",
+     "total_tC_ha": 189.3,
+     "total_tCO2_ha": 694.73
+    },
+    {
+     "sigla": "Ld",
+     "nome": "Campinarana Florestada",
+     "pct_bioma": 3.07,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "",
+     "total_tC_ha": 131.6,
+     "total_tCO2_ha": 482.97
+    },
+    {
+     "sigla": "Lg",
+     "nome": "Campinarana gramíneo lenhosa",
+     "pct_bioma": 0.41,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "madeira morta: considerado não significativo",
+     "total_tC_ha": 121.0,
+     "total_tCO2_ha": 444.07
+    },
+    {
+     "sigla": "Pa",
+     "nome": "Vegetação com influência fluvial e/ou lacustre",
+     "pct_bioma": 1.67,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "",
+     "total_tC_ha": 58.2,
+     "total_tCO2_ha": 213.59
+    },
+    {
+     "sigla": "Pf",
+     "nome": "Pioneiras com influência fluviomarinha (mangue)",
+     "pct_bioma": 0.44,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "",
+     "total_tC_ha": 38.3,
+     "total_tCO2_ha": 140.56
+    },
+    {
+     "sigla": "Pm",
+     "nome": "Pioneiras com influência Marinha (restinga)",
+     "pct_bioma": 0.001,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "madeira morta impressa '2.6' (ponto decimal)",
+     "total_tC_ha": 34.8,
+     "total_tCO2_ha": 127.72
+    },
+    {
+     "sigla": "Rm",
+     "nome": "Refúgio montano",
+     "pct_bioma": 0.09,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "madeira morta: considerado não significativo",
+     "total_tC_ha": 90.2,
+     "total_tCO2_ha": 331.03
+    },
+    {
+     "sigla": "Sa",
+     "nome": "Savana Arborizada",
+     "pct_bioma": 1.1,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "",
+     "total_tC_ha": 173.1,
+     "total_tCO2_ha": 635.28
+    },
+    {
+     "sigla": "Sd",
+     "nome": "Savana Florestada",
+     "pct_bioma": 1.51,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "113"
+     ],
+     "obs": "",
+     "total_tC_ha": 150.0,
+     "total_tCO2_ha": 550.5
+    },
+    {
+     "sigla": "Sg",
+     "nome": "Savana Gramíneo-Lenhosa",
+     "pct_bioma": 0.4,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "",
+     "total_tC_ha": 49.8,
+     "total_tCO2_ha": 182.77
+    },
+    {
+     "sigla": "Sp",
+     "nome": "Savana Parque",
+     "pct_bioma": 1.5,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "",
+     "total_tC_ha": 114.0,
+     "total_tCO2_ha": 418.38
+    },
+    {
+     "sigla": "Ta",
+     "nome": "Savana Estépica Arborizada",
+     "pct_bioma": 7e-05,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "* (ocorreu exclusivamente em áreas naturais); % impresso quebrado em '0,0000' / '7'",
+     "total_tC_ha": 128.9,
+     "total_tCO2_ha": 473.06
+    },
+    {
+     "sigla": "Td",
+     "nome": "Savana Estépica Florestada",
+     "pct_bioma": 0.12,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "",
+     "total_tC_ha": 25.2,
+     "total_tCO2_ha": 92.48
+    },
+    {
+     "sigla": "Tg",
+     "nome": "Savana Estépica Gramíneo Lenhosa",
+     "pct_bioma": 0.02,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "* (ocorreu exclusivamente em áreas naturais)",
+     "total_tC_ha": 17.5,
+     "total_tCO2_ha": 64.22
+    },
+    {
+     "sigla": "Tp",
+     "nome": "Savana Estépica Parque",
+     "pct_bioma": 0.07,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "",
+     "total_tC_ha": 26.5,
+     "total_tCO2_ha": 97.25
+    },
+    {
+     "sigla": "Am",
+     "nome": "Floresta Ombrófila Aberta Montana",
+     "pct_bioma": 0.0002,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "madeira morta impressa '2.6' (ponto decimal)",
+     "total_tC_ha": 39.2,
+     "total_tCO2_ha": 143.86
+    },
+    {
+     "sigla": "Ca",
+     "nome": "Floresta Estacional Decidual Aluvial",
+     "pct_bioma": 0.004,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "",
+     "total_tC_ha": 107.7,
+     "total_tCO2_ha": 395.26
+    },
+    {
+     "sigla": "Rl",
+     "nome": "Refúgio Alto-Montano",
+     "pct_bioma": 0.001,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "* (ocorreu exclusivamente em áreas naturais); madeira morta: considerado não significativo",
+     "total_tC_ha": 282.1,
+     "total_tCO2_ha": 1035.31
+    },
+    {
+     "sigla": "Rs",
+     "nome": "Refúgio Submontano",
+     "pct_bioma": 0.0004,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "114"
+     ],
+     "obs": "* (ocorreu exclusivamente em áreas naturais); madeira morta: considerado não significativo",
+     "total_tC_ha": 185.1,
+     "total_tCO2_ha": 679.32
+    },
+    {
+     "sigla": "SP",
+     "nome": "Contato Savana/Formações Pioneiras – Específico para Formação Pioneira com Influência Marinha (Restinga)",
+     "pct_bioma": 0.001,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 71.2,
+     "total_tCO2_ha": 261.3
+    },
+    {
+     "sigla": "SN",
+     "nome": "Contato Savana/Floresta Estacional",
+     "pct_bioma": 0.43,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 57.6,
+     "total_tCO2_ha": 211.39
+    },
+    {
+     "sigla": "SO",
+     "nome": "Contato Savana/Floresta Ombrófila",
+     "pct_bioma": 0.39,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 131.2,
+     "total_tCO2_ha": 481.5
+    },
+    {
+     "sigla": "ST",
+     "nome": "Contato Savana/Savana-Estépica",
+     "pct_bioma": 0.07,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 49.7,
+     "total_tCO2_ha": 182.4
+    },
+    {
+     "sigla": "TN",
+     "nome": "Contato Savana-Estépica/Floresta Estacional",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 51.6,
+     "total_tCO2_ha": 189.37
+    },
+    {
+     "sigla": "LO",
+     "nome": "Contato Campinarana/Floresta Ombrófila",
+     "pct_bioma": 0.42,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 130.0,
+     "total_tCO2_ha": 477.1
+    },
+    {
+     "sigla": "ON",
+     "nome": "Contato Floresta Ombrófila/Floresta Estacional",
+     "pct_bioma": 0.85,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 58.4,
+     "total_tCO2_ha": 214.33
+    },
+    {
+     "sigla": "T",
+     "nome": "Savana-Estépica",
+     "pct_bioma": 4e-06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "% impresso quebrado em '0,0000' / '04'",
+     "total_tC_ha": 193.4,
+     "total_tCO2_ha": 709.78
+    },
+    {
+     "sigla": "S",
+     "nome": "Savana",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "faixa total impressa '(2,91,296)'",
+     "total_tC_ha": 139.5,
+     "total_tCO2_ha": 511.96
+    },
+    {
+     "sigla": "P",
+     "nome": "Áreas das Formações Pioneira",
+     "pct_bioma": 0.0003,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "115"
+     ],
+     "obs": "",
+     "total_tC_ha": 66.6,
+     "total_tCO2_ha": 244.42
+    },
+    {
+     "sigla": "L",
+     "nome": "Campinarana",
+     "pct_bioma": 0.001,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "116"
+     ],
+     "obs": "madeira morta: considerado não significativo",
+     "total_tC_ha": 170.4,
+     "total_tCO2_ha": 625.37
+    }
+   ]
+  },
+  "Cerrado": {
+   "tabela": 24,
+   "media_ponderada_tC_ha": 47.75,
+   "media_ponderada_tCO2_ha": 175.24,
+   "soma_pct_considerada": 100.0,
+   "fitofisionomias": [
+    {
+     "sigla": "Aa",
+     "nome": "Floresta Ombrófila Aberta Aluvial",
+     "pct_bioma": 0.05,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "121"
+     ],
+     "obs": "AGB quebrado em duas linhas na célula ('117,2'/'9')",
+     "total_tC_ha": 145.3,
+     "total_tCO2_ha": 533.25
+    },
+    {
+     "sigla": "Ab",
+     "nome": "Floresta Ombrófila Aberta das Terras Baixas",
+     "pct_bioma": 0.05,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "121"
+     ],
+     "obs": "AGB e MM quebrados em duas linhas na célula",
+     "total_tC_ha": 165.89,
+     "total_tCO2_ha": 608.82
+    },
+    {
+     "sigla": "As",
+     "nome": "Floresta Ombrófila Aberta Submontana",
+     "pct_bioma": 0.21,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "121"
+     ],
+     "obs": "",
+     "total_tC_ha": 88.08,
+     "total_tCO2_ha": 323.25
+    },
+    {
+     "sigla": "Ca",
+     "nome": "Floresta Estacional Decidual Aluvial",
+     "pct_bioma": 0.06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "121"
+     ],
+     "obs": "difere da Tab. 28 (Ca: AGB 88,62; total 121,72)",
+     "total_tC_ha": 121.46,
+     "total_tCO2_ha": 445.76
+    },
+    {
+     "sigla": "Cb",
+     "nome": "Floresta Estacional Decidual das Terras Baixas",
+     "pct_bioma": 0.09,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "121"
+     ],
+     "obs": "serapilheira quebrada em duas linhas ('11,2'/'1')",
+     "total_tC_ha": 104.87,
+     "total_tCO2_ha": 384.87
+    },
+    {
+     "sigla": "Cm",
+     "nome": "Floresta Estacional Decidual Montana",
+     "pct_bioma": 1.55,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "BA/GO/MG/PI / Caatinga",
+       "agb": 31.1,
+       "bgb": 11.5,
+       "madeira_morta": 4.67,
+       "serapilheira": 4.67,
+       "total": 51.94
+      },
+      {
+       "estado_ou_local": "MS/TO / Pantanal",
+       "agb": 84.38,
+       "bgb": 20.25,
+       "madeira_morta": 9.28,
+       "serapilheira": 13.63,
+       "total": 127.54
+      }
+     ],
+     "paginas": [
+      "121"
+     ],
+     "obs": "% compartilhada",
+     "total_tC_ha": 89.74,
+     "total_tCO2_ha": 329.35
+    },
+    {
+     "sigla": "Cs",
+     "nome": "Floresta Estacional Decidual Submontana",
+     "pct_bioma": 4.04,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "BA/GO/MA/MG/PI/TO / Caatinga",
+       "agb": 41.4,
+       "bgb": 15.3,
+       "madeira_morta": 6.21,
+       "serapilheira": 6.1,
+       "total": 69.01
+      },
+      {
+       "estado_ou_local": "MS/MT/SP / Pantanal",
+       "agb": 84.38,
+       "bgb": 20.25,
+       "madeira_morta": 9.28,
+       "serapilheira": 13.63,
+       "total": 127.54
+      }
+     ],
+     "paginas": [
+      "121",
+      "122"
+     ],
+     "obs": "% compartilhada | % compartilhada; continuação da p. 121 (célula de nome/% vazia na p. 122)",
+     "total_tC_ha": 98.28,
+     "total_tCO2_ha": 360.69
+    },
+    {
+     "sigla": "Da",
+     "nome": "Floresta Ombrófila Densa Aluvial",
+     "pct_bioma": 0.04,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "122"
+     ],
+     "obs": "",
+     "total_tC_ha": 130.71,
+     "total_tCO2_ha": 479.71
+    },
+    {
+     "sigla": "Db",
+     "nome": "Floresta Ombrófila Densa de Terras Baixas",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "122"
+     ],
+     "obs": "",
+     "total_tC_ha": 138.2,
+     "total_tCO2_ha": 507.19
+    },
+    {
+     "sigla": "Ds",
+     "nome": "Floresta Ombrófila Densa Submontana",
+     "pct_bioma": 0.06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "122"
+     ],
+     "obs": "",
+     "total_tC_ha": 118.41,
+     "total_tCO2_ha": 434.56
+    },
+    {
+     "sigla": "Eg",
+     "nome": "Estepe Gramíneo-Lenhosa",
+     "pct_bioma": 0.01,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "122"
+     ],
+     "obs": "",
+     "total_tC_ha": 5.13,
+     "total_tCO2_ha": 18.83
+    },
+    {
+     "sigla": "Fa",
+     "nome": "Floresta Estacional Semidecidual Aluvial",
+     "pct_bioma": 2.03,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "MA/PA/TO / Amazônia",
+       "agb": 52.99,
+       "bgb": 5.3,
+       "madeira_morta": 4.29,
+       "serapilheira": 3.06,
+       "total": 65.64
+      },
+      {
+       "estado_ou_local": "BA/GO/MG/PI / Cerrado (MG)",
+       "agb": 56.89,
+       "bgb": 11.38,
+       "madeira_morta": 6.26,
+       "serapilheira": 1.34,
+       "total": 75.86
+      },
+      {
+       "estado_ou_local": "PR/SP / Mata Atlântica",
+       "agb": 58.05,
+       "bgb": 13.66,
+       "madeira_morta": 2.98,
+       "serapilheira": 5.24,
+       "total": 79.93
+      },
+      {
+       "estado_ou_local": "MS/MT / Pantanal",
+       "agb": 121.92,
+       "bgb": 29.26,
+       "madeira_morta": 13.41,
+       "serapilheira": 2.87,
+       "total": 167.46
+      }
+     ],
+     "paginas": [
+      "122",
+      "123"
+     ],
+     "obs": "% compartilhada | % compartilhada; continuação da p. 122",
+     "total_tC_ha": 97.22,
+     "total_tCO2_ha": 356.8
+    },
+    {
+     "sigla": "Fb",
+     "nome": "Floresta Estacional Semidecidual das Terras Baixas",
+     "pct_bioma": 0.05,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "MA/MT / Amazônia",
+       "agb": 65.98,
+       "bgb": 6.6,
+       "madeira_morta": 5.34,
+       "serapilheira": 3.81,
+       "total": 81.73
+      },
+      {
+       "estado_ou_local": "GO / Mata Atlântica",
+       "agb": 63.07,
+       "bgb": 14.84,
+       "madeira_morta": 2.98,
+       "serapilheira": 3.03,
+       "total": 83.92
+      },
+      {
+       "estado_ou_local": "PI / Mata Atlântica",
+       "agb": 63.07,
+       "bgb": 33.4,
+       "madeira_morta": 2.98,
+       "serapilheira": 3.03,
+       "total": 102.48
+      }
+     ],
+     "paginas": [
+      "123"
+     ],
+     "obs": "% compartilhada | % compartilhada; AGB, MM e serapilheira em células mescladas com a subdivisão PI | % compartilhada; AGB, MM e serapilheira em células mescladas com a subdivisão GO; BGB difere de GO apesar da mesma referência",
+     "total_tC_ha": 89.38,
+     "total_tCO2_ha": 328.02
+    },
+    {
+     "sigla": "Fm",
+     "nome": "Floresta Estacional Semidecidual Montana",
+     "pct_bioma": 1.36,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "BA/PI / Mata Atlântica",
+       "agb": 50.48,
+       "bgb": 26.73,
+       "madeira_morta": 2.98,
+       "serapilheira": 2.42,
+       "total": 82.61
+      },
+      {
+       "estado_ou_local": "GO/MG/MS/PR/SP/TO / Mata Atlântica",
+       "agb": 50.48,
+       "bgb": 11.88,
+       "madeira_morta": 2.98,
+       "serapilheira": 2.42,
+       "total": 67.76
+      }
+     ],
+     "paginas": [
+      "123"
+     ],
+     "obs": "% compartilhada; AGB, MM e serapilheira em células mescladas",
+     "total_tC_ha": 75.19,
+     "total_tCO2_ha": 275.95
+    },
+    {
+     "sigla": "Fs",
+     "nome": "Floresta Estacional Semidecidual Submontana",
+     "pct_bioma": 2.9,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "BA/MA/PI / Cerrado (PI, MA)",
+       "agb": 39.96,
+       "bgb": 7.99,
+       "madeira_morta": 4.4,
+       "serapilheira": 2.58,
+       "total": 54.93
+      },
+      {
+       "estado_ou_local": "GO/MG/MS/MT/SP/TO / Mata Atlântica",
+       "agb": 62.23,
+       "bgb": 14.64,
+       "madeira_morta": 2.98,
+       "serapilheira": 3.63,
+       "total": 83.48
+      }
+     ],
+     "paginas": [
+      "123"
+     ],
+     "obs": "% compartilhada",
+     "total_tC_ha": 69.2,
+     "total_tCO2_ha": 253.96
+    },
+    {
+     "sigla": "Ma",
+     "nome": "Floresta Ombrófila Mista Aluvial",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "123"
+     ],
+     "obs": "",
+     "total_tC_ha": 85.43,
+     "total_tCO2_ha": 313.53
+    },
+    {
+     "sigla": "Ml",
+     "nome": "Floresta Ombrófila Mista Alto-montana",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "AGB impresso com ponto decimal ('78.82')",
+     "total_tC_ha": 104.12,
+     "total_tCO2_ha": 382.12
+    },
+    {
+     "sigla": "Mm",
+     "nome": "Floresta Ombrófila Mista Montana",
+     "pct_bioma": 0.03,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "",
+     "total_tC_ha": 80.12,
+     "total_tCO2_ha": 294.04
+    },
+    {
+     "sigla": "ON",
+     "nome": "Contato Floresta Ombrófila/Floresta Estacional",
+     "pct_bioma": 0.12,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "",
+     "total_tC_ha": 102.18,
+     "total_tCO2_ha": 375.0
+    },
+    {
+     "sigla": "P",
+     "nome": "Formação Pioneira",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "",
+     "total_tC_ha": 36.51,
+     "total_tCO2_ha": 133.99
+    },
+    {
+     "sigla": "Pa",
+     "nome": "Formação Pioneira com influência fluvial e/ou lacustre",
+     "pct_bioma": 0.35,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "",
+     "total_tC_ha": 36.21,
+     "total_tCO2_ha": 132.89
+    },
+    {
+     "sigla": "Pf",
+     "nome": "Formação Pioneira com influência fluvio-marinha (mangue)",
+     "pct_bioma": 0.06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "",
+     "total_tC_ha": 38.26,
+     "total_tCO2_ha": 140.41
+    },
+    {
+     "sigla": "Pm",
+     "nome": "Formação Pioneira com influência marinha (restinga)",
+     "pct_bioma": 0.03,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "124"
+     ],
+     "obs": "",
+     "total_tC_ha": 34.76,
+     "total_tCO2_ha": 127.57
+    },
+    {
+     "sigla": "Rm",
+     "nome": "Refúgio Montano",
+     "pct_bioma": 0.09,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "125"
+     ],
+     "obs": "",
+     "total_tC_ha": 18.55,
+     "total_tCO2_ha": 68.08
+    },
+    {
+     "sigla": "S",
+     "nome": "Savana",
+     "pct_bioma": 1.28,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "125"
+     ],
+     "obs": "",
+     "total_tC_ha": 51.63,
+     "total_tCO2_ha": 189.48
+    },
+    {
+     "sigla": "Sa",
+     "nome": "Savana Arborizada",
+     "pct_bioma": 48.69,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "125"
+     ],
+     "obs": "linha destacada em cinza; célula BGB traz '24,54 (mediana)'",
+     "total_tC_ha": 41.31,
+     "total_tCO2_ha": 151.61
+    },
+    {
+     "sigla": "Sd",
+     "nome": "Savana Florestada",
+     "pct_bioma": 8.53,
+     "categoria": "F",
+     "subvalores": [
+      {
+       "estado_ou_local": "PR/SP / Cerrado (SP)",
+       "agb": 46.14,
+       "bgb": 10.15,
+       "madeira_morta": 5.08,
+       "serapilheira": 7.45,
+       "total": 68.82
+      },
+      {
+       "estado_ou_local": "BA/DF/GO/MG / Cerrado (MG)",
+       "agb": 35.06,
+       "bgb": 7.71,
+       "madeira_morta": 3.86,
+       "serapilheira": 5.66,
+       "total": 52.29
+      },
+      {
+       "estado_ou_local": "MS/MT / Pantanal",
+       "agb": 69.2,
+       "bgb": 15.22,
+       "madeira_morta": 7.61,
+       "serapilheira": 11.17,
+       "total": 103.21
+      },
+      {
+       "estado_ou_local": "MA/PI/TO / Cerrado (TO)",
+       "agb": 33.29,
+       "bgb": 7.32,
+       "madeira_morta": 3.66,
+       "serapilheira": 5.38,
+       "total": 49.64
+      }
+     ],
+     "paginas": [
+      "125"
+     ],
+     "obs": "% compartilhada; linha destacada em cinza | % compartilhada; linha destacada em cinza; serapilheira quebrada ('11,1'/'7')",
+     "total_tC_ha": 68.49,
+     "total_tCO2_ha": 251.36
+    },
+    {
+     "sigla": "Sg",
+     "nome": "Savana Gramíneo-lenhosa",
+     "pct_bioma": 4.97,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "125"
+     ],
+     "obs": "linha destacada em cinza",
+     "total_tC_ha": 18.49,
+     "total_tCO2_ha": 67.86
+    },
+    {
+     "sigla": "SM",
+     "nome": "Contato Savana/Floresta Ombrófila Mista",
+     "pct_bioma": 0.1,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "126"
+     ],
+     "obs": "",
+     "total_tC_ha": 67.57,
+     "total_tCO2_ha": 247.98
+    },
+    {
+     "sigla": "SN",
+     "nome": "Contato Savana/Floresta Estacional",
+     "pct_bioma": 5.64,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "126"
+     ],
+     "obs": "linha destacada em cinza; AGB impresso com ponto decimal ('43.49')",
+     "total_tC_ha": 68.5,
+     "total_tCO2_ha": 251.39
+    },
+    {
+     "sigla": "SO",
+     "nome": "Contato Savana/Floresta Ombrófila",
+     "pct_bioma": 0.03,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "126"
+     ],
+     "obs": "",
+     "total_tC_ha": 66.33,
+     "total_tCO2_ha": 243.43
+    },
+    {
+     "sigla": "Sp",
+     "nome": "Savana Parque",
+     "pct_bioma": 15.58,
+     "categoria": "OFL",
+     "subvalores": [
+      {
+       "estado_ou_local": "valor único / Cerrado (GO, DF, MG)",
+       "agb": 3.81,
+       "bgb": 12.72,
+       "madeira_morta": 0.0,
+       "serapilheira": 1.25,
+       "total": 26.79
+      },
+      {
+       "estado_ou_local": "valor único / Cerrado (TO)",
+       "agb": 11.0,
+       "bgb": 22.44,
+       "madeira_morta": 0.06,
+       "serapilheira": 2.31,
+       "total": 26.79
+      }
+     ],
+     "paginas": [
+      "126"
+     ],
+     "obs": "% compartilhada; linha destacada em cinza; 'valor único' e total 26,79 em células mescladas sobre as duas sublinhas (subdivisão por local de estudo, sem estado); componentes somam 17,78; total ≈ média das duas sublinhas | % compartilhada; linha destacada em cinza; 'valor único' e total 26,79 em células mescladas sobre as duas sublinhas; componentes somam 35,81; total ≈ média das duas sublinhas",
+     "total_tC_ha": 26.79,
+     "total_tCO2_ha": 98.32
+    },
+    {
+     "sigla": "ST",
+     "nome": "Contato Savana/Savana-Estépica",
+     "pct_bioma": 0.24,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "126"
+     ],
+     "obs": "componentes somam 39,45 ≠ total impresso",
+     "total_tC_ha": 36.11,
+     "total_tCO2_ha": 132.52
+    },
+    {
+     "sigla": "STN",
+     "nome": "Contato Savana/Savana-Estépica/Floresta Estacional",
+     "pct_bioma": 0.15,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "126"
+     ],
+     "obs": "componentes somam 48,41 ≠ total impresso",
+     "total_tC_ha": 47.57,
+     "total_tCO2_ha": 174.58
+    },
+    {
+     "sigla": "T",
+     "nome": "Savana-Estépica",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "126"
+     ],
+     "obs": "",
+     "total_tC_ha": 30.8,
+     "total_tCO2_ha": 113.04
+    },
+    {
+     "sigla": "Ta",
+     "nome": "Savana Estépica Arborizada",
+     "pct_bioma": 0.49,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "127"
+     ],
+     "obs": "",
+     "total_tC_ha": 17.9,
+     "total_tCO2_ha": 65.69
+    },
+    {
+     "sigla": "Td",
+     "nome": "Savana Estépica Florestada",
+     "pct_bioma": 0.14,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "127"
+     ],
+     "obs": "",
+     "total_tC_ha": 43.33,
+     "total_tCO2_ha": 159.02
+    },
+    {
+     "sigla": "Tg",
+     "nome": "Savana Estépica Gramíneo-lenhosa",
+     "pct_bioma": 0.02,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "127"
+     ],
+     "obs": "no original 'Tg/ Savana' (com espaço)",
+     "total_tC_ha": 17.49,
+     "total_tCO2_ha": 64.19
+    },
+    {
+     "sigla": "TN",
+     "nome": "Contato Savana-Estépica/Floresta Estacional",
+     "pct_bioma": 0.79,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "127"
+     ],
+     "obs": "componentes somam 48,92 ≠ total impresso",
+     "total_tC_ha": 45.83,
+     "total_tCO2_ha": 168.2
+    },
+    {
+     "sigla": "Tp",
+     "nome": "Savana Estépica Parque",
+     "pct_bioma": 0.16,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "127"
+     ],
+     "obs": "AGB impresso com ponto decimal ('5.95')",
+     "total_tC_ha": 26.51,
+     "total_tCO2_ha": 97.29
+    }
+   ]
+  },
+  "Mata Atlântica": {
+   "tabela": 25,
+   "media_ponderada_tC_ha": 110.65,
+   "media_ponderada_tCO2_ha": 406.09,
+   "soma_pct_considerada": 99.92,
+   "fitofisionomias": [
+    {
+     "sigla": "Aa",
+     "nome": "Floresta Ombrófila Aberta – Aluvial",
+     "pct_bioma": 0.07,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "total impresso com ponto decimal: 47.09",
+     "total_tC_ha": 47.09,
+     "total_tCO2_ha": 172.82
+    },
+    {
+     "sigla": "Ab",
+     "nome": "Floresta Ombrófila Aberta – Terras baixas",
+     "pct_bioma": 0.22,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "métodos: Idem Aa",
+     "total_tC_ha": 47.09,
+     "total_tCO2_ha": 172.82
+    },
+    {
+     "sigla": "Am",
+     "nome": "Floresta Ombrófila Aberta – Montana",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "métodos: Idem Aa (serapilheira própria: razão 0,05)",
+     "total_tC_ha": 46.91,
+     "total_tCO2_ha": 172.16
+    },
+    {
+     "sigla": "As",
+     "nome": "Floresta Ombrófila Aberta – Submontana",
+     "pct_bioma": 0.51,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "métodos: Idem Aa",
+     "total_tC_ha": 49.42,
+     "total_tCO2_ha": 181.37
+    },
+    {
+     "sigla": "Ca",
+     "nome": "Floresta Estacional Decidual – Aluvial",
+     "pct_bioma": 0.14,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "Local de Estudo: Caatinga (valor de outro bioma)",
+     "total_tC_ha": 121.8,
+     "total_tCO2_ha": 447.01
+    },
+    {
+     "sigla": "Cb",
+     "nome": "Floresta Estacional Decidual – Terras baixas",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "BGB impresso com ponto decimal: 10.68",
+     "total_tC_ha": 68.24,
+     "total_tCO2_ha": 250.44
+    },
+    {
+     "sigla": "Cm",
+     "nome": "Floresta Estacional Decidual – Montana",
+     "pct_bioma": 2.86,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "131"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 75.83,
+     "total_tCO2_ha": 278.3
+    },
+    {
+     "sigla": "Cs",
+     "nome": "Floresta Estacional Decidual – Submontana",
+     "pct_bioma": 3.22,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 106.5,
+     "total_tCO2_ha": 390.86
+    },
+    {
+     "sigla": "D",
+     "nome": "Floresta Ombrófila Densa (Floresta Tropical Pluvial)",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "categoria-mãe",
+     "total_tC_ha": 84.02,
+     "total_tCO2_ha": 308.35
+    },
+    {
+     "sigla": "Da",
+     "nome": "Floresta Ombrófila Densa – Aluvial",
+     "pct_bioma": 0.32,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "",
+     "total_tC_ha": 173.9,
+     "total_tCO2_ha": 638.21
+    },
+    {
+     "sigla": "Db",
+     "nome": "Floresta Ombrófila Densa – Terras baixas",
+     "pct_bioma": 2.32,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 112.97,
+     "total_tCO2_ha": 414.6
+    },
+    {
+     "sigla": "Dl",
+     "nome": "Floresta Ombrófila Densa – Alto-Montana",
+     "pct_bioma": 0.16,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "",
+     "total_tC_ha": 85.9,
+     "total_tCO2_ha": 315.25
+    },
+    {
+     "sigla": "Dm",
+     "nome": "Floresta Ombrófila Densa – Montana",
+     "pct_bioma": 5.85,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 182.88,
+     "total_tCO2_ha": 671.17
+    },
+    {
+     "sigla": "Ds",
+     "nome": "Floresta Ombrófila Densa – Submontana",
+     "pct_bioma": 8.34,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 180.65,
+     "total_tCO2_ha": 662.99
+    },
+    {
+     "sigla": "E",
+     "nome": "Estepe",
+     "pct_bioma": 0.4,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "categoria-mãe",
+     "total_tC_ha": 1.04,
+     "total_tCO2_ha": 3.82
+    },
+    {
+     "sigla": "Eg",
+     "nome": "Estepe – Gramíneo-Lenhosa",
+     "pct_bioma": 3.99,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "132"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade); BGB/MM/serap.: PARUELO et al., 2010",
+     "total_tC_ha": 8.99,
+     "total_tCO2_ha": 32.99
+    },
+    {
+     "sigla": "EM",
+     "nome": "Contato Estepe/ Floresta Ombrófila Mista",
+     "pct_bioma": 1.18,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 64.7,
+     "total_tCO2_ha": 237.45
+    },
+    {
+     "sigla": "EN",
+     "nome": "Contato Estepe/Floresta Estacional",
+     "pct_bioma": 0.57,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 68.34,
+     "total_tCO2_ha": 250.81
+    },
+    {
+     "sigla": "F",
+     "nome": "Floresta Estacional Semidecidual",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "categoria-mãe",
+     "total_tC_ha": 75.48,
+     "total_tCO2_ha": 277.01
+    },
+    {
+     "sigla": "Fa",
+     "nome": "Floresta Estacional Semidecidual – Aluvial",
+     "pct_bioma": 1.59,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "",
+     "total_tC_ha": 78.17,
+     "total_tCO2_ha": 286.88
+    },
+    {
+     "sigla": "Fb",
+     "nome": "Floresta Estacional Semidecidual – Terras baixas",
+     "pct_bioma": 1.07,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "",
+     "total_tC_ha": 83.9,
+     "total_tCO2_ha": 307.91
+    },
+    {
+     "sigla": "Fm",
+     "nome": "Floresta Estacional Semidecidual – Montana",
+     "pct_bioma": 13.17,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 99.49,
+     "total_tCO2_ha": 365.13
+    },
+    {
+     "sigla": "Fs",
+     "nome": "Floresta Estacional Semidecidual – Submontana",
+     "pct_bioma": 21.68,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 125.79,
+     "total_tCO2_ha": 461.65
+    },
+    {
+     "sigla": "L",
+     "nome": "Campinarana",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "categoria-mãe; AGB = média ponderada de estepe (E) e savana-estépica (T)",
+     "total_tC_ha": 7.95,
+     "total_tCO2_ha": 29.18
+    },
+    {
+     "sigla": "La",
+     "nome": "Campinarana – arborizada",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "AGB = média de Ea (TCN 9,44) e Ta (7,99)",
+     "total_tC_ha": 14.45,
+     "total_tCO2_ha": 53.03
+    },
+    {
+     "sigla": "Lg",
+     "nome": "Campinarana – Gramíneo-Lenhosa",
+     "pct_bioma": 0.07,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "133"
+     ],
+     "obs": "AGB = média Eg (0,80) e Tg (0,99)",
+     "total_tC_ha": 1.47,
+     "total_tCO2_ha": 5.39
+    },
+    {
+     "sigla": "M",
+     "nome": "Floresta Ombrófila Mista",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "categoria-mãe",
+     "total_tC_ha": 81.3,
+     "total_tCO2_ha": 298.37
+    },
+    {
+     "sigla": "Ma",
+     "nome": "Floresta Ombrófila Mista – Aluvial",
+     "pct_bioma": 0.11,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "",
+     "total_tC_ha": 85.41,
+     "total_tCO2_ha": 313.45
+    },
+    {
+     "sigla": "Ml",
+     "nome": "Floresta Ombrófila Mista – Alto-Montana",
+     "pct_bioma": 1.83,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "",
+     "total_tC_ha": 104.1,
+     "total_tCO2_ha": 382.05
+    },
+    {
+     "sigla": "Mm",
+     "nome": "Floresta Ombrófila Mista – Montana",
+     "pct_bioma": 12.56,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 142.15,
+     "total_tCO2_ha": 521.69
+    },
+    {
+     "sigla": "Ms",
+     "nome": "Floresta Ombrófila Mista – Submontana",
+     "pct_bioma": 0.08,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "",
+     "total_tC_ha": 142.7,
+     "total_tCO2_ha": 523.71
+    },
+    {
+     "sigla": "NM",
+     "nome": "Contato Floresta Estacional/Floresta Ombrófila Mista",
+     "pct_bioma": 1.71,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "contato; BGB impresso com ponto decimal: 11.95",
+     "total_tC_ha": 76.01,
+     "total_tCO2_ha": 278.96
+    },
+    {
+     "sigla": "NP",
+     "nome": "Contato Floresta Estacional/Formações Pioneiras – Específico para Formação Pioneira com Influência Marinha (Restinga)",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 75.59,
+     "total_tCO2_ha": 277.42
+    },
+    {
+     "sigla": "OM",
+     "nome": "Contato Floresta Ombrófila Densa /Floresta Ombrófila Mista",
+     "pct_bioma": 0.75,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 83.67,
+     "total_tCO2_ha": 307.07
+    },
+    {
+     "sigla": "ON",
+     "nome": "Contato Floresta Ombrófila/Floresta Estacional",
+     "pct_bioma": 0.98,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "134"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 78.84,
+     "total_tCO2_ha": 289.34
+    },
+    {
+     "sigla": "OP",
+     "nome": "Contato Floresta Ombrófila/Formações Pioneiras – Específico para Formação Pioneira com Influência Marinha (Restinga)",
+     "pct_bioma": 0.05,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 84.15,
+     "total_tCO2_ha": 308.83
+    },
+    {
+     "sigla": "P",
+     "nome": "Áreas das Formações Pioneiras",
+     "pct_bioma": 0.15,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "categoria-mãe",
+     "total_tC_ha": 104.53,
+     "total_tCO2_ha": 383.63
+    },
+    {
+     "sigla": "Pa",
+     "nome": "Vegetação com influência fluvial e/ou lacustre",
+     "pct_bioma": 1.37,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "",
+     "total_tC_ha": 103.75,
+     "total_tCO2_ha": 380.76
+    },
+    {
+     "sigla": "Pf",
+     "nome": "Vegetação com influência fluviomarinha",
+     "pct_bioma": 0.31,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "",
+     "total_tC_ha": 83.06,
+     "total_tCO2_ha": 304.83
+    },
+    {
+     "sigla": "Pm",
+     "nome": "Vegetação com influência marinha (Restinga)",
+     "pct_bioma": 0.68,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "",
+     "total_tC_ha": 104.7,
+     "total_tCO2_ha": 384.25
+    },
+    {
+     "sigla": "Rl",
+     "nome": "Refúgios Alto-Montanos",
+     "pct_bioma": 0.12,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "",
+     "total_tC_ha": 9.0,
+     "total_tCO2_ha": 33.03
+    },
+    {
+     "sigla": "Rm",
+     "nome": "Refúgios montanos",
+     "pct_bioma": 0.03,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "",
+     "total_tC_ha": 11.55,
+     "total_tCO2_ha": 42.39
+    },
+    {
+     "sigla": "S",
+     "nome": "Savana",
+     "pct_bioma": 0.27,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "135"
+     ],
+     "obs": "categoria-mãe; AGB = média ponderada das subclasses (Cerrado)",
+     "total_tC_ha": 51.63,
+     "total_tCO2_ha": 189.48
+    },
+    {
+     "sigla": "Sa",
+     "nome": "Savana – arborizada",
+     "pct_bioma": 1.85,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "Local de Estudo: Cerrado (valor de outro bioma); métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 41.31,
+     "total_tCO2_ha": 151.61
+    },
+    {
+     "sigla": "Sd",
+     "nome": "Savana – florestada",
+     "pct_bioma": 1.08,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "métodos: Idem Cerrado (ver Tabela 24); serapilheira impressa quebrada em duas linhas na célula (11,1 / 7)",
+     "total_tC_ha": 103.2,
+     "total_tCO2_ha": 378.74
+    },
+    {
+     "sigla": "Sg",
+     "nome": "Savana – Gramíneo-Lenhosa",
+     "pct_bioma": 1.39,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 18.49,
+     "total_tCO2_ha": 67.86
+    },
+    {
+     "sigla": "SM",
+     "nome": "Contato Savana/Floresta Ombrófila Mista",
+     "pct_bioma": 0.32,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "contato; métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 67.59,
+     "total_tCO2_ha": 248.06
+    },
+    {
+     "sigla": "SN",
+     "nome": "Contato Savana/Floresta Estacional",
+     "pct_bioma": 3.68,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "contato; linha destacada em cinza (maior representatividade); métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 68.5,
+     "total_tCO2_ha": 251.39
+    },
+    {
+     "sigla": "SO",
+     "nome": "Contato Savana/Floresta Ombrófila",
+     "pct_bioma": 0.14,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "contato; métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 66.33,
+     "total_tCO2_ha": 243.43
+    },
+    {
+     "sigla": "SP",
+     "nome": "Contato Savana/Formações Pioneiras",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "contato; métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 49.27,
+     "total_tCO2_ha": 180.82
+    },
+    {
+     "sigla": "Sp",
+     "nome": "Savana – parque",
+     "pct_bioma": 1.15,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 26.79,
+     "total_tCO2_ha": 98.32
+    },
+    {
+     "sigla": "ST",
+     "nome": "Contato Savana/Formações pioneiras – Específico para Formação Pioneira com Influência Marinha (Restinga)",
+     "pct_bioma": 0.05,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "contato; métodos: Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 36.11,
+     "total_tCO2_ha": 132.52
+    },
+    {
+     "sigla": "T",
+     "nome": "Contato Savana/Savana-Estépica",
+     "pct_bioma": 0.0,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "assim impresso: sigla T com nome 'Contato Savana/Savana-Estépica'; métodos: Média das fitofisionomias Ta",
+     "total_tC_ha": 13.23,
+     "total_tCO2_ha": 48.55
+    },
+    {
+     "sigla": "Ta",
+     "nome": "Savana-Estépica – arborizada",
+     "pct_bioma": 0.87,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "136"
+     ],
+     "obs": "Local de Estudo: Caatinga (valor de outro bioma); AGB Idem Caatinga (ver Tabela 26); fatores de ajuste da Caatinga",
+     "total_tC_ha": 13.23,
+     "total_tCO2_ha": 48.55
+    },
+    {
+     "sigla": "Td",
+     "nome": "Savana-Estépica – florestada",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "137"
+     ],
+     "obs": "Local de Estudo: Caatinga (valor de outro bioma); AGB Idem (ver Tabela 26); fatores de ajuste da Caatinga",
+     "total_tC_ha": 30.81,
+     "total_tCO2_ha": 113.07
+    },
+    {
+     "sigla": "Tg",
+     "nome": "Savana-Estépica – Gramíneo-Lenhosa",
+     "pct_bioma": 0.0,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "137"
+     ],
+     "obs": "",
+     "total_tC_ha": 4.21,
+     "total_tCO2_ha": 15.45
+    },
+    {
+     "sigla": "TN",
+     "nome": "Contato Savana-Estépica/Floresta Estacional",
+     "pct_bioma": 0.63,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "137"
+     ],
+     "obs": "contato",
+     "total_tC_ha": 73.24,
+     "total_tCO2_ha": 268.79
+    }
+   ]
+  },
+  "Caatinga": {
+   "tabela": 26,
+   "media_ponderada_tC_ha": 32.04,
+   "media_ponderada_tCO2_ha": 117.57,
+   "soma_pct_considerada": 99.904,
+   "fitofisionomias": [
+    {
+     "sigla": "Aa",
+     "nome": "Floresta Ombrófila Aberta Aluvial",
+     "pct_bioma": 0.004,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Mata Atlântica, Cerrado, Amazônia",
+     "total_tC_ha": 57.33,
+     "total_tCO2_ha": 210.4
+    },
+    {
+     "sigla": "Ab",
+     "nome": "Floresta Ombrófila Aberta Terras Baixas",
+     "pct_bioma": 0.0002,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Mata Atlântica, Cerrado, Amazônia",
+     "total_tC_ha": 57.33,
+     "total_tCO2_ha": 210.4
+    },
+    {
+     "sigla": "Am",
+     "nome": "Floresta Ombrófila Aberta Montana",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Mata Atlântica, Cerrado, Amazônia",
+     "total_tC_ha": 57.33,
+     "total_tCO2_ha": 210.4
+    },
+    {
+     "sigla": "Ar",
+     "nome": "Afloramento Rochoso",
+     "pct_bioma": 0.0008,
+     "categoria": "-",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Caatinga; categoria '-' no original; serapilheira metodologia 'na'",
+     "total_tC_ha": 0.0,
+     "total_tCO2_ha": 0.0
+    },
+    {
+     "sigla": "As",
+     "nome": "Floresta Ombrófila Aberta Submontana",
+     "pct_bioma": 0.33,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 127.3,
+     "total_tCO2_ha": 467.19
+    },
+    {
+     "sigla": "Ca",
+     "nome": "Floresta Estacional Decidual – Aluvial",
+     "pct_bioma": 0.008,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 121.72,
+     "total_tCO2_ha": 446.71
+    },
+    {
+     "sigla": "Cb",
+     "nome": "Floresta Estacional Decidual Terras Baixas",
+     "pct_bioma": 0.002,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "141"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 75.3,
+     "total_tCO2_ha": 276.35
+    },
+    {
+     "sigla": "Cm",
+     "nome": "Floresta Estacional Decidual Montana",
+     "pct_bioma": 1.03,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 51.84,
+     "total_tCO2_ha": 190.25
+    },
+    {
+     "sigla": "Cs",
+     "nome": "Floresta Estacional Decidual Submontana",
+     "pct_bioma": 1.79,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 69.05,
+     "total_tCO2_ha": 253.41
+    },
+    {
+     "sigla": "Da",
+     "nome": "Floresta Ombrófila Densa Aluvial",
+     "pct_bioma": 0.02,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Mata Atlântica",
+     "total_tC_ha": 185.7,
+     "total_tCO2_ha": 681.52
+    },
+    {
+     "sigla": "Dm",
+     "nome": "Floresta Ombrófila Densa Montana",
+     "pct_bioma": 0.07,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Mata Atlântica",
+     "total_tC_ha": 185.7,
+     "total_tCO2_ha": 681.52
+    },
+    {
+     "sigla": "Dn",
+     "nome": "Dunas",
+     "pct_bioma": 0.08,
+     "categoria": "-",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Caatinga; categoria '-' no original",
+     "total_tC_ha": 0.0,
+     "total_tCO2_ha": 0.0
+    },
+    {
+     "sigla": "Ds",
+     "nome": "Floresta Ombrófila Densa Submontana",
+     "pct_bioma": 0.04,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Mata Atlântica",
+     "total_tC_ha": 185.7,
+     "total_tCO2_ha": 681.52
+    },
+    {
+     "sigla": "Fa",
+     "nome": "Floresta Estacional Semidecidual aluvial",
+     "pct_bioma": 0.32,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 92.94,
+     "total_tCO2_ha": 341.09
+    },
+    {
+     "sigla": "Fb",
+     "nome": "Floresta Estacional Semidecidual de terras baixas",
+     "pct_bioma": 0.04,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 106.01,
+     "total_tCO2_ha": 389.06
+    },
+    {
+     "sigla": "Fm",
+     "nome": "Floresta Estacional Semidecidual Montana",
+     "pct_bioma": 0.82,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "142"
+     ],
+     "obs": "local de estudo: Caatinga; nome continua no topo da p. 143 ('Semidecidual Montana')",
+     "total_tC_ha": 98.89,
+     "total_tCO2_ha": 362.93
+    },
+    {
+     "sigla": "Fs",
+     "nome": "Floresta Estacional Semidecidual Submontana",
+     "pct_bioma": 2.24,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 137.89,
+     "total_tCO2_ha": 506.06
+    },
+    {
+     "sigla": "Pa",
+     "nome": "Vegetação com influência fluvial e/ou lacustre",
+     "pct_bioma": 0.34,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 81.89,
+     "total_tCO2_ha": 300.54
+    },
+    {
+     "sigla": "Pf",
+     "nome": "Pioneiras com influência fluviomarinha (mangue)",
+     "pct_bioma": 0.27,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Amazônia/Guiana Francesa, nordeste brasileiro e outros",
+     "total_tC_ha": 170.54,
+     "total_tCO2_ha": 625.88
+    },
+    {
+     "sigla": "Pm",
+     "nome": "Pioneiras com influência Marinha (restinga)",
+     "pct_bioma": 0.55,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Mata Atlântica",
+     "total_tC_ha": 147.09,
+     "total_tCO2_ha": 539.82
+    },
+    {
+     "sigla": "Rm",
+     "nome": "Refúgio Montano",
+     "pct_bioma": 0.64,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Cerrado – campo limpo; madeira morta: compartimento inexistente para essa fitofisionomia",
+     "total_tC_ha": 17.55,
+     "total_tCO2_ha": 64.41
+    },
+    {
+     "sigla": "Sa",
+     "nome": "Savana Arborizada",
+     "pct_bioma": 4.57,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Cerrado; linha destacada em cinza (maior representatividade); Idem Cerrado (ver Tabela 24)",
+     "total_tC_ha": 41.31,
+     "total_tCO2_ha": 151.61
+    },
+    {
+     "sigla": "Sd",
+     "nome": "Savana Florestada",
+     "pct_bioma": 0.06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Caatinga",
+     "total_tC_ha": 65.79,
+     "total_tCO2_ha": 241.45
+    },
+    {
+     "sigla": "Sg",
+     "nome": "Savana Gramíneo-Lenhosa",
+     "pct_bioma": 0.29,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "143"
+     ],
+     "obs": "local de estudo: Cerrado",
+     "total_tC_ha": 19.74,
+     "total_tCO2_ha": 72.45
+    },
+    {
+     "sigla": "SN",
+     "nome": "Contato Savana / Floresta",
+     "pct_bioma": 0.99,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "144"
+     ],
+     "obs": "contato; local de estudo: Contato Caatinga-cerrado",
+     "total_tC_ha": 69.66,
+     "total_tCO2_ha": 255.65
+    },
+    {
+     "sigla": "Sp",
+     "nome": "Savana Parque",
+     "pct_bioma": 0.92,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "144"
+     ],
+     "obs": "local de estudo: Cerrado",
+     "total_tC_ha": 18.92,
+     "total_tCO2_ha": 69.44
+    },
+    {
+     "sigla": "ST",
+     "nome": "Contato Savana / Formações pioneiras – Específico para Formação Pioneira com Influência Marinha (Restinga)",
+     "pct_bioma": 3.97,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "144"
+     ],
+     "obs": "contato; local de estudo: Contato Caatinga-cerrado; linha destacada em cinza (maior representatividade); sigla 'ST' com nome de contato Savana/Formações Pioneiras, como no original",
+     "total_tC_ha": 26.47,
+     "total_tCO2_ha": 97.14
+    },
+    {
+     "sigla": "Ta",
+     "nome": "Savana Estépica Arborizada (caatinga aberta)",
+     "pct_bioma": 59.67,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "144"
+     ],
+     "obs": "local de estudo: Caatinga; linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 18.28,
+     "total_tCO2_ha": 67.09
+    },
+    {
+     "sigla": "Td",
+     "nome": "Savana Estépica Florestada (caatinga densa)",
+     "pct_bioma": 6.89,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "144"
+     ],
+     "obs": "local de estudo: Caatinga; linha destacada em cinza (maior representatividade); célula de metodologia AGB continua na p. 145",
+     "total_tC_ha": 43.34,
+     "total_tCO2_ha": 159.06
+    },
+    {
+     "sigla": "Tg",
+     "nome": "Savana Estépica Gramíneo Lenhosa",
+     "pct_bioma": 0.26,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "145"
+     ],
+     "obs": "local de estudo: Amazônia",
+     "total_tC_ha": 4.98,
+     "total_tCO2_ha": 18.28
+    },
+    {
+     "sigla": "TN",
+     "nome": "Contato Savana/Floresta Estacional",
+     "pct_bioma": 8.17,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "145"
+     ],
+     "obs": "contato; local de estudo: Caatinga; linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 64.16,
+     "total_tCO2_ha": 235.47
+    },
+    {
+     "sigla": "Tp",
+     "nome": "Savana Estépica Parque",
+     "pct_bioma": 5.59,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "145"
+     ],
+     "obs": "local de estudo: Amazônia; linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 10.87,
+     "total_tCO2_ha": 39.89
+    }
+   ]
+  },
+  "Pampa": {
+   "tabela": 27,
+   "media_ponderada_tC_ha": 34.03,
+   "media_ponderada_tCO2_ha": 124.88,
+   "soma_pct_considerada": 89.995,
+   "fitofisionomias": [
+    {
+     "sigla": "Ca",
+     "nome": "Floresta Estacional Decidual – Aluvial",
+     "pct_bioma": 0.84,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "",
+     "total_tC_ha": 136.17,
+     "total_tCO2_ha": 499.74
+    },
+    {
+     "sigla": "Cb",
+     "nome": "Floresta Estacional Decidual – Terras baixas",
+     "pct_bioma": 0.33,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "Local de Estudo: Mata Atlântica (valor de outro bioma; Idem Cb da Mata Atlântica, Tabela 25)",
+     "total_tC_ha": 69.8,
+     "total_tCO2_ha": 256.17
+    },
+    {
+     "sigla": "Cm",
+     "nome": "Floresta Estacional Decidual – Montana",
+     "pct_bioma": 0.006,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "",
+     "total_tC_ha": 167.29,
+     "total_tCO2_ha": 613.95
+    },
+    {
+     "sigla": "Cs",
+     "nome": "Floresta Estacional Decidual – Submontana",
+     "pct_bioma": 3.93,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 167.16,
+     "total_tCO2_ha": 613.48
+    },
+    {
+     "sigla": "Da",
+     "nome": "Floresta Ombrófla Densa – Aluvial",
+     "pct_bioma": 0.0003,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "grafia 'Ombrófla' como impresso; Local de Estudo: Mata Atlântica (valor de outro bioma; Idem Da da Mata Atlântica, Tabela 25)",
+     "total_tC_ha": 85.91,
+     "total_tCO2_ha": 315.29
+    },
+    {
+     "sigla": "Db",
+     "nome": "Floresta Ombrófla Densa – Terras baixas",
+     "pct_bioma": 0.004,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "grafia 'Ombrófla' como impresso; Local de Estudo: Mata Atlântica (valor de outro bioma; Idem Db da Mata Atlântica, Tabela 25)",
+     "total_tC_ha": 112.98,
+     "total_tCO2_ha": 414.64
+    },
+    {
+     "sigla": "Dm",
+     "nome": "Floresta Ombrófla Densa – Montana",
+     "pct_bioma": 0.0002,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "grafia 'Ombrófla' como impresso",
+     "total_tC_ha": 159.41,
+     "total_tCO2_ha": 585.03
+    },
+    {
+     "sigla": "Dn",
+     "nome": "Dunas",
+     "pct_bioma": 0.62,
+     "categoria": "-",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "categoria impressa '-'; AGB e BGB impressos 'na'",
+     "total_tC_ha": 0.0,
+     "total_tCO2_ha": 0.0
+    },
+    {
+     "sigla": "Ds",
+     "nome": "Floresta Ombrófla Densa – Submontana",
+     "pct_bioma": 0.03,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "149"
+     ],
+     "obs": "grafia 'Ombrófla' como impresso",
+     "total_tC_ha": 174.38,
+     "total_tCO2_ha": 639.97
+    },
+    {
+     "sigla": "E",
+     "nome": "Estepe",
+     "pct_bioma": 21.65,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "categoria-mãe; linha destacada em cinza (maior representatividade); AGB = valor Tg (classe dominante 89,8%); MM: não significativo",
+     "total_tC_ha": 9.4,
+     "total_tCO2_ha": 34.5
+    },
+    {
+     "sigla": "Ea",
+     "nome": "Estepe Arborizada",
+     "pct_bioma": 6.27,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 55.51,
+     "total_tCO2_ha": 203.72
+    },
+    {
+     "sigla": "Eg",
+     "nome": "Estepe Gramíneo Lenhosa",
+     "pct_bioma": 26.78,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade); MM: não significativo",
+     "total_tC_ha": 5.13,
+     "total_tCO2_ha": 18.83
+    },
+    {
+     "sigla": "Ep",
+     "nome": "Estepe Parque",
+     "pct_bioma": 3.96,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade); valores = Cs (classe dominante)",
+     "total_tC_ha": 167.16,
+     "total_tCO2_ha": 613.48
+    },
+    {
+     "sigla": "EM",
+     "nome": "Contato Estepe-Floresta Ombrófila Mista",
+     "pct_bioma": 0.14,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "contato; AGB = valor Tg (classe dominante 64%); MM: não significativo",
+     "total_tC_ha": 9.4,
+     "total_tCO2_ha": 34.5
+    },
+    {
+     "sigla": "EN",
+     "nome": "Contato Estepe-Floresta Estacional",
+     "pct_bioma": 4.98,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "contato; linha destacada em cinza (maior representatividade); valores = Eg (classe dominante 31,06 %); MM: não significativo",
+     "total_tC_ha": 5.13,
+     "total_tCO2_ha": 18.83
+    },
+    {
+     "sigla": "EP",
+     "nome": "Contato Estepe-Formações",
+     "pct_bioma": 3.11,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "contato; linha destacada em cinza (maior representatividade); nome impresso truncado 'Contato Estepe-Formações'; valores = Ea (classe dominante 33,97 %)",
+     "total_tC_ha": 55.51,
+     "total_tCO2_ha": 203.72
+    },
+    {
+     "sigla": "Fa",
+     "nome": "Floresta Estacional Semidecidual – Aluvial",
+     "pct_bioma": 0.1,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "Local de Estudo: Mata Atlântica (valor de outro bioma; Idem Fa da Mata Atlântica, Tabela 25)",
+     "total_tC_ha": 79.92,
+     "total_tCO2_ha": 293.31
+    },
+    {
+     "sigla": "Fb",
+     "nome": "Floresta Estacional Semidecidual – Terras baixas",
+     "pct_bioma": 0.43,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "150"
+     ],
+     "obs": "célula de método do BGB continua na p. 151",
+     "total_tC_ha": 86.05,
+     "total_tCO2_ha": 315.8
+    },
+    {
+     "sigla": "Fm",
+     "nome": "Floresta Estacional Semidecidual – Montana",
+     "pct_bioma": 0.08,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "",
+     "total_tC_ha": 106.76,
+     "total_tCO2_ha": 391.81
+    },
+    {
+     "sigla": "Fs",
+     "nome": "Floresta Estacional Semidecidual – Submontana",
+     "pct_bioma": 4.56,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade)",
+     "total_tC_ha": 109.29,
+     "total_tCO2_ha": 401.09
+    },
+    {
+     "sigla": "Ma",
+     "nome": "Floresta Ombrófla Mista – Aluvial",
+     "pct_bioma": 0.0008,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "impresso 'Ma – Floresta Ombrófla Mista – Aluvial' (travessão em vez de barra; grafia 'Ombrófla'); Local de Estudo: Mata Atlântica (valor de outro bioma; Idem Ma da Mata Atlântica, Tabela 25)",
+     "total_tC_ha": 85.42,
+     "total_tCO2_ha": 313.49
+    },
+    {
+     "sigla": "Ms",
+     "nome": "Floresta Ombrófla Mista – Submontana",
+     "pct_bioma": 0.006,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "grafia 'Ombrófla' como impresso",
+     "total_tC_ha": 130.71,
+     "total_tCO2_ha": 479.71
+    },
+    {
+     "sigla": "NM",
+     "nome": "Contato Floresta Estacional-Floresta Ombrófila Mista",
+     "pct_bioma": 0.03,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "contato; valores = Cs (classe dominante na TCN 30,03%)",
+     "total_tC_ha": 167.16,
+     "total_tCO2_ha": 613.48
+    },
+    {
+     "sigla": "NP",
+     "nome": "Contato Floresta Estacional-Formações Pioneiras com Influência Marinha (Restinga)",
+     "pct_bioma": 2.2,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "contato; valores = Pa (classe dominante 68,85%); MM: não significativo",
+     "total_tC_ha": 12.77,
+     "total_tCO2_ha": 46.87
+    },
+    {
+     "sigla": "OM",
+     "nome": "Contato Floresta Ombrófila Densa-Floresta Ombrófila Mista",
+     "pct_bioma": 0.002,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "contato; valores = Cs (classe dominante 79,06%)",
+     "total_tC_ha": 167.16,
+     "total_tCO2_ha": 613.48
+    },
+    {
+     "sigla": "OP",
+     "nome": "Contato Floresta Ombrófila-Formações Pioneiras com Influência Marinha (Restinga)",
+     "pct_bioma": 0.12,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "151"
+     ],
+     "obs": "contato; valores = Pf (classe dominante 89,04%); MM: não significativo",
+     "total_tC_ha": 12.77,
+     "total_tCO2_ha": 46.87
+    },
+    {
+     "sigla": "P",
+     "nome": "Áreas das Formações Pioneiras",
+     "pct_bioma": 2.87,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "categoria-mãe; valores = Tg (classe dominante 81%); MM: não significativo",
+     "total_tC_ha": 9.4,
+     "total_tCO2_ha": 34.5
+    },
+    {
+     "sigla": "Pa",
+     "nome": "Vegetação com Influência Fluvial e/ou Lacustre",
+     "pct_bioma": 5.75,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "linha destacada em cinza (maior representatividade); MM: não significativo",
+     "total_tC_ha": 12.77,
+     "total_tCO2_ha": 46.87
+    },
+    {
+     "sigla": "Pf",
+     "nome": "Vegetação com Influência Fluviomarinha",
+     "pct_bioma": 0.01,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "MM: não significativo",
+     "total_tC_ha": 12.77,
+     "total_tCO2_ha": 46.87
+    },
+    {
+     "sigla": "Pm",
+     "nome": "Vegetação com Influência Marinha (Restinga)",
+     "pct_bioma": 0.8,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "MM: não significativo",
+     "total_tC_ha": 12.77,
+     "total_tCO2_ha": 46.87
+    },
+    {
+     "sigla": "T",
+     "nome": "Savana Estépica",
+     "pct_bioma": 0.006,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "categoria-mãe",
+     "total_tC_ha": 167.16,
+     "total_tCO2_ha": 613.48
+    },
+    {
+     "sigla": "Tg",
+     "nome": "Savana Estépica – Gramíneo-Lenhosa",
+     "pct_bioma": 0.89,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "MM: não significativo",
+     "total_tC_ha": 9.4,
+     "total_tCO2_ha": 34.5
+    },
+    {
+     "sigla": "Tp",
+     "nome": "Savana Estépica – Parque",
+     "pct_bioma": 0.11,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "152"
+     ],
+     "obs": "Local de Estudo: Amazônia (valor de outro bioma; Idem Tp da Amazônia, Tabela 23)",
+     "total_tC_ha": 26.51,
+     "total_tCO2_ha": 97.29
+    }
+   ]
+  },
+  "Pantanal": {
+   "tabela": 28,
+   "media_ponderada_tC_ha": 50.11,
+   "media_ponderada_tCO2_ha": 183.89,
+   "soma_pct_considerada": 98.096,
+   "fitofisionomias": [
+    {
+     "sigla": "Ca",
+     "nome": "Floresta Estacional Decidual – Aluvial",
+     "pct_bioma": 0.003,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "difere da Tab. 24 (Ca: AGB 88,36; total 121,46)",
+     "total_tC_ha": 121.72,
+     "total_tCO2_ha": 446.71
+    },
+    {
+     "sigla": "Cb",
+     "nome": "Floresta Estacional Decidual – Terras baixas",
+     "pct_bioma": 1.8,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "serapilheira quebrada ('11,2'/'1')",
+     "total_tC_ha": 104.87,
+     "total_tCO2_ha": 384.87
+    },
+    {
+     "sigla": "Cs",
+     "nome": "Floresta Estacional Decidual – Submontana",
+     "pct_bioma": 0.8,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "serapilheira quebrada ('13,6'/'3')",
+     "total_tC_ha": 127.54,
+     "total_tCO2_ha": 468.07
+    },
+    {
+     "sigla": "Fa",
+     "nome": "Floresta Estacional Semidecidual – Aluvial",
+     "pct_bioma": 6.06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "linha destacada em cinza",
+     "total_tC_ha": 167.46,
+     "total_tCO2_ha": 614.58
+    },
+    {
+     "sigla": "Fb",
+     "nome": "Floresta Estacional Semidecidual – Terras baixas",
+     "pct_bioma": 1.6,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "",
+     "total_tC_ha": 81.73,
+     "total_tCO2_ha": 299.95
+    },
+    {
+     "sigla": "Fs",
+     "nome": "Floresta Estacional Semidecidual – Submontana",
+     "pct_bioma": 0.02,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "",
+     "total_tC_ha": 83.48,
+     "total_tCO2_ha": 306.37
+    },
+    {
+     "sigla": "SN",
+     "nome": "Contato Savana/Floresta Estacional",
+     "pct_bioma": 0.09,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "valores de Sa (nota de rodapé)",
+     "total_tC_ha": 41.31,
+     "total_tCO2_ha": 151.61
+    },
+    {
+     "sigla": "TN",
+     "nome": "Contato Savana-Estépica/Floresta Estacional",
+     "pct_bioma": 0.06,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "valores de Fa (nota de rodapé)",
+     "total_tC_ha": 167.46,
+     "total_tCO2_ha": 614.58
+    },
+    {
+     "sigla": "S",
+     "nome": "Savana",
+     "pct_bioma": 0.08,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "valores de Sd (nota de rodapé); serapilheira quebrada ('11,1'/'7')",
+     "total_tC_ha": 103.21,
+     "total_tCO2_ha": 378.78
+    },
+    {
+     "sigla": "Sa",
+     "nome": "Savana – arborizada",
+     "pct_bioma": 19.55,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "156"
+     ],
+     "obs": "linha destacada em cinza; BGB 24,53 aqui vs 24,54 na Tab. 24",
+     "total_tC_ha": 41.31,
+     "total_tCO2_ha": 151.61
+    },
+    {
+     "sigla": "Sd",
+     "nome": "Savana – florestada",
+     "pct_bioma": 10.62,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "linha destacada em cinza",
+     "total_tC_ha": 103.21,
+     "total_tCO2_ha": 378.78
+    },
+    {
+     "sigla": "ST",
+     "nome": "Contato Savana/Savana-Estépica",
+     "pct_bioma": 1.11,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "",
+     "total_tC_ha": 81.56,
+     "total_tCO2_ha": 299.33
+    },
+    {
+     "sigla": "T",
+     "nome": "Savana-Estépica",
+     "pct_bioma": 0.003,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "",
+     "total_tC_ha": 167.16,
+     "total_tCO2_ha": 613.48
+    },
+    {
+     "sigla": "Ta",
+     "nome": "Savana-Estépica – arborizada",
+     "pct_bioma": 2.89,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "",
+     "total_tC_ha": 11.96,
+     "total_tCO2_ha": 43.89
+    },
+    {
+     "sigla": "Td",
+     "nome": "Savana-Estépica – florestada",
+     "pct_bioma": 2.43,
+     "categoria": "F",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "serapilheira quebrada ('10,7'/'3')",
+     "total_tC_ha": 99.09,
+     "total_tCO2_ha": 363.66
+    },
+    {
+     "sigla": "Sg",
+     "nome": "Savana – Gramíneo-Lenhosa",
+     "pct_bioma": 14.93,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "linha destacada em cinza",
+     "total_tC_ha": 18.49,
+     "total_tCO2_ha": 67.86
+    },
+    {
+     "sigla": "Tg",
+     "nome": "Savana Estépica – Gramíneo-Lenhosa",
+     "pct_bioma": 6.03,
+     "categoria": "G",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "linha destacada em cinza",
+     "total_tC_ha": 17.49,
+     "total_tCO2_ha": 64.19
+    },
+    {
+     "sigla": "Sp",
+     "nome": "Savana – parque",
+     "pct_bioma": 26.66,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "linha destacada em cinza",
+     "total_tC_ha": 26.79,
+     "total_tCO2_ha": 98.32
+    },
+    {
+     "sigla": "Tp",
+     "nome": "Savana-Estépica – parque",
+     "pct_bioma": 3.36,
+     "categoria": "OFL",
+     "subvalores": [],
+     "paginas": [
+      "157"
+     ],
+     "obs": "",
+     "total_tC_ha": 26.51,
+     "total_tCO2_ha": 97.29
+    }
+   ]
+  }
+ }
+}
