@@ -58,6 +58,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Início</a></li>
                 <li><a href="metodologia.html" class="nav-link active">Metodologia</a></li>
+                <li><a href="changelog.html" class="nav-link">Versões</a></li>
                 <li><a href="contato.html" class="nav-link">Contato</a></li>
             </ul>
         </div>
@@ -98,14 +99,58 @@
             <div class="metodologia-secao" id="atualizacao">
                 <h2>Atualização Monetária</h2>
                 <p>
-                    A atualização monetária não integra o artigo do SICAM e foi acrescentada à ferramenta. Aplica-se apenas aos danos patrimoniais (material e interino), entre a data do dano informada e a data do cálculo, em ações contra réus particulares:
+                    A atualização monetária não integra o artigo do SICAM e foi acrescentada à ferramenta. Ela segue o <em>Manual de Orientação de Procedimentos para os Cálculos na Justiça Federal</em> (CJF, 2026), capítulo 4, item 4.2, na parte que trata do devedor não enquadrado como Fazenda Pública, e é feita mês a mês.
                 </p>
+                <h3>Custo de recuperação na data do dano</h3>
+                <p>
+                    Os custos da Portaria Ibama 118/2022 têm base em outubro de 2022. A ferramenta os leva ao mês do dano pelo número-índice do IPCA-15 (IBGE, SIDRA, tabela 3065) e só então aplica a atualização judicial. Assim a inflação entre o dano e o cálculo entra uma única vez. Sem a data do dano, os valores ficam na data do cálculo e não recebem atualização.
+                </p>
+                <h3>Danos patrimoniais (material e interino)</h3>
                 <ul>
-                    <li>até 29/08/2024: taxa SELIC, que abrange correção monetária e juros de mora (art. 406 do Código Civil; Tema 1.368/STJ);</li>
-                    <li>a partir de 30/08/2024: IPCA-15 como correção monetária e, como juros de mora, a diferença entre a SELIC e o IPCA-15, com mínimo de zero (art. 406 do Código Civil, com a redação da Lei 14.905/2024, e Resolução CMN 5.171/2024).</li>
+                    <li>A correção monetária corre do efetivo prejuízo (Súmula 43/STJ; Manual, item 4.2.1, Nota 1) e os juros de mora, do evento danoso (Súmula 54/STJ; Manual, item 4.2.2, Nota 5, alínea b). Na ferramenta os dois termos coincidem com a data do dano.</li>
+                    <li>Até agosto de 2024, incide só a taxa Selic, que engloba juros e correção (art. 406 do Código Civil; Manual, item 4.2.1, Nota 2). A Selic é somada mês a mês, sem capitalização (Manual, item 4.2.2, Nota 1).</li>
+                    <li>A partir de setembro de 2024, a correção é pelo IPCA-15 e os juros são a taxa legal, isto é, a Selic deduzida do IPCA-15, com piso zero (arts. 389 e 406 do Código Civil, com a redação da Lei 14.905/2024; Resolução CMN 5.171/2024; Manual, itens 4.2.1.1 e 4.2.2). A taxa legal de cada mês é a divulgada pelo Banco Central para o mês anterior (Manual, item 4.2.2, Nota 7) e também é somada mês a mês.</li>
+                    <li>O mês do cálculo é tratado como mês do pagamento.</li>
                 </ul>
                 <p>
-                    Os termos iniciais seguem as Súmulas 43 e 54 do STJ. Os danos extrapatrimoniais são calculados a valores vigentes na data do cálculo, que equivale ao arbitramento (Súmula 362/STJ), e por isso não sofrem correção. As taxas são obtidas na API do Banco Central do Brasil (série 11 do SGS) e na API do IBGE (tabela 7062 do SIDRA).
+                    A ferramenta reproduz, até o centavo, o exemplo do Manual para devedor não enquadrado como Fazenda Pública (item 4.2.1, p. 52). Até a versão 6.2 o marco de transição era diário (Selic até 29/08/2024; IPCA-15 e juros a partir de 30/08/2024) e a Selic era capitalizada dia a dia. Desde a versão 7.0 o marco é mensal, como no Manual, e a Selic entra por soma simples.
+                </p>
+                <h3>Danos extrapatrimoniais (mercado voluntário e custo social do carbono)</h3>
+                <p>
+                    Esses danos são calculados a preços da data do cálculo, que equivale ao arbitramento, e por isso não recebem correção monetária (Súmula 362/STJ). Recebem juros de mora desde o evento danoso (Súmula 54/STJ; Manual, item 4.2.2, Nota 5, alínea b): de setembro de 2024 em diante, pela taxa legal. Para o período anterior, a separação entre juros e correção dentro da Selic não está pacificada, e a ferramenta oferece duas opções: (a) juros reais, isto é, a Selic do mês deduzida do IPCA-15 do mês, com piso zero, que é o padrão; ou (b) não computar juros antes de setembro de 2024. O relatório informa a opção usada.
+                </p>
+                <h3>Fazenda Pública</h3>
+                <p>
+                    As regras acima valem para réus particulares. Desde setembro de 2025 a regra da Fazenda Pública coincide com a do particular (Tema 1.419/STF; Manual, itens 4.2.1.1 e 4.2.2); para o período anterior ela é diferente e a ferramenta não a calcula.
+                </p>
+                <h3>Fontes das séries</h3>
+                <p>
+                    Selic mensal: Banco Central, SGS 4390. Taxa legal: Banco Central, SGS 29543. IPCA-15: IBGE, SIDRA, tabela 3065. O relatório registra a data e a hora de cada consulta. Se uma série não puder ser obtida por inteiro, a ferramenta não calcula com dado parcial: avisa e permite informar os fatores apurados em outra fonte.
+                </p>
+            </div>
+
+            <div class="metodologia-secao" id="estoques">
+                <h2>Estoques de Carbono</h2>
+                <p>
+                    O estoque de carbono da vegetação suprimida vem das Tabelas 23 a 28 do Relatório de Referência do setor Uso da Terra, Mudança do Uso da Terra e Florestas da Quarta Comunicação Nacional (MCTI, 2020), em tC/ha. O total soma a biomassa acima do solo, a biomassa abaixo do solo, a madeira morta e a serapilheira; o carbono do solo não entra. A conversão em emissão usa o fator 3,67 (tCO₂ = tC × 3,67), adotado pelo Protocolo para Julgamento de Ações Ambientais do CNJ (2024, p. 59).
+                </p>
+                <ul>
+                    <li>Quem conhece a fitofisionomia a escolhe na lista. Quando a tabela traz mais de um valor para a mesma fitofisionomia, usa-se a média aritmética simples dos totais.</li>
+                    <li>Quem não conhece usa a média do bioma: a média dos totais ponderada pela participação de cada fitofisionomia no bioma, só com as categorias floresta, campo e outras formações lenhosas.</li>
+                    <li>O estoque informado pelo usuário, com a fonte, prevalece sobre a tabela. É o caso do estoque apurado no polígono pela plataforma CCAL do IPAM.</li>
+                </ul>
+                <p>
+                    Os valores são da vegetação original. Para vegetação secundária ou já degradada, o estoque do caso deve ser informado; sem isso, o relatório registra que o valor pode superestimar o dano.
+                </p>
+                <p>
+                    Está em preparo a consulta ao mapa do Quarto Inventário Nacional por estado, que dá o estoque no local do desmatamento: com o polígono da área, a média ponderada das classes que ele cruza; com uma coordenada, o estoque da classe em que o ponto cai, o que é só uma estimativa aproximada, porque classes vizinhas podem ter estoques diferentes. Enquanto o mapa não estiver disponível, valem a tabela e o estoque informado.
+                </p>
+            </div>
+
+            <div class="metodologia-secao" id="preco">
+                <h2>Preço do Carbono</h2>
+                <p>
+                    O Protocolo para Julgamento de Ações Ambientais, segundo escopo (CNJ, 2024, p. 66; Recomendação CNJ 156/2024), recomenda não adotar preço inferior ao do Fundo Amazônia, hoje US$ 5,00 por tonelada de CO₂ equivalente. A ferramenta avisa quando o preço informado fica abaixo desse piso, sem impedir o cálculo.
                 </p>
             </div>
 

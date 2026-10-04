@@ -17,38 +17,23 @@ function converterParaRomano(num) {
 // URL do Google Apps Script para o contador global
 const CONTADOR_API_URL = "https://script.google.com/macros/s/AKfycbzeD3w1Z4U5XdfM-9hod7pjNjZAwL4zTDK37P-3csJO9MVrd54naMkkZM1QwcjaAOl90Q/exec";
 
-// Função para registrar uma nova valoração na planilha Google Sheets
+// Registra uma valoração na planilha do contador global. Envia só o bioma e a
+// área; o parâmetro `ip` segue com valor fixo para não alterar a estrutura da
+// planilha. Nenhum dado pessoal é coletado.
 async function registrarValoracaoGlobal(bioma, area) {
     try {
-        // Obter o IP do usuário (opcional)
-        let ip = "anônimo";
-        try {
-            const ipResponse = await fetch('https://api.ipify.org?format=json');
-            const ipData = await ipResponse.json();
-            ip = ipData.ip;
-        } catch (error) {
-            console.log("Não foi possível obter o IP, usando 'anônimo'");
-        }
-
-        // Criar iframe oculto para fazer a requisição (evita problemas de CORS)
+        // Iframe oculto para fazer a requisição (evita problemas de CORS)
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
-        
-        // URL com parâmetros na query string
-        const url = `${CONTADOR_API_URL}?bioma=${encodeURIComponent(bioma)}&area=${encodeURIComponent(area)}&ip=${encodeURIComponent(ip)}`;
-        
-        iframe.src = url;
+        iframe.src = `${CONTADOR_API_URL}?bioma=${encodeURIComponent(bioma)}&area=${encodeURIComponent(area)}&ip=${encodeURIComponent('anônimo')}`;
         document.body.appendChild(iframe);
-        
-        // Remove o iframe após alguns segundos
+
         setTimeout(() => {
             document.body.removeChild(iframe);
         }, 5000);
 
         // O contador já foi incrementado por quem chamou (calcularValoracao);
         // não incrementar de novo aqui, sob pena de contar duas vezes.
-
-        // Tenta obter o total global após um pequeno delay
         setTimeout(obterTotalGlobal, 2000);
     } catch (error) {
         console.error("Erro ao registrar valoração global:", error);
@@ -82,115 +67,7 @@ async function obterTotalGlobal() {
     return contadorExibido;
 }
 
-// Dados extraídos da planilha Excel (valores base - Portaria 118/2022 IBAMA, outubro/2022)
-const valoresBiomasOriginais = {
-    'CERRADO': { 'menor_valor': 1580.50, 'media': 11538.92, 'maior_valor': 17948.50 },
-    'FLORESTA AMAZÔNICA': { 'menor_valor': 1745.75, 'media': 6010.33, 'maior_valor': 15170.17 },
-    'PANTANAL MATO-GROSSENSE': { 'menor_valor': 981.00, 'media': 16220.67, 'maior_valor': 29334.00 },
-    'CAATINGA': { 'menor_valor': 1536.00, 'media': 11198.38, 'maior_valor': 20860.75 },
-    'PAMPAS': { 'menor_valor': 2090.00, 'media': 12285.25, 'maior_valor': 23008.25 },
-    'MATA ATLÂNTICA': { 'menor_valor': 1521.00, 'media': 15737.26, 'maior_valor': 24302.00 }
-};
-
-// Valores corrigidos pelo IPCA (serão atualizados ao carregar a página)
-const valoresBiomasBase = JSON.parse(JSON.stringify(valoresBiomasOriginais));
-
-// IPCA: índice de outubro/2022 (base da Portaria 118/2022)
-const IPCA_BASE_PERIODO = '202210';
-const IPCA_BASE_INDICE = 6407.93;
-
-// Variável global para armazenar info da correção
-let correcaoIPCA = {
-    fator: 1.0,
-    periodoBase: 'outubro/2022',
-    periodoAtual: null,
-    indiceBase: IPCA_BASE_INDICE,
-    indiceAtual: null,
-    sucesso: false
-};
-
-// Buscar correção IPCA via API do IBGE
-async function buscarCorrecaoIPCA() {
-    const statusEl = document.getElementById('ipcaStatus');
-    try {
-        if (statusEl) {
-            statusEl.textContent = '(buscando IPCA...)';
-            statusEl.style.color = '#888';
-        }
-
-        // Buscar os últimos 6 meses para pegar o mais recente disponível
-        const hoje = new Date();
-        const periodos = [];
-        for (let i = 0; i < 6; i++) {
-            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-            const p = d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0');
-            periodos.push(p);
-        }
-
-        const url = 'https://servicodados.ibge.gov.br/api/v3/agregados/1737/periodos/'
-            + periodos.join('|')
-            + '/variaveis/2266?localidades=N1[all]';
-
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Erro na requisição IBGE');
-
-        const data = await response.json();
-        const series = data[0].resultados[0].series[0].serie;
-
-        // Encontrar o período mais recente com valor
-        let periodoMaisRecente = null;
-        let indiceMaisRecente = null;
-        for (const periodo of periodos) {
-            if (series[periodo] && series[periodo] !== '...') {
-                const valor = parseFloat(series[periodo]);
-                if (!isNaN(valor) && valor > 0) {
-                    if (!periodoMaisRecente || periodo > periodoMaisRecente) {
-                        periodoMaisRecente = periodo;
-                        indiceMaisRecente = valor;
-                    }
-                }
-            }
-        }
-
-        if (!indiceMaisRecente || !periodoMaisRecente) throw new Error('Dados IPCA indisponíveis');
-
-        const fator = indiceMaisRecente / IPCA_BASE_INDICE;
-        const mesNome = periodoMaisRecente.substring(4);
-        const anoNome = periodoMaisRecente.substring(0, 4);
-        const meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-                       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-        const periodoFormatado = meses[parseInt(mesNome)] + '/' + anoNome;
-
-        correcaoIPCA = {
-            fator: fator,
-            periodoBase: 'outubro/2022',
-            periodoAtual: periodoFormatado,
-            indiceBase: IPCA_BASE_INDICE,
-            indiceAtual: indiceMaisRecente,
-            sucesso: true
-        };
-
-        // Aplicar correção aos valores dos biomas
-        for (const bioma of Object.keys(valoresBiomasOriginais)) {
-            valoresBiomasBase[bioma].menor_valor = valoresBiomasOriginais[bioma].menor_valor * fator;
-            valoresBiomasBase[bioma].media = valoresBiomasOriginais[bioma].media * fator;
-            valoresBiomasBase[bioma].maior_valor = valoresBiomasOriginais[bioma].maior_valor * fator;
-        }
-
-        if (statusEl) {
-            statusEl.textContent = '(valores corrigidos pelo IPCA até ' + periodoFormatado + ' — fator: ' + fator.toFixed(4) + ')';
-            statusEl.style.color = '#27ae60';
-        }
-
-    } catch (error) {
-        console.error('Erro ao buscar IPCA:', error);
-        correcaoIPCA.sucesso = false;
-        if (statusEl) {
-            statusEl.textContent = '(não foi possível atualizar pelo IPCA — usando valores nominais de out/2022)';
-            statusEl.style.color = '#e67e22';
-        }
-    }
-}
+const VERSAO_DAMNUM = '7.0';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -282,38 +159,6 @@ function formatarMoeda(valor) {
     }).format(valor);
 }
 
-function obterParametrosAtuais() {
-    return {
-        precoSocialCO2USD: parseFloat(document.getElementById('precoSocialCO2USD').value) || 24.20,
-        cotacaoDolar: parseFloat(document.getElementById('cotacaoDolar').value) || 5.71,
-        precoSocialCO2BRL: parseFloat(document.getElementById('precoSocialCO2BRL').value) || 138.18,
-        precoMercadoCO2USD: parseFloat(document.getElementById('precoMercadoCO2USD').value) || 5.00,
-        precoMercadoCO2BRL: parseFloat(document.getElementById('precoMercadoCO2BRL').value) || 28.55,
-        estoqueCO2Caatinga: parseFloat(document.getElementById('estoqueCO2Caatinga').value) || 105.33,
-        estoqueCO2Cerrado: parseFloat(document.getElementById('estoqueCO2Cerrado').value) || 75,
-        estoqueCO2Amazonia: parseFloat(document.getElementById('estoqueCO2Amazonia').value) || 166,
-        estoqueCO2MataAtlantica: parseFloat(document.getElementById('estoqueCO2MataAtlantica').value) || 105.33,
-        estoqueCO2Pampas: parseFloat(document.getElementById('estoqueCO2Pampas').value) || 105.33,
-        estoqueCO2Pantanal: parseFloat(document.getElementById('estoqueCO2Pantanal').value) || 75,
-        estoqueCO2Media: parseFloat(document.getElementById('estoqueCO2Media').value) || 105.33,
-        taxaJurosAnual: parseFloat(document.getElementById('taxaJurosAnual').value) || 0.06,
-        tempoRecuperacao: parseFloat(document.getElementById('tempoRecuperacao').value) || 15
-    };
-}
-
-function obterEstoqueCO2PorBioma(bioma) {
-    const parametros = obterParametrosAtuais();
-    const mapeamento = {
-        'CAATINGA': parametros.estoqueCO2Caatinga,
-        'CERRADO': parametros.estoqueCO2Cerrado,
-        'FLORESTA AMAZÔNICA': parametros.estoqueCO2Amazonia,
-        'MATA ATLÂNTICA': parametros.estoqueCO2MataAtlantica,
-        'PAMPAS': parametros.estoqueCO2Pampas,
-        'PANTANAL MATO-GROSSENSE': parametros.estoqueCO2Pantanal
-    };
-    return mapeamento[bioma] || parametros.estoqueCO2Media;
-}
-
 function iniciarSlideshow() {
     if (!slideshowAtivo || imagensBiomas.length === 0) return;
     
@@ -361,15 +206,6 @@ function atualizarImagemBioma(bioma) {
         slideshowAtivo = true;
         iniciarSlideshow();
     }
-
-    // Mostrar apenas o campo de estoque de CO2 do bioma selecionado
-    document.querySelectorAll('.estoque-co2-item').forEach(function(el) {
-        if (bioma && el.getAttribute('data-bioma') === bioma) {
-            el.style.display = '';
-        } else {
-            el.style.display = 'none';
-        }
-    });
 }
 
 function obterEntendimento() {
@@ -377,583 +213,258 @@ function obterEntendimento() {
     return el ? el.value : 'gonzaga';
 }
 
-function calcularDanoMaterial(bioma, areaForaAPP) {
-    if (!bioma || !areaForaAPP || areaForaAPP <= 0) return 0;
-
-    const entendimento = obterEntendimento();
-    if (entendimento === 'irdr') return 0;
-
-    return areaForaAPP * valoresBiomasBase[bioma].media;
-}
-
-function calcularDanoInterino(bioma, areaEmAPP) {
-    if (!bioma || !areaEmAPP || areaEmAPP <= 0) return 0;
-
-    const parametros = obterParametrosAtuais();
-    const fator = parametros.taxaJurosAnual * (parametros.tempoRecuperacao + 1) / 2;
-    return areaEmAPP * valoresBiomasBase[bioma].media * fator;
-}
-
-function calcularDanoExtrapatrimonialMercado(bioma, areaForaAPP, areaEmAPP) {
-    if (!bioma) return 0;
-    
-    const areaTotal = (areaForaAPP || 0) + (areaEmAPP || 0);
-    if (areaTotal <= 0) return 0;
-
-    const parametros = obterParametrosAtuais();
-    const estoqueCO2 = obterEstoqueCO2PorBioma(bioma);
-    return areaTotal * parametros.precoMercadoCO2BRL * estoqueCO2;
-}
-
-function calcularDanoExtrapatrimonialSocial(bioma, areaForaAPP, areaEmAPP) {
-    if (!bioma) return 0;
-    
-    const areaTotal = (areaForaAPP || 0) + (areaEmAPP || 0);
-    if (areaTotal <= 0) return 0;
-
-    const parametros = obterParametrosAtuais();
-    const estoqueCO2 = obterEstoqueCO2PorBioma(bioma);
-    return areaTotal * parametros.precoSocialCO2BRL * estoqueCO2;
-}
-
+// Data do dano informada no formulário, ou null.
 function obterDataDano() {
     const input = document.getElementById('dataDano');
     if (input && input.value) {
         const partes = input.value.split('-');
         return new Date(partes[0], partes[1] - 1, partes[2]);
     }
-    return new Date();
+    return null;
 }
 
-function formatarData(data) {
-    return data.toLocaleDateString('pt-BR');
+function numeroBR(valor, casas) {
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }).format(valor);
+}
+
+function valorCampo(id) {
+    const el = document.getElementById(id);
+    return el ? (el.value || '').trim() : '';
 }
 
 // ============================================================
-// ATUALIZAÇÃO MONETÁRIA JUDICIAL (SELIC + IPCA-15)
-// Conforme Tema 1.368/STJ e Lei 14.905/2024
+// ESTOQUE DE CARBONO (Quarto Inventário Nacional)
 // ============================================================
 
-// Data de corte: entrada em vigor da Lei 14.905/2024
-var DATA_CORTE_LEI_14905 = new Date(2024, 7, 30); // 30/08/2024
+let tabelaQCN = null;      // data/estoques_qcn_fitofisionomias.json
+let consultaMapa = null;   // resultado da consulta ao mapa por estado (polígono ou coordenada)
+let poligonoUsuario = null;
 
-// Formatar data para API do BCB (DD/MM/YYYY)
-function formatarDataBCB(d) {
-    return d.getDate().toString().padStart(2, '0') + '/' +
-           (d.getMonth() + 1).toString().padStart(2, '0') + '/' +
-           d.getFullYear();
-}
-
-// Buscar fator SELIC acumulado entre duas datas via API do BCB
-// Usa série 11 (taxa diária efetiva, % a.d.)
-async function buscarFatorSELIC(dataInicio, dataFim) {
-    var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json'
-        + '&dataInicial=' + formatarDataBCB(dataInicio)
-        + '&dataFinal=' + formatarDataBCB(dataFim);
-
-    var response = await fetch(url);
-    if (!response.ok) throw new Error('Erro ao acessar API do Banco Central (série 11)');
-    var dados = await response.json();
-
-    if (!dados || dados.length === 0) {
-        throw new Error('Sem dados SELIC para o período solicitado');
+async function carregarTabelaQCN() {
+    try {
+        const resposta = await fetch('data/estoques_qcn_fitofisionomias.json');
+        if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+        tabelaQCN = await resposta.json();
+        preencherFitofisionomias(document.getElementById('bioma').value);
+    } catch (erro) {
+        console.error('Erro ao carregar a tabela de estoques do QCN:', erro);
+        document.getElementById('origemEstoque').textContent = 'Não foi possível carregar a tabela de estoques. Recarregue a página ou informe o estoque do caso.';
     }
+}
 
-    // Compor fator acumulado: cada valor é % a.d. (ex: 0.043739)
-    var fator = 1.0;
-    for (var i = 0; i < dados.length; i++) {
-        var taxa = parseFloat(dados[i].valor);
-        if (!isNaN(taxa)) {
-            fator *= (1 + taxa / 100);
+function preencherFitofisionomias(bioma) {
+    const select = document.getElementById('fitofisionomia');
+    const mostrar = !!(bioma && tabelaQCN);
+    document.getElementById('grupoFitofisionomia').style.display = mostrar ? '' : 'none';
+    document.getElementById('grupoEstoqueUsuario').style.display = bioma ? '' : 'none';
+    document.getElementById('grupoLocalizacao').style.display = bioma && DamnumMapa.MAPA_QCN_ATIVO ? '' : 'none';
+    select.innerHTML = '';
+    if (mostrar) {
+        const dados = tabelaQCN.biomas[DamnumValoracao.BIOMA_QCN[bioma]];
+        const padrao = document.createElement('option');
+        padrao.value = '';
+        padrao.textContent = 'Não sei / média do bioma (QCN): ' + numeroBR(dados.media_ponderada_tC_ha, 2) + ' tC/ha';
+        select.appendChild(padrao);
+        dados.fitofisionomias.forEach((f, i) => {
+            if (typeof f.total_tC_ha !== 'number') return;
+            const opcao = document.createElement('option');
+            opcao.value = String(i);
+            opcao.textContent = f.sigla + ' — ' + f.nome + ' (' + numeroBR(f.total_tC_ha, 2) + ' tC/ha)';
+            select.appendChild(opcao);
+        });
+    }
+    atualizarPainelEstoque();
+}
+
+// Decide o estoque do caso pela ordem de reserva: (4) informado pelo usuário,
+// que prevalece; (1) mapa por estado; (2) fitofisionomia; (3) média do bioma.
+// Lança Error com mensagem para o usuário se faltar dado obrigatório.
+function resolverEstoque(bioma) {
+    const secundaria = document.getElementById('vegetacaoSecundaria').checked;
+    let estoque;
+    if (document.getElementById('usarEstoqueUsuario').checked) {
+        const tC = parseFloat(valorCampo('estoqueUsuario'));
+        const fonte = valorCampo('fonteEstoqueUsuario');
+        if (!(tC > 0)) throw new Error('Informe o estoque de carbono do caso, em tC/ha, ou desmarque a opção.');
+        if (!fonte) throw new Error('Informe a fonte do estoque de carbono informado.');
+        estoque = DamnumValoracao.estoqueDoUsuario(tC, fonte);
+    } else {
+        if (!tabelaQCN) throw new Error('A tabela de estoques de carbono não foi carregada. Recarregue a página ou informe o estoque do caso.');
+        const tabela = DamnumValoracao.estoqueDaTabela(tabelaQCN, bioma, valorCampo('fitofisionomia'));
+        if (consultaMapa && typeof consultaMapa.estoque_tC_ha === 'number') {
+            estoque = DamnumValoracao.estoqueDoMapa(consultaMapa, tabela);
+        } else {
+            estoque = tabela;
         }
     }
+    estoque.secundaria = secundaria;
+    return estoque;
+}
 
+function atualizarPainelEstoque() {
+    const bioma = document.getElementById('bioma').value;
+    const campoEstoque = document.getElementById('estoqueCarbono');
+    const campoEmissao = document.getElementById('emissaoEquivalente');
+    const origem = document.getElementById('origemEstoque');
+    document.getElementById('camposEstoqueUsuario').style.display = document.getElementById('usarEstoqueUsuario').checked ? '' : 'none';
+    document.getElementById('avisoSecundaria').style.display = document.getElementById('vegetacaoSecundaria').checked ? '' : 'none';
+    const custo = document.getElementById('custoRecuperacao');
+    custo.value = bioma ? formatarMoeda(DamnumValoracao.CUSTOS_PORTARIA_118[bioma].media) : '';
+    try {
+        if (!bioma) throw new Error('Selecione o bioma.');
+        const e = resolverEstoque(bioma);
+        campoEstoque.value = numeroBR(e.tC, 2);
+        campoEmissao.value = numeroBR(DamnumCalc.carbonoParaCO2(e.tC), 2);
+        origem.textContent = 'Origem: ' + e.descricaoOrigem + '.';
+    } catch (erro) {
+        campoEstoque.value = '';
+        campoEmissao.value = '';
+        origem.textContent = erro.message;
+    }
+}
+
+// ============================================================
+// MAPA DO QUARTO INVENTÁRIO POR ESTADO (item 1.6-A)
+// Só é usado com DamnumMapa.MAPA_QCN_ATIVO = true.
+// ============================================================
+
+let fonteMapa = null;
+async function obterFonteMapa() {
+    const libs = await DamnumMapa.carregarLibs();
+    if (!fonteMapa) fonteMapa = DamnumMapa.criarFontePMTiles(libs, new URL(DamnumMapa.URL_PMTILES, location.href).href);
+    return { libs, fonte: fonteMapa };
+}
+
+async function versaoDoMapa(fonte) {
+    try {
+        const m = await fonte.metadados();
+        const d = m.descricao || {};
+        return [d.name, d.description, d.version].filter(Boolean).join('; ');
+    } catch (erro) {
+        return '';
+    }
+}
+
+function areaDigitada() {
+    return (parseFloat(valorCampo('areaForaAPP')) || 0) + (parseFloat(valorCampo('areaEmAPP')) || 0);
+}
+
+function atualizarDivergenciaArea() {
+    const caixa = document.getElementById('divergenciaArea');
+    if (!poligonoUsuario) { caixa.style.display = 'none'; return; }
+    const d = DamnumMapa.divergenciaDeArea(poligonoUsuario.area_ha, areaDigitada());
+    if (d && d.diverge) {
+        document.getElementById('textoDivergenciaArea').textContent = 'A área calculada do polígono (' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha) difere ' + numeroBR(d.relativa * 100, 2) + '% da área digitada (' + numeroBR(areaDigitada(), 4) + ' ha). Escolha qual prevalece:';
+        caixa.style.display = '';
+    } else {
+        caixa.style.display = 'none';
+    }
+}
+
+async function aoEscolherPoligono(evento) {
+    const info = document.getElementById('infoPoligono');
+    const arquivo = evento.target.files[0];
+    poligonoUsuario = null;
+    consultaMapa = null;
+    if (!arquivo) { info.style.display = 'none'; atualizarDivergenciaArea(); atualizarPainelEstoque(); return; }
+    info.style.display = '';
+    info.textContent = 'Lendo o polígono...';
+    try {
+        const { libs, fonte } = await obterFonteMapa();
+        const geo = await DamnumMapa.lerArquivoGeometria(libs, arquivo);
+        const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo, DamnumCalc.mediaPonderadaPorArea);
+        consulta.versaoMapa = await versaoDoMapa(fonte);
+        poligonoUsuario = { area_ha: consulta.area_ha };
+        let texto = 'Área calculada do polígono: ' + numeroBR(consulta.area_ha, 4) + ' ha (método geodésico). ';
+        if (typeof consulta.estoque_tC_ha === 'number') {
+            consultaMapa = consulta;
+            texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' polígono(s) do Inventário.';
+            if (consulta.pct_descoberto > 0.005) texto += ' ' + numeroBR(consulta.pct_descoberto, 2) + '% do polígono está fora da cobertura do mapa; nessa parte vale a tabela.';
+        } else {
+            texto += 'O polígono está fora da cobertura do mapa; vale a tabela por fitofisionomia ou a média do bioma.';
+        }
+        info.textContent = texto;
+    } catch (erro) {
+        info.textContent = 'Não foi possível usar o polígono: ' + erro.message;
+    }
+    atualizarDivergenciaArea();
+    atualizarPainelEstoque();
+}
+
+async function aoInformarCoordenada() {
+    const aviso = document.getElementById('avisoCoordenada');
+    if (poligonoUsuario) return; // o polígono prevalece sobre a coordenada
+    const lat = parseFloat(valorCampo('latitude'));
+    const lon = parseFloat(valorCampo('longitude'));
+    consultaMapa = null;
+    if (isNaN(lat) || isNaN(lon)) { aviso.style.display = 'none'; atualizarPainelEstoque(); return; }
+    aviso.style.display = '';
+    aviso.textContent = 'Consultando o mapa...';
+    try {
+        const { libs, fonte } = await obterFonteMapa();
+        const consulta = await DamnumMapa.consultarPonto(libs, fonte, lon, lat);
+        consulta.versaoMapa = await versaoDoMapa(fonte);
+        if (consulta.poligono) {
+            consultaMapa = consulta;
+            let texto = consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + consulta.poligono.c_pret + ').';
+            if (consulta.vizinhas.length) {
+                texto += ' Classes a menos de 100 m: ' + consulta.vizinhas.map(v => v.c_pret + ' (' + numeroBR(v.c_v_4i, 2) + ' tC/ha)').join('; ') + '.';
+            }
+            aviso.textContent = texto;
+        } else {
+            aviso.textContent = 'A coordenada está fora da cobertura do mapa; vale a tabela por fitofisionomia ou a média do bioma.';
+        }
+    } catch (erro) {
+        aviso.textContent = 'Não foi possível consultar o mapa: ' + erro.message;
+    }
+    atualizarPainelEstoque();
+}
+
+// ============================================================
+// PARÂMETROS
+// ============================================================
+
+let origemCotacao = 'valor padrão da calculadora';
+
+function obterParametrosAtuais() {
     return {
-        fator: fator,
-        diasUteis: dados.length,
-        dataInicio: dados[0].data,
-        dataFim: dados[dados.length - 1].data
+        precoSocialCO2USD: parseFloat(valorCampo('precoSocialCO2USD')),
+        precoMercadoCO2USD: parseFloat(valorCampo('precoMercadoCO2USD')),
+        cotacaoDolar: parseFloat(valorCampo('cotacaoDolar')),
+        origemCotacao: origemCotacao
     };
 }
 
-// Buscar variações mensais do IPCA-15 via IBGE (tabela 7062, variável 355)
-// Retorna objeto com fator acumulado e detalhes mensais
-async function buscarFatorIPCA15(dataInicio, dataFim) {
-    var periodos = [];
-    var d = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
-    var fim = new Date(dataFim.getFullYear(), dataFim.getMonth(), 1);
-    while (d <= fim) {
-        periodos.push(d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0'));
-        d.setMonth(d.getMonth() + 1);
-    }
-
-    if (periodos.length === 0) return { fator: 1.0, periodos: 0 };
-
-    var url = 'https://servicodados.ibge.gov.br/api/v3/agregados/7062/periodos/'
-        + periodos.join('|')
-        + '/variaveis/355?localidades=N1[all]';
-
-    var response = await fetch(url);
-    if (!response.ok) throw new Error('Erro IBGE IPCA-15');
-    var data = await response.json();
-
-    var series = data[0].resultados[0].series[0].serie;
-    var fator = 1.0;
-    var mesesUsados = 0;
-    var variacoes = [];
-    for (var j = 0; j < periodos.length; j++) {
-        var p = periodos[j];
-        if (series[p] && series[p] !== '...') {
-            var val = parseFloat(series[p]);
-            if (!isNaN(val)) {
-                fator *= (1 + val / 100);
-                mesesUsados++;
-                variacoes.push({ periodo: p, variacao: val });
-            }
+function atualizarAvisosDePiso() {
+    [['precoSocialCO2USD', 'avisoPisoSocial', 'custo social do carbono'], ['precoMercadoCO2USD', 'avisoPisoMercado', 'preço no mercado voluntário']].forEach(([campo, aviso, rotulo]) => {
+        const valor = parseFloat(valorCampo(campo));
+        const el = document.getElementById(aviso);
+        if (DamnumCalc.abaixoDoPisoCNJ(valor)) {
+            el.textContent = DamnumValoracao.avisoPiso(rotulo, valor);
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
         }
-    }
-
-    return { fator: fator, periodos: mesesUsados, variacoes: variacoes };
-}
-
-// Buscar SELIC mensal acumulada via BCB (série 4390)
-// Retorna array de {periodo: 'MM/YYYY', taxa: X}
-async function buscarSELICMensal(dataInicio, dataFim) {
-    var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json'
-        + '&dataInicial=' + formatarDataBCB(dataInicio)
-        + '&dataFinal=' + formatarDataBCB(dataFim);
-
-    var response = await fetch(url);
-    if (!response.ok) throw new Error('Erro BCB série 4390');
-    var dados = await response.json();
-
-    return dados.map(function(item) {
-        return { data: item.data, taxa: parseFloat(item.valor) };
     });
 }
 
-// Calcular correção judicial conforme Tema 1.368/STJ e Lei 14.905/2024
-// Aplica-se APENAS a danos patrimoniais (material + interino)
-// Danos extrapatrimoniais: correção desde arbitramento (= hoje), sem aplicação
-async function calcularCorrecaoJudicial() {
-    var dataDano = obterDataDano();
-    var dataAtual = new Date();
-    var usouDataHoje = !document.getElementById('dataDano').value;
-
-    if (usouDataHoje) {
-        return { aplicada: false, motivo: 'Data do dano não informada (usando data de hoje)' };
-    }
-
-    // Verificar se data é atual ou futura
-    if (dataDano.toDateString() === dataAtual.toDateString() || dataDano > dataAtual) {
-        return { aplicada: false, motivo: 'Data do dano é atual ou futura' };
-    }
-
-    try {
-        var resultado = {
-            aplicada: true,
-            fatorTotal: 1.0,
-            periodo1: null,
-            periodo2: null,
-            dataCorte: '30/08/2024'
-        };
-
-        // ============================
-        // PERÍODO 1: até 29/08/2024
-        // SELIC = correção + juros
-        // ============================
-        if (dataDano < DATA_CORTE_LEI_14905) {
-            var fimP1 = dataAtual < DATA_CORTE_LEI_14905 ? dataAtual : new Date(2024, 7, 29);
-            var selicP1 = await buscarFatorSELIC(dataDano, fimP1);
-            resultado.periodo1 = {
-                fator: selicP1.fator,
-                diasUteis: selicP1.diasUteis,
-                dataInicio: selicP1.dataInicio,
-                dataFim: selicP1.dataFim,
-                indice: 'SELIC',
-                fundamento: 'Tema 1.368/STJ (art. 406 CC)'
-            };
-            resultado.fatorTotal *= selicP1.fator;
-        }
-
-        // ============================
-        // PERÍODO 2: a partir de 30/08/2024
-        // IPCA-15 (correção) + max(SELIC-IPCA15, 0) (juros)
-        // ============================
-        if (dataAtual > DATA_CORTE_LEI_14905) {
-            var inicioP2 = dataDano > DATA_CORTE_LEI_14905 ? dataDano : DATA_CORTE_LEI_14905;
-
-            // Buscar SELIC diária para o Período 2 (resultado preciso)
-            var selicP2 = await buscarFatorSELIC(inicioP2, dataAtual);
-
-            // Tentar buscar IPCA-15 e SELIC mensal para decomposição
-            var ipca15Info = null;
-            var jurosInfo = null;
-            try {
-                var ipca15 = await buscarFatorIPCA15(inicioP2, dataAtual);
-                var selicMensal = await buscarSELICMensal(inicioP2, dataAtual);
-
-                // Calcular juros = max(SELIC_mensal - IPCA15_mensal, 0) para cada mês
-                var fatorJuros = 1.0;
-                if (ipca15.variacoes && selicMensal) {
-                    for (var k = 0; k < Math.min(ipca15.variacoes.length, selicMensal.length); k++) {
-                        var jurosMes = Math.max(selicMensal[k].taxa - ipca15.variacoes[k].variacao, 0);
-                        fatorJuros *= (1 + jurosMes / 100);
-                    }
-                }
-
-                ipca15Info = {
-                    fator: ipca15.fator,
-                    periodos: ipca15.periodos
-                };
-                jurosInfo = {
-                    fator: fatorJuros
-                };
-            } catch (e) {
-                console.warn('Não foi possível decompor IPCA-15/juros no Período 2:', e.message);
-            }
-
-            resultado.periodo2 = {
-                fator: selicP2.fator,
-                diasUteis: selicP2.diasUteis,
-                dataInicio: selicP2.dataInicio,
-                dataFim: selicP2.dataFim,
-                indice: 'IPCA-15 + juros legais',
-                fundamento: 'Lei 14.905/2024 + Res. CMN 5.171/2024',
-                ipca15: ipca15Info,
-                juros: jurosInfo
-            };
-            resultado.fatorTotal *= selicP2.fator;
-        }
-
-        return resultado;
-
-    } catch (e) {
-        console.error('Erro na correção judicial:', e);
-        return { aplicada: false, motivo: 'Erro ao consultar o Banco Central: ' + e.message };
-    }
+function validarTaxaInterino() {
+    const taxa = parseFloat(valorCampo('taxaJurosAnual'));
+    const valida = DamnumCalc.validarTaxaInterino(taxa);
+    document.getElementById('avisoTaxaInterino').style.display = valida ? 'none' : '';
+    return valida ? taxa : null;
 }
 
-function gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados) {
-    const parametros = obterParametrosAtuais();
-    const areaTotal = (areaForaAPP || 0) + (areaEmAPP || 0);
-    const areaArredondada = Math.ceil(areaForaAPP || 0);
-    const estoqueCO2 = obterEstoqueCO2PorBioma(bioma);
-    const dataAtual = new Date();
-    const dataDano = obterDataDano();
-    const usouDataHoje = !document.getElementById('dataDano').value;
-    const entendimento = obterEntendimento();
-    const valores = valoresBiomasBase[bioma];
-    const fator = parametros.taxaJurosAnual * (parametros.tempoRecuperacao + 1) / 2;
-
-    const nomeEntendimento = entendimento === 'irdr'
-        ? 'IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)'
-        : 'Gonzaga et al. (2025)';
-
-    const textoDataDano = usouDataHoje
-        ? formatarData(dataDano) + ' (data de hoje, pois não foi informada a data do dano)'
-        : formatarData(dataDano);
-
-    let html = '<div style="font-family: \'Times New Roman\', serif; font-size: 12pt; line-height: 1.6; color: #222; max-width: 700px;">';
-
-    // CABEÇALHO
-    html += '<h2 style="text-align:center; font-size:14pt; margin-bottom:5px;">RELATÓRIO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL</h2>';
-    html += '<p style="text-align:center; font-size:11pt; color:#555;">';
-    var numeroProcessoEl = document.getElementById('numeroProcesso');
-    var numeroProcesso = numeroProcessoEl ? (numeroProcessoEl.value || '').trim() : '';
-    if (numeroProcesso) {
-        html += 'Processo / procedimento: <b>' + numeroProcesso + '</b><br>';
-    }
-    html += 'Data da valoração: ' + formatarData(dataAtual) + '<br>';
-    html += 'Data do dano: ' + textoDataDano + '<br>';
-    html += 'Bioma: ' + bioma + '<br>';
-    html += 'Entendimento: ' + nomeEntendimento + '<br>';
-    html += 'DAMNUM v. 6.2 — <a href="https://damnum.consciencia.eco.br/" target="_blank" style="color:#1a5276;">https://damnum.consciencia.eco.br</a></p>';
-    html += '<hr style="border:1px solid #999;">';
-
-    // NOTA SOBRE VALORES (agora no início)
-    html += '<div style="background:#f5f5dc; padding:10px 14px; border-left:4px solid #b8860b; margin:12px 0; font-size:11pt;">';
-    html += '<b>Nota sobre os valores de referência:</b> Os custos de reparação por hectare utilizados neste relatório correspondem à <b>média</b> dos custos de implantação e manutenção de projetos de recuperação ambiental, conforme a Portaria 118/2022 do IBAMA. ';
-    if (correcaoIPCA.sucesso) {
-        html += 'Os valores originais (outubro/2022) foram <b>corrigidos pelo IPCA</b> até ' + correcaoIPCA.periodoAtual + ' (fator de correção: ' + correcaoIPCA.fator.toFixed(4) + ', índice base: ' + correcaoIPCA.indiceBase.toFixed(2) + ', índice atual: ' + correcaoIPCA.indiceAtual.toFixed(2) + '). ';
-    } else {
-        html += 'Os valores são nominais de outubro/2022 (não foi possível obter a correção pelo IPCA). ';
-    }
-    html += 'Para o bioma <b>' + bioma + '</b>, os valores mínimo e máximo (corrigidos) são, respectivamente, ' + formatarMoeda(valores.menor_valor) + '/ha e ' + formatarMoeda(valores.maior_valor) + '/ha. ';
-    html += 'O valor médio adotado é de <b>' + formatarMoeda(valores.media) + '/ha</b>.</div>';
-
-    // MEMÓRIA DE CÁLCULO
-    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">MEMÓRIA DE CÁLCULO</h3>';
-
-    // DADOS DO CASO
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">DADOS DO CASO</h4>';
-    html += '<table style="font-size:11pt; border-collapse:collapse; margin-left:10px;">';
-    html += '<tr><td style="padding:2px 10px;">Bioma selecionado:</td><td><b>' + bioma + '</b></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Entendimento adotado:</td><td><b>' + nomeEntendimento + '</b></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Data do dano:</td><td><b>' + textoDataDano + '</b></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Área desmatada fora de APP e ARL (A<sub>1</sub>):</td><td><b>' + (areaForaAPP || 0).toFixed(4) + ' ha</b></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Área desmatada em APP e ARL (A<sub>2</sub>):</td><td><b>' + (areaEmAPP || 0).toFixed(4) + ' ha</b></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Área total desmatada (A<sub>1</sub> + A<sub>2</sub>):</td><td><b>' + areaTotal.toFixed(4) + ' ha</b></td></tr>';
-    if (resultados.reparacaoInSitu) {
-        html += '<tr><td style="padding:2px 10px;">Reparação <em>in situ</em>:</td><td><b style="color:#27ae60;">Sim — será promovida</b></td></tr>';
-    }
-    html += '</table>';
-
-    // PARÂMETROS UTILIZADOS
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">PARÂMETROS UTILIZADOS</h4>';
-    html += '<table style="font-size:11pt; border-collapse:collapse; margin-left:10px;">';
-    html += '<tr><td style="padding:2px 10px;">Custo médio de reparação/ha (Portaria 118/2022 – IBAMA):</td><td><b>' + formatarMoeda(valores.media) + '/ha</b></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Preço Social do CO₂ (US$):</td><td>US$ ' + parametros.precoSocialCO2USD.toFixed(2) + '</td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Cotação do Dólar:</td><td>R$ ' + parametros.cotacaoDolar.toFixed(2) + '</td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Preço Social do CO₂ (R$):</td><td>' + formatarMoeda(parametros.precoSocialCO2BRL) + ' <span style="color:#666;">(US$ ' + parametros.precoSocialCO2USD.toFixed(2) + ' × R$ ' + parametros.cotacaoDolar.toFixed(2) + ')</span></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Preço Mercado Voluntário CO₂ (US$):</td><td>US$ ' + parametros.precoMercadoCO2USD.toFixed(2) + '</td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Preço Mercado Voluntário CO₂ (R$):</td><td>' + formatarMoeda(parametros.precoMercadoCO2BRL) + ' <span style="color:#666;">(US$ ' + parametros.precoMercadoCO2USD.toFixed(2) + ' × R$ ' + parametros.cotacaoDolar.toFixed(2) + ')</span></td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Estoque de CO₂ do bioma ' + bioma + ':</td><td>' + estoqueCO2 + ' tCO₂/ha</td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Taxa de juros anual (i):</td><td>' + (parametros.taxaJurosAnual * 100).toFixed(2) + '%</td></tr>';
-    html += '<tr><td style="padding:2px 10px;">Tempo de recuperação (t):</td><td>' + parametros.tempoRecuperacao + ' anos</td></tr>';
-    html += '</table>';
-
-    // 1. DANO MATERIAL
-    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">1. DANO MATERIAL (Dano Ecológico / Dano Direto)</h4>';
-
-    const areaDanoMaterial = resultados.reparacaoInSitu ? (areaForaAPP || 0) : ((areaForaAPP || 0) + (areaEmAPP || 0));
-
-    if (!resultados.reparacaoInSitu && areaEmAPP > 0) {
-        html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Material = (A<sub>1</sub> + A<sub>2</sub>) × Custo de Reparação/ha</p>';
-        html += '<p style="margin-left:10px;">Onde: A<sub>1</sub> + A<sub>2</sub> = Área total desmatada = ' + areaDanoMaterial.toFixed(4) + ' ha</p>';
-        html += '<p style="margin-left:10px; font-size:10pt; color:#666;"><em>(Inclui a área em APP/ARL pois a reparação in situ não será promovida)</em></p>';
-    } else {
-        html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Material = A<sub>1</sub> × Custo de Reparação/ha</p>';
-        html += '<p style="margin-left:10px;">Onde: A<sub>1</sub> = Área desmatada fora de APP e ARL = ' + (areaForaAPP || 0).toFixed(4) + ' ha</p>';
-    }
-
-    if (areaDanoMaterial <= 0) {
-        html += '<p style="margin-left:10px; color:#888;"><em>Não há área informada para cálculo do dano material, portanto: Dano Material = R$ 0,00</em></p>';
-    } else if (entendimento === 'irdr') {
-        html += '<p style="margin-left:10px; color:#888;"><em>Entendimento IRDR 13/TJMT: todo o dano material é igual a zero (remanesce apenas o dano extrapatrimonial). Dano Material = R$ 0,00</em></p>';
-    } else {
-        html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-        html += '&nbsp;&nbsp;' + areaDanoMaterial.toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha = ' + formatarMoeda(resultados.danoMaterial) + '</p>';
-        html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO MATERIAL = ' + formatarMoeda(resultados.danoMaterial) + '</div>';
-    }
-
-    if (areaEmAPP > 0) {
-        html += '<div style="background:#fef9e7; padding:8px 12px; margin:8px 10px; border-left:3px solid #d4ac0d; border-radius:3px; font-size:11pt;">';
-        if (resultados.reparacaoInSitu) {
-            html += '<b>Nota:</b> Havendo reparação <em>in situ</em> da área em APP/ARL, o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b> (abaixo).';
-        } else {
-            html += '<b>Nota:</b> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + (areaEmAPP || 0).toFixed(4) + ' ha).';
-        }
-        html += '</div>';
-    }
-
-    // 2. DANO INTERINO
-    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">2. DANO INTERINO</h4>';
-
-    if (!resultados.reparacaoInSitu && areaEmAPP > 0) {
-        html += '<p style="margin-left:10px; color:#888;"><em>Considerando que a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área em APP/ARL). Dano Interino = R$ 0,00</em></p>';
-    } else {
-        html += '<p style="margin-left:10px;"><b>Fórmula:</b> Dano Interino = A<sub>2</sub> × Custo de Reparação/ha × Fator</p>';
-        html += '<p style="margin-left:10px;">Onde:<br>';
-        html += '&nbsp;&nbsp;A<sub>2</sub> = Área desmatada em APP e ARL = ' + (areaEmAPP || 0).toFixed(4) + ' ha<br>';
-        html += '&nbsp;&nbsp;Fator = i × (t + 1) / 2</p>';
-        html += '<p style="margin-left:20px;"><b>Cálculo do Fator:</b><br>';
-        html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × (' + parametros.tempoRecuperacao + ' + 1) / 2<br>';
-        html += '&nbsp;&nbsp;Fator = ' + parametros.taxaJurosAnual + ' × ' + (parametros.tempoRecuperacao + 1) + ' / 2<br>';
-        html += '&nbsp;&nbsp;Fator = ' + fator.toFixed(4) + '</p>';
-
-        if (!areaEmAPP || areaEmAPP <= 0) {
-            html += '<p style="margin-left:10px; color:#888;"><em>Não há área em APP/ARL informada, portanto: Dano Interino = R$ 0,00</em></p>';
-        } else {
-            html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-            html += '&nbsp;&nbsp;' + (areaEmAPP).toFixed(4) + ' ha × ' + formatarMoeda(valores.media) + '/ha × ' + fator.toFixed(4) + ' = ' + formatarMoeda(resultados.danoInterino) + '</p>';
-            html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO INTERINO = ' + formatarMoeda(resultados.danoInterino) + '</div>';
-        }
-    }
-
-    // 3. DANO EXTRAPATRIMONIAL
-    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">3. DANO EXTRAPATRIMONIAL</h4>';
-
-    // 3.1
-    html += '<p style="margin-left:10px;"><b>3.1) Mercado Voluntário de Carbono</b></p>';
-    html += '<p style="margin-left:10px;"><b>Fórmula:</b> (A<sub>1</sub> + A<sub>2</sub>) × Preço CO₂ Mercado (R$) × Estoque CO₂/ha</p>';
-    html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-    html += '&nbsp;&nbsp;' + areaTotal.toFixed(4) + ' ha × ' + formatarMoeda(parametros.precoMercadoCO2BRL) + '/tCO₂ × ' + estoqueCO2 + ' tCO₂/ha<br>';
-    html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</p>';
-    html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO EXTRAPATRIMONIAL (Mercado Voluntário) = ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</div>';
-
-    // 3.2
-    html += '<p style="margin-left:10px;"><b>3.2) Custo Social do Carbono (CSC – Cenário SSP2/RCP6.0)</b></p>';
-    html += '<p style="margin-left:10px;"><b>Fórmula:</b> (A<sub>1</sub> + A<sub>2</sub>) × Preço Social CO₂ (R$) × Estoque CO₂/ha</p>';
-    html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-    html += '&nbsp;&nbsp;' + areaTotal.toFixed(4) + ' ha × ' + formatarMoeda(parametros.precoSocialCO2BRL) + '/tCO₂ × ' + estoqueCO2 + ' tCO₂/ha<br>';
-    html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</p>';
-    html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 10px; border-radius:4px; font-weight:bold;">DANO CLIMÁTICO (Custo Social do Carbono) = ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</div>';
-
-    // 4. TOTAL
-    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">4. TOTAL</h4>';
-    html += '<p style="margin-left:10px;"><b>Fórmula:</b> Total = Dano Material + Dano Interino + Dano Extrapatrimonial (mercado) + Dano Climático</p>';
-    html += '<p style="margin-left:20px;"><b>Cálculo:</b><br>';
-    html += '&nbsp;&nbsp;' + formatarMoeda(resultados.danoMaterial) + ' + ' + formatarMoeda(resultados.danoInterino) + ' + ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + ' + ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '<br>';
-    html += '&nbsp;&nbsp;= ' + formatarMoeda(resultados.total) + '</p>';
-    html += '<div style="background:#c8e6c9; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">VALOR TOTAL = ' + formatarMoeda(resultados.total) + '</div>';
-
-    // 5. ATUALIZAÇÃO MONETÁRIA JUDICIAL
-    html += '<hr style="border:0; border-top:1px solid #ccc; margin:16px 0;">';
-    html += '<h4 style="font-size:12pt; color:#2c3e50;">5. ATUALIZAÇÃO MONETÁRIA E JUROS DE MORA</h4>';
-
-    if (resultados.correcao && resultados.correcao.aplicada) {
-        // Explicação do framework jurídico
-        html += '<p style="margin-left:10px; text-align:justify;">A atualização monetária dos danos patrimoniais (material e interino) segue o regime do art. 406 do Código Civil, conforme interpretação do <b>Tema Repetitivo 1.368/STJ</b> (REsp 2.199.164/PR) e da <b>Lei 14.905/2024</b>, em dois períodos:</p>';
-
-        // Período 1
-        if (resultados.correcao.periodo1) {
-            html += '<div style="background:#e3f2fd; padding:8px 12px; margin:8px 10px; border-left:3px solid #1565c0; border-radius:3px; font-size:11pt;">';
-            html += '<b>Período 1</b> (' + resultados.correcao.periodo1.dataInicio + ' a ' + resultados.correcao.periodo1.dataFim + '): ';
-            html += '<b>Taxa SELIC</b> (engloba correção monetária + juros de mora). ';
-            html += 'Fator acumulado: <b>' + resultados.correcao.periodo1.fator.toFixed(6) + '</b> (' + resultados.correcao.periodo1.diasUteis + ' dias úteis). ';
-            html += '<br><em>Fundamento: ' + resultados.correcao.periodo1.fundamento + '.</em></div>';
-        }
-
-        // Período 2
-        if (resultados.correcao.periodo2) {
-            html += '<div style="background:#fff8e1; padding:8px 12px; margin:8px 10px; border-left:3px solid #f9a825; border-radius:3px; font-size:11pt;">';
-            html += '<b>Período 2</b> (' + resultados.correcao.periodo2.dataInicio + ' a ' + resultados.correcao.periodo2.dataFim + '): ';
-            html += '<b>IPCA-15</b> (correção monetária) + <b>juros legais</b> (SELIC – IPCA-15, mínimo de 0%). ';
-            html += 'Fator acumulado: <b>' + resultados.correcao.periodo2.fator.toFixed(6) + '</b>';
-            if (resultados.correcao.periodo2.ipca15) {
-                html += ' [IPCA-15: ' + resultados.correcao.periodo2.ipca15.fator.toFixed(6) + '; juros: ' + (resultados.correcao.periodo2.juros ? resultados.correcao.periodo2.juros.fator.toFixed(6) : 'n/d') + ']';
-            }
-            html += '. ';
-            html += '<br><em>Fundamento: ' + resultados.correcao.periodo2.fundamento + '.</em></div>';
-        }
-
-        // Cálculo
-        html += '<p style="margin-left:10px; font-size:11pt;"><b>Fator de atualização total:</b> ' + resultados.correcao.fatorTotal.toFixed(6) + '</p>';
-
-        // Aplicação apenas a danos patrimoniais
-        html += '<table style="font-size:11pt; border-collapse:collapse; margin:8px 10px; border:1px solid #ccc;">';
-        html += '<tr style="background:#f5f5f5;"><th style="padding:4px 10px; text-align:left; border:1px solid #ccc;">Parcela</th><th style="padding:4px 10px; text-align:right; border:1px solid #ccc;">Valor original</th><th style="padding:4px 10px; text-align:right; border:1px solid #ccc;">Atualização</th><th style="padding:4px 10px; text-align:right; border:1px solid #ccc;">Valor atualizado</th></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Material + Interino</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.totalPatrimonial) + '</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">× ' + resultados.correcao.fatorTotal.toFixed(4) + '</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(resultados.totalPatrimonialCorrigido) + '</b></td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Extrapatrimonial</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.totalExtrapatrimonial) + '</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc; color:#888;">sem correção *</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(resultados.totalExtrapatrimonial) + '</b></td></tr>';
-        html += '<tr style="background:#f0f7f0;"><td style="padding:4px 10px; border:1px solid #ccc;"><b>TOTAL ATUALIZADO</b></td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.total) + '</td><td style="padding:4px 10px; border:1px solid #ccc;"></td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(resultados.totalCorrigido) + '</b></td></tr>';
-        html += '</table>';
-
-        html += '<p style="margin-left:10px; font-size:10pt; color:#666;">* Danos extrapatrimoniais: correção monetária a partir do arbitramento (Súmula 362/STJ). Na presente valoração (pré-processual), equivale à data do cálculo (hoje), não havendo correção a aplicar. Juros de mora incidirão a partir do evento danoso quando fixados em sentença ou TAC (Súmula 54/STJ).</p>';
-
-        html += '<div style="background:#fff3cd; padding:10px 14px; margin:8px 10px; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">VALOR TOTAL ATUALIZADO = ' + formatarMoeda(resultados.totalCorrigido) + '</div>';
-
-    } else if (usouDataHoje) {
-        // Data não informada
-        html += '<div style="background:#fce4ec; padding:10px 14px; border-left:4px solid #c62828; margin:12px 0; font-size:11pt;">';
-        html += '<b>Atenção:</b> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje e não houve atualização monetária. ';
-        html += 'Todavia, conforme a <b>Súmula 43/STJ</b>, a correção monetária dos danos materiais incide desde o efetivo prejuízo; e conforme a <b>Súmula 54/STJ</b>, os juros de mora incidem desde o evento danoso (responsabilidade extracontratual). ';
-        html += 'Os danos extrapatrimoniais são corrigidos desde o arbitramento (<b>Súmula 362/STJ</b>). ';
-        html += '<b>Recomenda-se inserir a data do dano</b> para que a atualização monetária pela SELIC/IPCA-15 seja calculada nos termos do <b>Tema 1.368/STJ</b> e da <b>Lei 14.905/2024</b>.</div>';
-    } else {
-        html += '<p style="margin-left:10px; color:#888;"><em>Sem atualização monetária aplicável: ' + (resultados.correcao ? resultados.correcao.motivo : 'data do dano é a data atual') + '.</em></p>';
-    }
-
-    html += '<p style="margin-left:10px; font-size:10pt; color:#555;"><em>Para detalhes sobre a metodologia de atualização monetária, consulte a aba <a href="metodologia.html#atualizacao" target="_blank">Metodologia</a>.</em></p>';
-
-    // VALORAÇÃO POR ENTENDIMENTO ALTERNATIVO
-    html += '<hr style="border:1px solid #999; margin:20px 0;">';
-    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">VALORAÇÃO POR ENTENDIMENTO E METODOLOGIA ALTERNATIVA</h3>';
-
-    if (entendimento === 'gonzaga') {
-        // Alternativa: IRDR 13/TJMT
-        var altNome = 'IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)';
-        var altDanoMaterial = 0;
-        var altDanoInterino = 0;
-        var altTotal = altDanoMaterial + altDanoInterino + resultados.danoExtrapatrimonialMercado + resultados.danoExtrapatrimonialSocial;
-        var altTotalPatrimonial = altDanoMaterial + altDanoInterino;
-        var altTotalCorrigido = altTotal;
-        if (resultados.correcao && resultados.correcao.aplicada) {
-            altTotalCorrigido = (altTotalPatrimonial * resultados.correcao.fatorTotal) + resultados.totalExtrapatrimonial;
-        }
-
-        html += '<p style="text-align:justify;">Caso fosse adotado o entendimento do <b>' + altNome + '</b>, segundo o qual o desmatamento em área não especialmente protegida configura dano extrapatrimonial <em>in re ipsa</em>, mas não dano material indenizável, os valores seriam:</p>';
-        html += '<table style="font-size:11pt; border-collapse:collapse; margin:10px; width:calc(100% - 20px); border:1px solid #ccc;">';
-        html += '<tr style="background:#f5f5f5;"><th style="padding:6px 10px; text-align:left; border:1px solid #ccc;">Parcela</th><th style="padding:6px 10px; text-align:right; border:1px solid #ccc;">Valor</th></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Material</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(0) + ' <span style="color:#888;">(zerado pelo entendimento)</span></td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Interino</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(0) + '</td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Extrapatrimonial (Mercado Voluntário)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Climático (Custo Social do Carbono)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</td></tr>';
-        html += '<tr style="background:#f0f7f0;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotal) + '</b></td></tr>';
-        if (resultados.correcao && resultados.correcao.aplicada) {
-            html += '<tr style="background:#fff8e1;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total atualizado (SELIC/IPCA-15)</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotalCorrigido) + '</b></td></tr>';
-        }
-        html += '</table>';
-    } else {
-        // Alternativa: Gonzaga et al. (2025)
-        var altNome = 'Gonzaga et al. (2025)';
-        var altAreaMaterial = resultados.reparacaoInSitu ? (areaForaAPP || 0) : ((areaForaAPP || 0) + (areaEmAPP || 0));
-        var altDanoMaterial = altAreaMaterial * valores.media;
-        var altDanoInterino = resultados.reparacaoInSitu ? ((areaEmAPP || 0) * valores.media * fator) : 0;
-        var altTotal = altDanoMaterial + altDanoInterino + resultados.danoExtrapatrimonialMercado + resultados.danoExtrapatrimonialSocial;
-        var altTotalPatrimonial = altDanoMaterial + altDanoInterino;
-        var altTotalCorrigido = altTotal;
-        if (resultados.correcao && resultados.correcao.aplicada) {
-            altTotalCorrigido = (altTotalPatrimonial * resultados.correcao.fatorTotal) + resultados.totalExtrapatrimonial;
-        }
-
-        html += '<p style="text-align:justify;">Caso fosse adotada a metodologia de <b>' + altNome + '</b>, que considera o dano material (custo de reparação da vegetação nativa conforme Portaria 118/2022 do IBAMA) como parcela indenizável autônoma, os valores seriam:</p>';
-        html += '<table style="font-size:11pt; border-collapse:collapse; margin:10px; width:calc(100% - 20px); border:1px solid #ccc;">';
-        html += '<tr style="background:#f5f5f5;"><th style="padding:6px 10px; text-align:left; border:1px solid #ccc;">Parcela</th><th style="padding:6px 10px; text-align:right; border:1px solid #ccc;">Valor</th></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Material</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(altDanoMaterial) + '</td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Interino</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(altDanoInterino) + '</td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Extrapatrimonial (Mercado Voluntário)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '</td></tr>';
-        html += '<tr><td style="padding:4px 10px; border:1px solid #ccc;">Dano Climático (Custo Social do Carbono)</td><td style="padding:4px 10px; text-align:right; border:1px solid #ccc;">' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + '</td></tr>';
-        html += '<tr style="background:#f0f7f0;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotal) + '</b></td></tr>';
-        if (resultados.correcao && resultados.correcao.aplicada) {
-            html += '<tr style="background:#fff8e1;"><td style="padding:6px 10px; border:1px solid #ccc;"><b>Total atualizado (SELIC/IPCA-15)</b></td><td style="padding:6px 10px; text-align:right; border:1px solid #ccc;"><b>' + formatarMoeda(altTotalCorrigido) + '</b></td></tr>';
-        }
-        html += '</table>';
-    }
-
-    // CENÁRIOS DE REPARAÇÃO
-    html += '<hr style="border:1px solid #999; margin:20px 0;">';
-    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">CENÁRIOS QUANTO À REPARAÇÃO</h3>';
-
-    html += '<p><b>1) Hipótese da recuperação da área desmatada (recuperação <em>in situ</em>):</b></p>';
-    html += '<p style="text-align:justify;">Quando houver recuperação da área desmatada (recuperação <em>in situ</em>) por danos em área de reserva legal (ARL), área de preservação permanente (APP) ou áreas excedentes caso ele opte pela reparação <em>in natura</em> e <em>in situ</em>, o degradador deverá indenizar os danos interinos no valor de ' + formatarMoeda(resultados.danoInterino) + ' (além de indenizar os danos extrapatrimoniais). Neste cenário, o proprietário deverá apresentar e executar Projeto de Recuperação de Áreas Degradadas (PRADA) ou laudo de constatação de reparação do dano ambiental. Alternativamente, a parte requerida poderá realizar a compensação ecológica do dano interino e extrapatrimonial (veja a seguir).</p>';
-
-    html += '<p><b>2) Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):</b></p>';
-    html += '<p style="text-align:justify;">Quando não houver reparação <em>in situ</em> (área passível de exploração), deverá ser realizada a compensação ecológica ou o pagamento de indenização, para que o proprietário possa regularizar a exploração da área. Neste caso, a valoração (dano material) é de ' + formatarMoeda(resultados.danoMaterial) + '. Também deverão ser reparados os danos climáticos, estimados em ' + formatarMoeda(resultados.danoExtrapatrimonialSocial) + ' e extrapatrimoniais (' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + ').</p>';
-
-    html += '<p><b>COMPENSAÇÃO ECOLÓGICA</b></p>';
-    html += '<p style="text-align:justify;">Alternativamente, propõe-se a compensação ecológica dos danos materiais nos seguintes termos: instituição, no próprio imóvel ou imóvel de terceiro no mesmo bioma, estado da federação e preferencialmente, no mesmo município ou município contíguo, de RPPN, servidão ambiental perpétua ou aquisição e doação ao poder público de área em unidade de conservação igual à área ilegalmente desmatada (arredondada), isto é ' + areaArredondada + ' hectares, remanescendo o pagamento de indenização por danos extrapatrimoniais (que poderá ser reduzido a critério do promotor de Justiça, conforme a relevância da área protegida a ser criada) no valor de ' + formatarMoeda(resultados.danoExtrapatrimonialMercado) + '.</p>';
-
-    html += '<p style="text-align:justify;">O valor dos danos extrapatrimoniais remanescente também poderá ser reduzido com o aumento da área a ser protegida, descontando-se o valor dos custos médios de reparação para cada hectare adicional de vegetação nativa no montante do dano extrapatrimonial (isto é, ' + formatarMoeda(valoresBiomasBase[bioma].media) + ' por hectare fora de ARL acrescentado na RPPN além da área desmatada).</p>';
-
-    html += '<p><b>Regras para a instituição de RPPN (ou servidão ambiental perpétua):</b></p>';
-    html += '<p style="text-align:justify;">1) A RPPN deverá abranger a área de reserva legal do imóvel, embora a ARL abrangida não será computada para fins da compensação ecológica;<br>';
-    html += '2) A área protegida deverá, salvo absoluta impossibilidade, (2.1) consistir-se de um único bloco de vegetação nativa e (2.2) ser lindeira à área de reserva legal ou área de preservação permanente existente no imóvel, visando diminuir os efeitos da fragmentação de habitats e efeitos de borda.</p>';
-
-    html += '<p style="text-align:justify;">Na hipótese de RPPN, toda a área protegida continuará sendo de propriedade da parte requerida, que poderá aferir renda com a venda de créditos de carbono e cotas de reserva ambiental (CRA) para imóveis com déficit de áreas de reserva legal.</p>';
-
-    // REFERÊNCIAS
-    html += '<hr style="border:1px solid #999; margin:20px 0;">';
-    html += '<h3 style="font-size:13pt; border-bottom:2px solid #333; padding-bottom:4px;">REFERÊNCIAS BIBLIOGRÁFICAS</h3>';
-
-    html += '<p style="text-align:justify; font-size:10pt;">GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM)</em>, 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em &lt;https://damnum.consciencia.eco.br/metodologia.pdf&gt;.</p>';
-
-    html += '<p style="text-align:justify; font-size:10pt;">BRASIL. Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis – IBAMA. Portaria nº 118, de 3 de outubro de 2022. Institui Procedimento Operacional Padrão (POP) para Estimativa dos Custos de Implantação e Manutenção de Projeto de Recuperação Ambiental nos Biomas Brasileiros, para Compor Valor Mínimo da Reparação por Danos Ambientais à Vegetação Nativa, em Processos Administrativos no âmbito do Ibama. Disponível em: &lt;https://www.ibama.gov.br/component/legislacao/?view=legislacao&amp;force=1&amp;legislacao=139171&gt;.</p>';
-
-    html += '<p style="text-align:justify; font-size:10pt;">RICKE, Katharine et al. Country-level social cost of carbon. <em>Nature Climate Change</em>, v. 8, n. 10, p. 895-900, 2018. Disponível em: &lt;https://www.nature.com/articles/s41558-018-0282-y&gt;.</p>';
-
-    html += '</div>';
-    return html;
+async function sha256(texto) {
+    if (!(window.crypto && crypto.subtle)) return 'indisponível neste navegador';
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function baixarRelatorioPDF() {
     var conteudo = document.getElementById('textoRelatorio').innerHTML;
     if (!conteudo || !conteudo.trim()) {
-        alert('Gere o relatório primeiro clicando em "Proceder à valoração".');
+        alert('Gere o relatório primeiro clicando em "Calcular Valoração".');
         return;
     }
 
@@ -976,7 +487,8 @@ function baixarRelatorioPDF() {
     html += 'body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.6; color: #222; padding: 20px; }';
     html += 'h2 { font-size: 14pt; text-align: center; margin-bottom: 5px; }';
     html += 'h3 { font-size: 13pt; border-bottom: 2px solid #333; padding-bottom: 4px; margin-top: 18px; page-break-after: avoid; }';
-    html += 'table { border-collapse: collapse; width: 100%; margin: 10px 0; page-break-inside: avoid; }';
+    html += 'table { border-collapse: collapse; width: 100%; margin: 10px 0; }';
+    html += 'tr { page-break-inside: avoid; }';
     html += 'table, th, td { border: 1px solid #ccc; }';
     html += 'th, td { padding: 6px 10px; }';
     html += 'p { text-align: justify; }';
@@ -1041,171 +553,222 @@ function copiarRelatorio() {
     }
 }
 
+
+let ultimoResultado = null;
+
+function baixarTabelaCSV() {
+    if (!ultimoResultado) return;
+    const blob = new Blob([DamnumRelatorio.gerarCSV(ultimoResultado)], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'DAMNUM_tabela_mensal_' + new Date().toLocaleDateString('pt-BR').replace(/\//g, '-') + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// Fatores informados pelo usuário quando as séries oficiais falham.
+// Devolve null se o painel não estiver preenchido.
+function lerFatoresManuais() {
+    if (document.getElementById('painelFatorManual').style.display === 'none') return null;
+    const coeficiente = parseFloat(valorCampo('manualCoeficiente'));
+    const jurosPatrimonial = parseFloat(valorCampo('manualJurosPatrimonial'));
+    const jurosExtra = parseFloat(valorCampo('manualJurosExtra'));
+    const fonte = valorCampo('manualFonte');
+    if (isNaN(coeficiente) && isNaN(jurosPatrimonial) && isNaN(jurosExtra) && !fonte) return null;
+    if (!(coeficiente > 0) || isNaN(jurosPatrimonial) || isNaN(jurosExtra) || !fonte) {
+        throw new Error('Para usar fatores manuais, preencha o coeficiente de correção, os dois percentuais de juros e a fonte.');
+    }
+    return { coeficiente, jurosPatrimonial, jurosExtra, fonte };
+}
+
+function mostrarErroDeSeries(mensagem) {
+    document.getElementById('textoErroSeries').textContent = mensagem;
+    const painel = document.getElementById('painelFatorManual');
+    painel.style.display = '';
+    painel.scrollIntoView({ behavior: 'smooth' });
+}
+
 async function calcularValoracao() {
     const bioma = document.getElementById('bioma').value;
-    const areaForaAPP = parseFloat(document.getElementById('areaForaAPP').value) || 0;
-    const areaEmAPP = parseFloat(document.getElementById('areaEmAPP').value) || 0;
+    let areaForaAPP = parseFloat(valorCampo('areaForaAPP')) || 0;
+    let areaEmAPP = parseFloat(valorCampo('areaEmAPP')) || 0;
 
     if (!bioma) {
         alert('Por favor, selecione um bioma.');
         return;
     }
-
     if (areaForaAPP <= 0 && areaEmAPP <= 0) {
         alert('Por favor, informe pelo menos uma área desmatada.');
         return;
     }
 
-  // Mostrar loading no botão
+    const taxaInterinoPct = validarTaxaInterino();
+    if (taxaInterinoPct === null) {
+        alert('A taxa de juros do dano interino deve ser informada em percentual, entre 0 e 30 (ex.: 6 para 6% ao ano).');
+        return;
+    }
+
+    const parametros = obterParametrosAtuais();
+    if (!(parametros.cotacaoDolar > 0) || isNaN(parametros.precoSocialCO2USD) || isNaN(parametros.precoMercadoCO2USD)) {
+        alert('Confira os preços do carbono e a cotação do dólar.');
+        return;
+    }
+
+    const dataCalculo = new Date();
+    const dataDano = obterDataDano();
+    if (dataDano && dataDano > dataCalculo) {
+        alert('A data do dano não pode ser futura.');
+        return;
+    }
+    if (dataDano && DamnumCalc.mesDeData(dataDano) < DamnumCalc.MES_INICIO_IPCAE_MENSAL) {
+        alert('O DAMNUM atualiza danos ocorridos a partir de janeiro de 2001. Para datas anteriores, os indexadores (Ufir e anteriores) não são calculados aqui.');
+        return;
+    }
+
+    let estoque, manual;
+    try {
+        estoque = resolverEstoque(bioma);
+        manual = lerFatoresManuais();
+    } catch (erro) {
+        alert(erro.message);
+        return;
+    }
+
+    // Área do polígono, quando o usuário decide que ela prevalece sobre a digitada.
+    let observacaoArea = '';
+    if (poligonoUsuario) {
+        const d = DamnumMapa.divergenciaDeArea(poligonoUsuario.area_ha, areaForaAPP + areaEmAPP);
+        if (d && d.diverge) {
+            const prevalece = document.querySelector('input[name="areaPrevalente"]:checked').value;
+            observacaoArea = 'A área calculada do polígono (' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha, método geodésico) difere ' + numeroBR(d.relativa * 100, 2) + '% da área digitada (' + numeroBR(areaForaAPP + areaEmAPP, 4) + ' ha). ';
+            if (prevalece === 'calculada') {
+                const escala = poligonoUsuario.area_ha / (areaForaAPP + areaEmAPP);
+                areaForaAPP *= escala;
+                areaEmAPP *= escala;
+                observacaoArea += 'Por escolha do usuário, prevaleceu a área calculada; as áreas fora e dentro de APP e ARL foram ajustadas na mesma proporção.';
+            } else {
+                observacaoArea += 'Por escolha do usuário, prevaleceu a área digitada.';
+            }
+        }
+    }
+
     var btnCalc = document.querySelector('.btn-calcular');
     var btnTextoOriginal = btnCalc.innerHTML;
     btnCalc.innerHTML = '<span class="btn-spinner"></span> Calculando...';
     btnCalc.disabled = true;
     btnCalc.style.opacity = '0.7';
 
-  try {
+    try {
+        const mesCalculo = DamnumCalc.mesDeData(dataCalculo);
+        const mesDano = dataDano ? DamnumCalc.mesDeData(dataDano) : mesCalculo;
+        const atualizar = !!dataDano && mesDano < mesCalculo;
 
-    // Incrementar contador local
-    incrementarContador();
-    
-    // Registrar valoração na planilha global
-    const areaTotal = areaForaAPP + areaEmAPP;
-    registrarValoracaoGlobal(bioma, areaTotal);
+        const entrada = {
+            versao: VERSAO_DAMNUM,
+            bioma,
+            entendimento: obterEntendimento(),
+            dataCalculo,
+            dataDano,
+            areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea },
+            reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
+            taxaInterinoPct,
+            tempoRecuperacao: parseFloat(valorCampo('tempoRecuperacao')) || 15,
+            parametros,
+            estoque,
+            opcaoExtrapatrimonial: valorCampo('jurosExtrapatrimoniais'),
+            manual,
+            numeroProcesso: valorCampo('numeroProcesso'),
+            identificacao: {
+                credorNome: valorCampo('credorNome'), credorDoc: valorCampo('credorDoc'),
+                devedorNome: valorCampo('devedorNome'), devedorDoc: valorCampo('devedorDoc'),
+                descontos: valorCampo('descontos'), bensPenhora: valorCampo('bensPenhora')
+            }
+        };
 
-    // Verificar estado do checkbox de reparação in situ
-    const reparacaoInSitu = document.getElementById('reparacaoInSitu').checked && areaEmAPP > 0;
+        const exigencias = DamnumValoracao.exigenciasDeSeries(mesDano, mesCalculo, atualizar);
+        const carga = await DamnumSeries.carregarSeries(exigencias, mesCalculo);
+        entrada.consultas = carga.consultas;
+        entrada.hash = await sha256(DamnumValoracao.textoCanonico(entrada));
 
-    // Calcular todos os danos
-    let danoMaterial, danoInterino;
-
-    if (reparacaoInSitu) {
-        // Com reparação in situ: dano material só para área fora APP; dano interino para área em APP
-        danoMaterial = calcularDanoMaterial(bioma, areaForaAPP);
-        danoInterino = calcularDanoInterino(bioma, areaEmAPP);
-    } else {
-        // Sem reparação in situ: dano material inclui área em APP; sem dano interino
-        danoMaterial = calcularDanoMaterial(bioma, areaForaAPP + areaEmAPP);
-        danoInterino = 0;
-    }
-
-    const danoExtrapatrimonialMercado = calcularDanoExtrapatrimonialMercado(bioma, areaForaAPP, areaEmAPP);
-    const danoExtrapatrimonialSocial = calcularDanoExtrapatrimonialSocial(bioma, areaForaAPP, areaEmAPP);
-    const total = danoMaterial + danoInterino + danoExtrapatrimonialMercado + danoExtrapatrimonialSocial;
-
-    // Atualizar interface
-    document.getElementById('danoMaterialMedia').textContent = formatarMoeda(danoMaterial);
-    document.getElementById('danoInterinoMedia').textContent = formatarMoeda(danoInterino);
-    document.getElementById('danoExtrapatrimonialMercado').textContent = formatarMoeda(danoExtrapatrimonialMercado);
-    document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(danoExtrapatrimonialSocial);
-    document.getElementById('totalMedia').textContent = formatarMoeda(total);
-
-    // Mostrar nota do dano material
-    const notaDanoMaterial = document.getElementById('notaDanoMaterial');
-    if (areaEmAPP > 0) {
-        notaDanoMaterial.style.display = '';
-        if (reparacaoInSitu) {
-            notaDanoMaterial.innerHTML = '<strong>Nota:</strong> Se o dano é em área protegida (APP/ARL) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.';
-        } else {
-            notaDanoMaterial.innerHTML = '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + areaEmAPP.toFixed(4) + ' ha).';
+        let r;
+        try {
+            r = DamnumValoracao.calcular(entrada, carga.series);
+        } catch (erro) {
+            if (erro.name !== 'ErroSerie') throw erro;
+            mostrarErroDeSeries(erro.message + ' Consultas feitas: ' + carga.consultas.map(c => c.serie + ' — ' + c.fonte + ': ' + c.situacao).join('; ') + '.');
+            return;
         }
+        if (!manual) document.getElementById('painelFatorManual').style.display = 'none';
+
+        // Contador: só depois de um cálculo concluído. Vão só o bioma e a área.
+        incrementarContador();
+        registrarValoracaoGlobal(bioma, r.areas.total);
+
+        mostrarResultado(r);
+    } catch (erro) {
+        console.error('Erro ao calcular valoração:', erro);
+        alert('Ocorreu um erro ao calcular a valoração: ' + erro.message + '\nVerifique o console do navegador para mais detalhes.');
+    } finally {
+        btnCalc.innerHTML = btnTextoOriginal;
+        btnCalc.disabled = false;
+        btnCalc.style.opacity = '';
+    }
+}
+
+function mostrarResultado(r) {
+    ultimoResultado = r;
+    const p = r.parcelas;
+    document.getElementById('danoMaterialMedia').textContent = formatarMoeda(p.material.valor);
+    document.getElementById('danoInterinoMedia').textContent = formatarMoeda(p.interino.valor);
+    document.getElementById('danoExtrapatrimonialMercado').textContent = formatarMoeda(p.mercado.valor);
+    document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
+    document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);
+
+    const notaDanoMaterial = document.getElementById('notaDanoMaterial');
+    if (r.areas.em > 0) {
+        notaDanoMaterial.style.display = '';
+        notaDanoMaterial.innerHTML = r.reparacaoInSitu
+            ? '<strong>Nota:</strong> Se o dano é em área protegida (APP/ARL) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.'
+            : '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + numeroBR(r.areas.em, 4) + ' ha).';
     } else {
         notaDanoMaterial.style.display = 'none';
     }
 
-    // Correção judicial (SELIC/IPCA-15) — aplica-se apenas a danos patrimoniais
-    var correcaoContainer = document.getElementById('correcaoMonetariaContainer');
-    var correcao = await calcularCorrecaoJudicial();
-    var totalPatrimonial = danoMaterial + danoInterino;
-    var totalExtrapatrimonial = danoExtrapatrimonialMercado + danoExtrapatrimonialSocial;
-    var totalPatrimonialCorrigido = totalPatrimonial;
-    var totalCorrigido = total;
-
-    if (correcao.aplicada) {
-        totalPatrimonialCorrigido = totalPatrimonial * correcao.fatorTotal;
-        totalCorrigido = totalPatrimonialCorrigido + totalExtrapatrimonial;
-        document.getElementById('totalCorrigido').textContent = formatarMoeda(totalCorrigido);
-
-        var infoTexto = 'Correção aplicada aos danos patrimoniais (material + interino) pela SELIC';
-        if (correcao.periodo1 && correcao.periodo2) {
-            infoTexto += ': Período 1 (SELIC, fator ' + correcao.periodo1.fator.toFixed(4) + ') + Período 2 (IPCA-15 + juros, fator ' + correcao.periodo2.fator.toFixed(4) + ')';
-        } else if (correcao.periodo1) {
-            infoTexto += ' (fator: ' + correcao.periodo1.fator.toFixed(4) + ')';
-        } else if (correcao.periodo2) {
-            infoTexto += ' — Período 2: IPCA-15 + juros (fator: ' + correcao.periodo2.fator.toFixed(4) + ')';
-        }
-        infoTexto += '. Danos extrapatrimoniais sem correção (Súmula 362/STJ — arbitramento = hoje).';
-        document.getElementById('correcaoInfo').textContent = infoTexto;
+    const correcaoContainer = document.getElementById('correcaoMonetariaContainer');
+    if (r.atualizacao.aplicada) {
+        document.getElementById('totalCorrigido').textContent = formatarMoeda(r.totais.atualizado);
+        document.getElementById('correcaoInfo').textContent = 'Valores na data do dano, atualizados até ' + DamnumCalc.rotuloMes(r.mesCalculo) + ' conforme o Manual de Cálculos da Justiça Federal (CJF, 2026), item 4.2: correção de ' + formatarMoeda(r.totais.correcao) + ' e juros de mora de ' + formatarMoeda(r.totais.juros) + '. Os danos extrapatrimoniais recebem só juros.';
         correcaoContainer.style.display = '';
     } else {
         correcaoContainer.style.display = 'none';
     }
 
-    // Nota sobre data do dano não informada
-    var notaDataDano = document.getElementById('notaDataDano');
-    var usouDataHoje = !document.getElementById('dataDano').value;
-    if (usouDataHoje) {
+    const notaDataDano = document.getElementById('notaDataDano');
+    if (!r.dataInformada) {
         notaDataDano.style.display = '';
-        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida uma data específica para o dano, o cálculo foi realizado considerando a data de hoje. Todavia, nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a data correta para fins de atualização monetária dos danos patrimoniais (material e interino) é a <strong>data do evento danoso</strong>. Os danos extrapatrimoniais são corrigidos desde o arbitramento (Súmula 362/STJ). <a href="metodologia.html#atualizacao" target="_blank" style="color:#2c5530;">Saiba mais sobre a metodologia de atualização →</a>';
+        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida a data do dano, os valores estão na data de hoje e não receberam atualização. Nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a correção e os juros de mora correm da data do evento danoso. <a href="metodologia.html#atualizacao" target="_blank" style="color:#2c5530;">Saiba mais sobre a atualização</a>';
     } else {
         notaDataDano.style.display = 'none';
     }
 
-    // Gerar relatório
-    const resultados = {
-        danoMaterial,
-        danoInterino,
-        danoExtrapatrimonialMercado,
-        danoExtrapatrimonialSocial,
-        total,
-        totalPatrimonial: totalPatrimonial,
-        totalExtrapatrimonial: totalExtrapatrimonial,
-        totalPatrimonialCorrigido: totalPatrimonialCorrigido,
-        totalCorrigido: totalCorrigido,
-        correcao: correcao,
-        reparacaoInSitu: reparacaoInSitu
-    };
-
-    const relatorio = gerarRelatorioCompleto(bioma, areaForaAPP, areaEmAPP, resultados);
-    document.getElementById('textoRelatorio').innerHTML = relatorio;
-
-    // Mostrar resultado
+    document.getElementById('textoRelatorio').innerHTML = DamnumRelatorio.gerarHTML(r);
+    document.getElementById('btnCSV').style.display = DamnumRelatorio.linhasMensais(r).length ? '' : 'none';
     document.getElementById('resultado').style.display = 'block';
     document.getElementById('resultado').scrollIntoView({ behavior: 'smooth' });
-
-  } catch (erro) {
-    console.error('Erro ao calcular valoração:', erro);
-    alert('Ocorreu um erro ao calcular a valoração: ' + erro.message + '\nVerifique o console do navegador para mais detalhes.');
-  } finally {
-    // Restaurar botão
-    btnCalc.innerHTML = btnTextoOriginal;
-    btnCalc.disabled = false;
-    btnCalc.style.opacity = '';
-  }
 }
 
 function atualizarParametrosCalculados() {
-    const precoSocialUSD = parseFloat(document.getElementById('precoSocialCO2USD').value) || 24.20;
-    const precoMercadoUSD = parseFloat(document.getElementById('precoMercadoCO2USD').value) || 5.00;
-    const cotacaoDolar = parseFloat(document.getElementById('cotacaoDolar').value) || 5.71;
-    
-    document.getElementById('precoSocialCO2BRL').value = (precoSocialUSD * cotacaoDolar).toFixed(2);
-    document.getElementById('precoMercadoCO2BRL').value = (precoMercadoUSD * cotacaoDolar).toFixed(2);
-    
-    // Calcular média dos estoques de CO2
-    const estoques = [
-        parseFloat(document.getElementById('estoqueCO2Caatinga').value) || 105.33,
-        parseFloat(document.getElementById('estoqueCO2Cerrado').value) || 75,
-        parseFloat(document.getElementById('estoqueCO2Amazonia').value) || 166,
-        parseFloat(document.getElementById('estoqueCO2MataAtlantica').value) || 105.33,
-        parseFloat(document.getElementById('estoqueCO2Pampas').value) || 105.33,
-        parseFloat(document.getElementById('estoqueCO2Pantanal').value) || 75
-    ];
-    
-    const media = estoques.reduce((a, b) => a + b, 0) / estoques.length;
-    document.getElementById('estoqueCO2Media').value = media.toFixed(2);
+    const p = obterParametrosAtuais();
+    if (p.cotacaoDolar > 0) {
+        if (!isNaN(p.precoSocialCO2USD)) document.getElementById('precoSocialCO2BRL').value = (p.precoSocialCO2USD * p.cotacaoDolar).toFixed(2);
+        if (!isNaN(p.precoMercadoCO2USD)) document.getElementById('precoMercadoCO2BRL').value = (p.precoMercadoCO2USD * p.cotacaoDolar).toFixed(2);
+    }
+    atualizarAvisosDePiso();
 }
 
-// Buscar cotacao do dolar automaticamente
+// Buscar cotação do dólar automaticamente
 async function buscarCotacaoDolar() {
     const statusEl = document.getElementById('cotacaoStatus');
     const avisoEl = document.getElementById('cotacaoAviso');
@@ -1216,23 +779,23 @@ async function buscarCotacaoDolar() {
         statusEl.style.color = '#888';
 
         const response = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
-        if (!response.ok) throw new Error('Erro na requisicao');
+        if (!response.ok) throw new Error('Erro na requisição');
 
         const data = await response.json();
         const cotacao = parseFloat(data.USDBRL.bid);
 
-        if (isNaN(cotacao) || cotacao <= 0) throw new Error('Valor invalido');
+        if (isNaN(cotacao) || cotacao <= 0) throw new Error('Valor inválido');
 
         inputEl.value = cotacao.toFixed(2);
+        origemCotacao = 'AwesomeAPI (USD-BRL, compra), consulta em ' + new Date().toLocaleString('pt-BR');
         statusEl.textContent = '(atualizado automaticamente)';
         statusEl.style.color = '#27ae60';
         avisoEl.style.display = 'none';
 
-        // Atualizar os campos calculados em BRL
         atualizarParametrosCalculados();
     } catch (error) {
-        console.error('Erro ao buscar cotacao do dolar:', error);
-        statusEl.textContent = '(valor padrao)';
+        console.error('Erro ao buscar cotação do dólar:', error);
+        statusEl.textContent = '(valor padrão)';
         statusEl.style.color = '#e67e22';
         avisoEl.style.display = 'block';
     }
@@ -1242,50 +805,61 @@ async function buscarCotacaoDolar() {
 document.addEventListener('DOMContentLoaded', async function() {
     const form = document.getElementById('calculoForm');
     const biomaSelect = document.getElementById('bioma');
-    
+
     // Verificar cookies e inicializar contador
     verificarCookies();
-    
+
     // Contador: mostra o backup local na hora e tenta o total global em seguida
     restaurarContadorLocal();
     obterTotalGlobal();
-    
+
     // Listeners da barra de cookies
     document.getElementById('acceptCookies').addEventListener('click', aceitarCookies);
     document.getElementById('rejectCookies').addEventListener('click', rejeitarCookies);
-    
-    // Inicializar slideshow
+
     iniciarSlideshow();
-
-    // Buscar cotacao do dolar e correção IPCA automaticamente
     buscarCotacaoDolar();
-    buscarCorrecaoIPCA();
+    carregarTabelaQCN();
+    atualizarParametrosCalculados();
 
-    // Listener para mudança de bioma
     biomaSelect.addEventListener('change', function() {
         atualizarImagemBioma(this.value);
+        preencherFitofisionomias(this.value);
     });
-    
-    // Listeners para parâmetros
-    document.getElementById('precoSocialCO2USD').addEventListener('input', atualizarParametrosCalculados);
-    document.getElementById('precoMercadoCO2USD').addEventListener('input', atualizarParametrosCalculados);
-    document.getElementById('cotacaoDolar').addEventListener('input', atualizarParametrosCalculados);
-    
-    // Listeners para estoques de CO2
-    ['estoqueCO2Caatinga', 'estoqueCO2Cerrado', 'estoqueCO2Amazonia', 'estoqueCO2MataAtlantica', 'estoqueCO2Pampas', 'estoqueCO2Pantanal'].forEach(id => {
+
+    // Estoque de carbono
+    ['fitofisionomia', 'usarEstoqueUsuario', 'vegetacaoSecundaria'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarPainelEstoque);
+    });
+    ['estoqueUsuario', 'fonteEstoqueUsuario'].forEach(id => {
+        document.getElementById(id).addEventListener('input', atualizarPainelEstoque);
+    });
+
+    // Mapa por estado
+    if (DamnumMapa.MAPA_QCN_ATIVO) {
+        document.getElementById('arquivoPoligono').addEventListener('change', aoEscolherPoligono);
+        document.getElementById('latitude').addEventListener('change', aoInformarCoordenada);
+        document.getElementById('longitude').addEventListener('change', aoInformarCoordenada);
+        ['areaForaAPP', 'areaEmAPP'].forEach(id => document.getElementById(id).addEventListener('input', atualizarDivergenciaArea));
+    }
+
+    // Parâmetros
+    ['precoSocialCO2USD', 'precoMercadoCO2USD', 'cotacaoDolar'].forEach(id => {
         document.getElementById(id).addEventListener('input', atualizarParametrosCalculados);
     });
-    
+    document.getElementById('cotacaoDolar').addEventListener('change', function() {
+        origemCotacao = 'informada pelo usuário';
+    });
+    document.getElementById('taxaJurosAnual').addEventListener('input', validarTaxaInterino);
+
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         calcularValoracao();
     });
 
-    // Listener para download PDF
     document.getElementById('btnDownloadPDF').addEventListener('click', baixarRelatorioPDF);
-
-    // Listener para copiar relatorio
     document.getElementById('btnCopiar').addEventListener('click', copiarRelatorio);
+    document.getElementById('btnCSV').addEventListener('click', baixarTabelaCSV);
 
     // Mostrar/esconder checkbox de reparação in situ conforme área APP
     document.getElementById('areaEmAPP').addEventListener('input', function() {
@@ -1297,19 +871,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // Permitir apenas números positivos nos campos de área
-    const areaInputs = document.querySelectorAll('#areaForaAPP, #areaEmAPP');
-    areaInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            if (this.value < 0) {
-                this.value = 0;
-            }
-        });
-    });
-
-    // Permitir apenas números positivos nos parâmetros
-    const parametroInputs = document.querySelectorAll('.parametro-item input:not([readonly])');
-    parametroInputs.forEach(input => {
+    // Permitir apenas números positivos nos campos de área e nos parâmetros
+    document.querySelectorAll('#areaForaAPP, #areaEmAPP, .parametro-item input[type="number"]:not([readonly])').forEach(input => {
         input.addEventListener('input', function() {
             if (this.value < 0) {
                 this.value = 0;
@@ -1317,4 +880,3 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 });
-

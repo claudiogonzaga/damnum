@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAMNUM - Versões</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .metodologia-secao {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            margin-bottom: 30px;
+            max-width: 960px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .metodologia-secao h2 {
+            font-family: 'Cinzel', serif;
+            color: #2c5530;
+            font-size: 1.6em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4a7c59;
+        }
+        .metodologia-secao h3 {
+            font-family: 'Cinzel', serif;
+            color: #1a3a2a;
+            font-size: 1.25em;
+            margin-top: 22px;
+            margin-bottom: 10px;
+        }
+        .metodologia-secao p, .metodologia-secao li {
+            font-family: 'Times New Roman', serif;
+            color: #333;
+            line-height: 1.8;
+            text-align: justify;
+        }
+        .metodologia-secao ul, .metodologia-secao ol {
+            margin-left: 20px;
+            margin-bottom: 14px;
+        }
+        .metodologia-secao li { margin-bottom: 8px; }
+        .tabela-versoes { width: 100%; border-collapse: collapse; margin: 12px 0; font-family: 'Times New Roman', serif; }
+        .tabela-versoes th, .tabela-versoes td { border: 1px solid #ccc; padding: 6px 10px; text-align: right; }
+        .tabela-versoes th:first-child, .tabela-versoes td:first-child { text-align: left; }
+        .tabela-versoes th { background: #f0f4f1; }
+        a.ref-link { color: #4a7c59; text-decoration: none; }
+        a.ref-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            .metodologia-secao { padding: 16px; }
+            .metodologia-secao h2 { font-size: 1.35em; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">DAMNUM</div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Início</a></li>
+                <li><a href="metodologia.html" class="nav-link">Metodologia</a></li>
+                <li><a href="changelog.html" class="nav-link active">Versões</a></li>
+                <li><a href="contato.html" class="nav-link">Contato</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header-light">
+            <h1>Versões</h1>
+            <div class="bioma-visual">
+                <div class="bioma-image-container">
+                    <img src="images/lobo_guara.jpg" alt="Lobo-guará" class="bioma-image">
+                </div>
+            </div>
+        </div>
+
+        <main>
+
+            <div class="metodologia-secao">
+                <h2>Versão 7.0 — 4 de outubro de 2026</h2>
+
+                <h3>Privacidade</h3>
+                <ul>
+                    <li>A calculadora deixou de consultar e de registrar o endereço IP de quem a usa. O contador de valorações recebe só o bioma e a área.</li>
+                    <li>Os dados de identificação das partes, o polígono e a coordenada ficam só no navegador e no relatório.</li>
+                </ul>
+
+                <h3>Dano interino</h3>
+                <ul>
+                    <li>A taxa de juros passou a ser informada em percentual (padrão: 6, antes 0,06), com aviso para valores fora da faixa de 0 a 30. A fórmula não mudou.</li>
+                </ul>
+
+                <h3>Custo de recuperação e atualização</h3>
+                <ul>
+                    <li>O custo da Portaria Ibama 118/2022 (out./2022) passou a ser levado ao mês do dano pelo número-índice do IPCA-15, antes da atualização judicial. Até a versão 6.2 ele era levado ao IPCA mais recente e depois atualizado desde o dano, o que contava duas vezes a inflação do período.</li>
+                    <li>A atualização judicial passou a seguir o Manual de Cálculos da Justiça Federal (CJF, 2026), item 4.2: granularidade mensal, Selic por soma simples até ago./2024, IPCA-15 e taxa legal a partir de set./2024. Antes, a Selic era capitalizada por dia útil e o marco era 29/30 de agosto de 2024.</li>
+                    <li>As parcelas extrapatrimoniais passaram a receber juros de mora desde a data do dano, com opção sobre o período anterior a set./2024. Antes não recebiam juros.</li>
+                    <li>Se uma série oficial não puder ser obtida por inteiro, a calculadora não usa dado parcial e permite informar os fatores, com a fonte.</li>
+                </ul>
+
+                <h3>Estoque de carbono</h3>
+                <p>Os estoques fixos por bioma, sem fonte documentada, foram substituídos pelos do Quarto Inventário Nacional (MCTI, 2020, Tabelas 23 a 28), com escolha da fitofisionomia e conversão explícita de carbono em CO₂ pelo fator 3,67.</p>
+                <table class="tabela-versoes">
+                    <thead>
+                        <tr><th>Bioma</th><th>Até a versão 6.2 (rótulo "CO₂/ha", unidade incerta)</th><th>Versão 7.0: média do bioma (tC/ha)</th><th>Versão 7.0: emissão (tCO₂/ha)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Amazônia</td><td>166</td><td>160,77</td><td>590,04</td></tr>
+                        <tr><td>Cerrado</td><td>75</td><td>47,75</td><td>175,24</td></tr>
+                        <tr><td>Mata Atlântica</td><td>105,33</td><td>110,65</td><td>406,09</td></tr>
+                        <tr><td>Caatinga</td><td>105,33</td><td>32,04</td><td>117,57</td></tr>
+                        <tr><td>Pampa</td><td>105,33</td><td>34,03</td><td>124,88</td></tr>
+                        <tr><td>Pantanal</td><td>75</td><td>50,11</td><td>183,89</td></tr>
+                    </tbody>
+                </table>
+                <p>Na versão 6.2 o valor do bioma era multiplicado diretamente pelo preço da tonelada de CO₂. Na versão 7.0 o estoque em tC/ha é antes multiplicado por 3,67. Por isso as parcelas de carbono mudam em todos os biomas.</p>
+
+                <h3>Preço do carbono</h3>
+                <ul>
+                    <li>Aviso, sem bloqueio, quando o preço informado fica abaixo de US$ 5,00/tCO₂e, piso recomendado pelo CNJ. Os valores padrão não mudaram: US$ 24,20 (custo social) e US$ 5,00 (mercado voluntário).</li>
+                </ul>
+
+                <h3>Relatório</h3>
+                <ul>
+                    <li>Novo formato, com os elementos do art. 524 do Código de Processo Civil: identificação, demonstrativo por parcela, tabela mês a mês (também em CSV), descontos, bens, totais e metadados, com hash dos parâmetros de entrada.</li>
+                </ul>
+
+                <h3>Datas de referência dos parâmetros</h3>
+                <ul>
+                    <li>Custos de recuperação: Portaria Ibama 118, de 3 de outubro de 2022 (valores de out./2022).</li>
+                    <li>Estoques de carbono: Quarta Comunicação Nacional, Relatório de Referência LULUCF (MCTI, 2020).</li>
+                    <li>Custo social do carbono: Ricke et al. (2018), cenário SSP2/RCP6.0.</li>
+                    <li>Piso do preço do carbono: Protocolo do CNJ, segundo escopo (2024).</li>
+                </ul>
+            </div>
+
+            <div class="metodologia-secao">
+                <h2>Pendências</h2>
+                <ul>
+                    <li>Mapa do Quarto Inventário Nacional por estado: a consulta por polígono e por coordenada está implementada e desligada. Falta obter os arquivos por estado no repositório do INPE, que estava fora do ar em 04/10/2026, conferir os termos de uso desse repositório e validar os resultados. Começa por Mato Grosso; os demais estados entram depois.</li>
+                    <li>Taxa legal: a série embutida na calculadora veio de cópia não oficial, porque a API do Banco Central não respondia em 04/10/2026. Falta conferi-la com a série SGS 29543.</li>
+                    <li>Integração com a plataforma CCAL do IPAM: não há. O estoque apurado lá pode ser digitado, com a fonte.</li>
+                    <li>Dano residual, proveito econômico do ilícito e compensação ecológica em hectares: métodos em elaboração.</li>
+                    <li>Taxa e fórmula do dano interino e base do dano extrapatrimonial: em debate entre os autores; não foram alteradas.</li>
+                    <li>Devedor Fazenda Pública, para o período anterior a set./2025: não calculado.</li>
+                    <li>Licença de uso e DOI: a definir.</li>
+                </ul>
+            </div>
+
+            <div class="metodologia-secao">
+                <h2>Versão 6.2 — 4 de outubro de 2026</h2>
+                <ul>
+                    <li>A página de metodologia passou a remeter ao artigo do SICAM.</li>
+                    <li>Correção de autoria, versão e endereços.</li>
+                </ul>
+            </div>
+
+        </main>
+
+        <footer class="footer">
+            <div class="contador-valoracoes">
+                <span class="contador-label">Valorações realizadas:</span>
+                <span class="contador-numero" id="contadorValoracao">0</span>
+            </div>
+            <p>© 2026 Claudio Angelo Correa Gonzaga e José Guilherme Roquette. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script>
+        function obterContadorValoracoes() {
+            const cookieConsent = localStorage.getItem('cookieConsent');
+            if (cookieConsent === 'accepted') {
+                const contador = localStorage.getItem('contadorValoracoes');
+                return contador ? parseInt(contador) : 0;
+            }
+            return 0;
+        }
+        function atualizarExibicaoContador() {
+            const contador = obterContadorValoracoes();
+            document.getElementById('contadorValoracao').textContent = contador;
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarExibicaoContador();
+        });
+    </script>
+</body>
+</html>

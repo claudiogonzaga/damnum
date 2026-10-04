@@ -6,8 +6,7 @@
     <title>DAMNUM - Valoração de Danos Ambientais</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-</head>
+    </head>
 <body>
     <!-- Barra de Cookies -->
     <div id="cookieBar" class="cookie-bar" style="display: none;">
@@ -29,6 +28,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link active">Início</a></li>
                 <li><a href="metodologia.html" class="nav-link">Metodologia</a></li>
+                <li><a href="changelog.html" class="nav-link">Versões</a></li>
                 <li><a href="contato.html" class="nav-link">Contato</a></li>
             </ul>
         </div>
@@ -38,7 +38,7 @@
         <header>
             <h1>DAMNUM</h1>
             <h2>Valoração de Danos Ambientais Decorrentes de Desmatamento Ilegal</h2>
-            <p class="version">v. 6.2</p>
+            <p class="version">v. 7.0 · <a href="changelog.html" style="color:inherit;">o que mudou</a></p>
         </header>
 
         <main>
@@ -60,6 +60,50 @@
                         <option value="PAMPAS">PAMPAS</option>
                         <option value="MATA ATLÂNTICA">MATA ATLÂNTICA</option>
                     </select>
+                </div>
+
+                <div class="input-group" id="grupoFitofisionomia" style="display:none;">
+                    <label for="fitofisionomia">Fitofisionomia da vegetação suprimida: <a href="metodologia.html#estoques" target="_blank" title="Saiba mais sobre os estoques de carbono" style="text-decoration:none; font-size:1.1em; vertical-align:middle; color:#2c5530;">&#9432;</a></label>
+                    <select id="fitofisionomia" name="fitofisionomia"></select>
+                    <p class="ajuda-campo">Estoques de carbono da vegetação original, em tC/ha, conforme o Quarto Inventário Nacional (MCTI, 2020).</p>
+                </div>
+
+                <div class="input-group" id="grupoEstoqueUsuario" style="display:none;">
+                    <label class="caixa-opcao">
+                        <input type="checkbox" id="usarEstoqueUsuario">
+                        Informar o estoque de carbono do caso (prevalece sobre a tabela)
+                    </label>
+                    <div id="camposEstoqueUsuario" style="display:none;">
+                        <label for="estoqueUsuario">Estoque informado pelo usuário (tC/ha):</label>
+                        <input type="number" id="estoqueUsuario" step="0.01" min="0" placeholder="Ex.: 132,50">
+                        <label for="fonteEstoqueUsuario" style="margin-top:8px;">Fonte do estoque informado (obrigatória):</label>
+                        <input type="text" id="fonteEstoqueUsuario" placeholder="Ex.: CCAL/IPAM, Módulo 03, polígono do caso, consulta em dd/mm/aaaa">
+                        <p class="ajuda-campo">A plataforma CCAL do IPAM, recomendada pelo Protocolo do CNJ, calcula o estoque no polígono. O DAMNUM não se conecta a ela: faça a consulta lá e digite aqui o valor e a fonte.</p>
+                    </div>
+                    <label class="caixa-opcao" style="margin-top:8px;">
+                        <input type="checkbox" id="vegetacaoSecundaria">
+                        A vegetação suprimida era secundária ou já degradada
+                    </label>
+                    <p id="avisoSecundaria" class="ajuda-campo" style="display:none;">Os estoques da tabela e do mapa são da vegetação original. Para vegetação secundária ou degradada, informe acima o estoque do caso; sem isso, o relatório registra que o valor pode superestimar o dano.</p>
+                </div>
+
+                <div class="input-group" id="grupoLocalizacao" style="display:none;">
+                    <h4 class="titulo-secao-form">Localização do desmatamento</h4>
+                    <p class="ajuda-campo">O polígono e a coordenada são processados só neste navegador. Não são enviados a servidor algum.</p>
+                    <label for="arquivoPoligono">Polígono da área desmatada (KML, KMZ, GeoJSON ou shapefile zipado):</label>
+                    <input type="file" id="arquivoPoligono" accept=".kml,.kmz,.geojson,.json,.zip">
+                    <p id="infoPoligono" class="ajuda-campo" style="display:none;"></p>
+                    <div id="divergenciaArea" class="aviso-campo" style="display:none;">
+                        <span id="textoDivergenciaArea"></span>
+                        <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="digitada" checked> Prevalece a área digitada</label>
+                        <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="calculada"> Prevalece a área calculada do polígono</label>
+                    </div>
+                    <p class="ajuda-campo" style="margin-top:10px;">Sem polígono, informe uma coordenada (graus decimais, SIRGAS 2000 ou WGS 84):</p>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="latitude" step="0.000001" min="-34" max="6" placeholder="Latitude, ex.: -12.500000">
+                        <input type="number" id="longitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000">
+                    </div>
+                    <p id="avisoCoordenada" class="aviso-campo" style="display:none;"></p>
                 </div>
 
                 <div class="input-group">
@@ -97,65 +141,106 @@
                     </label>
                 </div>
 
+                <details class="input-group identificacao-524">
+                    <summary>Dados para cumprimento de sentença (art. 524 do CPC)</summary>
+                    <p class="ajuda-campo">Preenchimento opcional; exigido apenas no requerimento de cumprimento de sentença. Estes dados ficam só neste navegador e no relatório; não são enviados a servidor algum.</p>
+                    <label for="credorNome">Credor / exequente (nome completo):</label>
+                    <input type="text" id="credorNome" autocomplete="off">
+                    <label for="credorDoc">CPF ou CNPJ do credor:</label>
+                    <input type="text" id="credorDoc" autocomplete="off">
+                    <label for="devedorNome">Devedor / executado (nome completo):</label>
+                    <input type="text" id="devedorNome" autocomplete="off">
+                    <label for="devedorDoc">CPF ou CNPJ do devedor:</label>
+                    <input type="text" id="devedorDoc" autocomplete="off">
+                    <label for="descontos">Descontos obrigatórios (em branco: não há):</label>
+                    <input type="text" id="descontos" autocomplete="off">
+                    <label for="bensPenhora">Bens passíveis de penhora:</label>
+                    <textarea id="bensPenhora" rows="2"></textarea>
+                </details>
+
                 <button type="submit" class="btn-calcular">Calcular Valoração</button>
             </form>
 
             <div class="parametros-container">
-                <h3>Parâmetros Utilizados <span id="ipcaStatus" style="font-size:0.7em; font-weight:normal;"></span></h3>
+                <h3>Parâmetros Utilizados</h3>
                 <div class="parametros-grid">
                     <div class="parametro-item">
-                        <label for="precoSocialCO2USD">Preço Social da tonelada de CO2 (US$) - Cenário SSP2/RCP6.0:</label>
+                        <label for="custoRecuperacao">Custo médio de recuperação (R$/ha) — Portaria Ibama 118/2022, valores de out./2022:</label>
+                        <input type="text" id="custoRecuperacao" value="" readonly>
+                        <span class="nota-parametro">Levado à data do dano pelo IPCA-15 no momento do cálculo.</span>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="precoSocialCO2USD">Custo social do carbono (US$/tCO₂) — cenário SSP2/RCP6.0, Ricke et al. (2018):</label>
                         <input type="number" id="precoSocialCO2USD" value="24.20" step="0.01" min="0">
+                        <span id="avisoPisoSocial" class="aviso-parametro" style="display:none;"></span>
                     </div>
                     <div class="parametro-item">
-                        <label for="cotacaoDolar">Cotação Dólar hoje (R$): <span id="cotacaoStatus" style="font-size:0.8em;"></span></label>
+                        <label for="cotacaoDolar">Cotação do dólar hoje (R$): <span id="cotacaoStatus" style="font-size:0.8em;"></span></label>
                         <input type="number" id="cotacaoDolar" value="5.71" step="0.01" min="0">
-                        <span id="cotacaoAviso" style="display:none; color:#e67e22; font-size:0.8em; margin-top:2px;">Nao foi possivel obter a cotacao automaticamente. Verifique o valor acima.</span>
+                        <span id="cotacaoAviso" class="aviso-parametro" style="display:none;">Não foi possível obter a cotação automaticamente. Verifique o valor acima.</span>
                     </div>
                     <div class="parametro-item">
-                        <label for="precoSocialCO2BRL">Preço Social da tonelada de CO2 (R$):</label>
+                        <label for="precoSocialCO2BRL">Custo social do carbono (R$/tCO₂):</label>
                         <input type="number" id="precoSocialCO2BRL" value="138.18" step="0.01" min="0" readonly>
                     </div>
                     <div class="parametro-item">
-                        <label for="precoMercadoCO2USD">Preço da tonelada CO2 (US$) no Mercado Voluntário:</label>
+                        <label for="precoMercadoCO2USD">Preço no mercado voluntário (US$/tCO₂) — piso do Fundo Amazônia, Protocolo CNJ (2024):</label>
                         <input type="number" id="precoMercadoCO2USD" value="5.00" step="0.01" min="0">
+                        <span id="avisoPisoMercado" class="aviso-parametro" style="display:none;"></span>
                     </div>
                     <div class="parametro-item">
-                        <label for="precoMercadoCO2BRL">Preço da tonelada CO2 (R$) no Mercado Voluntário:</label>
+                        <label for="precoMercadoCO2BRL">Preço no mercado voluntário (R$/tCO₂):</label>
                         <input type="number" id="precoMercadoCO2BRL" value="28.55" step="0.01" min="0" readonly>
                     </div>
-                    <div class="parametro-item estoque-co2-item" data-bioma="CAATINGA" style="display:none;">
-                        <label for="estoqueCO2Caatinga">Estoque de CO₂/ha - Caatinga (média):</label>
-                        <input type="number" id="estoqueCO2Caatinga" value="105.33" step="0.01" min="0">
-                    </div>
-                    <div class="parametro-item estoque-co2-item" data-bioma="CERRADO" style="display:none;">
-                        <label for="estoqueCO2Cerrado">Estoque de CO₂/ha - Cerrado:</label>
-                        <input type="number" id="estoqueCO2Cerrado" value="75" step="0.01" min="0">
-                    </div>
-                    <div class="parametro-item estoque-co2-item" data-bioma="FLORESTA AMAZÔNICA" style="display:none;">
-                        <label for="estoqueCO2Amazonia">Estoque de CO₂/ha - Floresta Amazônica:</label>
-                        <input type="number" id="estoqueCO2Amazonia" value="166" step="0.01" min="0">
-                    </div>
-                    <div class="parametro-item estoque-co2-item" data-bioma="MATA ATLÂNTICA" style="display:none;">
-                        <label for="estoqueCO2MataAtlantica">Estoque de CO₂/ha - Mata Atlântica (média):</label>
-                        <input type="number" id="estoqueCO2MataAtlantica" value="105.33" step="0.01" min="0">
-                    </div>
-                    <div class="parametro-item estoque-co2-item" data-bioma="PAMPAS" style="display:none;">
-                        <label for="estoqueCO2Pampas">Estoque de CO₂/ha - Pampas (média):</label>
-                        <input type="number" id="estoqueCO2Pampas" value="105.33" step="0.01" min="0">
-                    </div>
-                    <div class="parametro-item estoque-co2-item" data-bioma="PANTANAL MATO-GROSSENSE" style="display:none;">
-                        <label for="estoqueCO2Pantanal">Estoque de CO₂/ha - Pantanal:</label>
-                        <input type="number" id="estoqueCO2Pantanal" value="75" step="0.01" min="0">
-                    </div>
-                    <input type="hidden" id="estoqueCO2Media" value="105.33">
                     <div class="parametro-item">
-                        <label for="taxaJurosAnual">Taxa de juros anual (para o dano interino) em %:</label>
-                        <input type="number" id="taxaJurosAnual" value="0.06" step="0.01" min="0">
+                        <label for="estoqueCarbono">Estoque de carbono (tC/ha) — Quarto Inventário Nacional (MCTI, 2020):</label>
+                        <input type="text" id="estoqueCarbono" value="" readonly>
+                        <span id="origemEstoque" class="nota-parametro"></span>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="emissaoEquivalente">Emissão equivalente (tCO₂/ha) = estoque × 3,67:</label>
+                        <input type="text" id="emissaoEquivalente" value="" readonly>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="taxaJurosAnual">Taxa de juros anual do dano interino (%):</label>
+                        <input type="number" id="taxaJurosAnual" value="6" step="0.1" min="0" max="30">
+                        <span id="avisoTaxaInterino" class="aviso-parametro" style="display:none;">Informe a taxa em percentual, entre 0 e 30 (ex.: 6 para 6% ao ano).</span>
                     </div>
                     <div class="parametro-item">
                         <label for="tempoRecuperacao">Tempo mínimo para recuperação dos serviços ecossistêmicos básicos (anos):</label>
                         <input type="number" id="tempoRecuperacao" value="15" step="1" min="1">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="jurosExtrapatrimoniais">Juros sobre danos extrapatrimoniais antes de set./2024: <a href="metodologia.html#atualizacao" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>
+                        <select id="jurosExtrapatrimoniais">
+                            <option value="reais">Juros reais: Selic deduzida do IPCA-15, mês a mês</option>
+                            <option value="nenhum">Não computar juros antes de set./2024</option>
+                        </select>
+                        <span class="nota-parametro">Matéria não pacificada. A partir de set./2024 aplica-se a taxa legal nas duas opções.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="painelFatorManual" class="painel-erro" style="display:none;">
+                <h4>Não foi possível obter as séries oficiais</h4>
+                <p id="textoErroSeries"></p>
+                <p>O DAMNUM não calcula com série incompleta. Se quiser prosseguir, informe os fatores apurados em outra fonte (por exemplo, a Calculadora do Cidadão do Banco Central) e clique de novo em "Calcular Valoração".</p>
+                <div class="parametros-grid">
+                    <div class="parametro-item">
+                        <label for="manualCoeficiente">Coeficiente de correção dos danos patrimoniais (ex.: 1,0954):</label>
+                        <input type="number" id="manualCoeficiente" step="0.0000000001" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="manualJurosPatrimonial">Juros de mora dos danos patrimoniais (%):</label>
+                        <input type="number" id="manualJurosPatrimonial" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="manualJurosExtra">Juros de mora dos danos extrapatrimoniais (%):</label>
+                        <input type="number" id="manualJurosExtra" step="0.01" min="0">
+                    </div>
+                    <div class="parametro-item">
+                        <label for="manualFonte">Fonte dos fatores informados (obrigatória):</label>
+                        <input type="text" id="manualFonte">
                     </div>
                 </div>
             </div>
@@ -204,7 +289,7 @@
                     </div>
                     <div id="correcaoMonetariaContainer" style="display:none; margin-top:10px;">
                         <div class="valor-item valor-destaque-medio" style="background:#fff3cd; border-color:#ffc107;">
-                            <span class="label">Valor total atualizado (SELIC/IPCA-15): <a href="metodologia.html#atualizacao" target="_blank" title="Saiba mais sobre a atualização monetária" style="text-decoration:none; font-size:1.1em; color:#2c5530;">&#9432;</a></span>
+                            <span class="label">Valor total atualizado (correção e juros de mora): <a href="metodologia.html#atualizacao" target="_blank" title="Saiba mais sobre a atualização monetária" style="text-decoration:none; font-size:1.1em; color:#2c5530;">&#9432;</a></span>
                             <span id="totalCorrigido" class="valor-total"></span>
                         </div>
                         <p id="correcaoInfo" style="font-size:0.75em; color:#666; margin:5px 0 0 0; line-height:1.4;"></p>
@@ -218,6 +303,7 @@
                         <div class="relatorio-acoes">
                             <button id="btnCopiar" class="btn-download">Copiar</button>
                             <button id="btnDownloadPDF" class="btn-download">Baixar PDF</button>
+                            <button id="btnCSV" class="btn-download" style="display:none;">Tabela mês a mês (CSV)</button>
                             <a href="contato.html" class="btn-feedback">Dê o feedback sobre a aplicação</a>
                         </div>
                     </div>
@@ -235,6 +321,11 @@
         </footer>
     </div>
 
+    <script src="js/calculo.js"></script>
+    <script src="js/series.js"></script>
+    <script src="js/mapa-qcn.js"></script>
+    <script src="js/valoracao.js"></script>
+    <script src="js/relatorio.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

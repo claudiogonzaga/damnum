@@ -918,3 +918,77 @@ header h2 {
     transform: scale(1.05);
 }
 
+
+/* v7: campos novos do formulário e avisos */
+.ajuda-campo {
+    font-size: 0.85em;
+    color: #555;
+    line-height: 1.5;
+    margin: 6px 0 0 0;
+}
+.caixa-opcao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+}
+.caixa-opcao input[type="checkbox"],
+.caixa-opcao input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+.titulo-secao-form {
+    font-family: 'Cinzel', serif;
+    color: #2c5530;
+    margin-bottom: 4px;
+}
+.aviso-campo,
+.aviso-parametro {
+    display: block;
+    font-size: 0.85em;
+    color: #8b4513;
+    background: #fef9e7;
+    border-left: 3px solid #d4ac0d;
+    border-radius: 3px;
+    padding: 6px 10px;
+    margin-top: 6px;
+    line-height: 1.5;
+}
+.nota-parametro {
+    display: block;
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+.parametro-item select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.95em;
+    background: white;
+}
+.identificacao-524 summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #2c5530;
+    padding: 6px 0;
+}
+.identificacao-524 label {
+    margin-top: 8px;
+}
+.painel-erro {
+    background: #fdecea;
+    border-left: 4px solid #c62828;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    line-height: 1.6;
+}
+.painel-erro h4 {
+    color: #c62828;
+    margin-bottom: 8px;
+}
