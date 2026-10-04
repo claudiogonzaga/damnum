@@ -68,6 +68,17 @@
                     <p class="ajuda-campo">Estoques de carbono da vegetação original, em tC/ha, conforme o Quarto Inventário Nacional (MCTI, 2020).</p>
                 </div>
 
+                <div class="input-group" id="grupoIBGE" style="display:none;">
+                    <label for="ibgeLatitude">Não sabe a fitofisionomia? Consulte o mapa de vegetação do IBGE por uma coordenada do desmatamento (graus decimais):</label>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <input type="number" id="ibgeLatitude" step="0.000001" min="-34" max="6" placeholder="Latitude, ex.: -12.500000" style="flex:1; min-width:150px;">
+                        <input type="number" id="ibgeLongitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000" style="flex:1; min-width:150px;">
+                        <button type="button" id="btnConsultarIBGE" class="btn-download">Consultar o IBGE</button>
+                    </div>
+                    <p class="ajuda-campo">A coordenada é enviada ao serviço de mapas do IBGE. O IBGE só indica a fitofisionomia; o estoque vem da tabela do Quarto Inventário. É uma solução provisória, até o mapa do próprio Inventário ficar disponível.</p>
+                    <p id="resultadoIBGE" class="aviso-campo" style="display:none;"></p>
+                </div>
+
                 <div class="input-group" id="grupoEstoqueUsuario" style="display:none;">
                     <label class="caixa-opcao">
                         <input type="checkbox" id="usarEstoqueUsuario">
@@ -324,6 +335,7 @@
     <script src="js/calculo.js"></script>
     <script src="js/series.js"></script>
     <script src="js/mapa-qcn.js"></script>
+    <script src="js/ibge-vegetacao.js"></script>
     <script src="js/valoracao.js"></script>
     <script src="js/relatorio.js"></script>
     <script src="script.js"></script>

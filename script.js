@@ -239,6 +239,7 @@ function valorCampo(id) {
 let tabelaQCN = null;      // data/estoques_qcn_fitofisionomias.json
 let consultaMapa = null;   // resultado da consulta ao mapa por estado (polígono ou coordenada)
 let poligonoUsuario = null;
+let consultaIBGE = null;   // indicação da fitofisionomia pelo mapa de vegetação do IBGE
 
 async function carregarTabelaQCN() {
     try {
@@ -252,8 +253,13 @@ async function carregarTabelaQCN() {
     }
 }
 
-function preencherFitofisionomias(bioma) {
+function preencherFitofisionomias(bioma, manterIBGE) {
     const select = document.getElementById('fitofisionomia');
+    if (!manterIBGE) {
+        consultaIBGE = null;
+        document.getElementById('resultadoIBGE').style.display = 'none';
+    }
+    document.getElementById('grupoIBGE').style.display = bioma && tabelaQCN ? '' : 'none';
     const mostrar = !!(bioma && tabelaQCN);
     document.getElementById('grupoFitofisionomia').style.display = mostrar ? '' : 'none';
     document.getElementById('grupoEstoqueUsuario').style.display = bioma ? '' : 'none';
@@ -265,12 +271,27 @@ function preencherFitofisionomias(bioma) {
         padrao.value = '';
         padrao.textContent = 'Não sei / média do bioma (QCN): ' + numeroBR(dados.media_ponderada_tC_ha, 2) + ' tC/ha';
         select.appendChild(padrao);
-        dados.fitofisionomias.forEach((f, i) => {
-            if (typeof f.total_tC_ha !== 'number') return;
+        const criarOpcao = (f, i) => {
             const opcao = document.createElement('option');
             opcao.value = String(i);
             opcao.textContent = f.sigla + ' — ' + f.nome + ' (' + numeroBR(f.total_tC_ha, 2) + ' tC/ha)';
-            select.appendChild(opcao);
+            return opcao;
+        };
+        // Linhas indicadas pelo IBGE para a coordenada, no topo da lista.
+        const indicadas = consultaIBGE ? consultaIBGE.candidatas.map(c => c.indice) : [];
+        let destino = select;
+        if (indicadas.length) {
+            const grupo = document.createElement('optgroup');
+            grupo.label = 'Indicadas pelo IBGE para a coordenada';
+            indicadas.forEach(i => grupo.appendChild(criarOpcao(dados.fitofisionomias[i], i)));
+            select.appendChild(grupo);
+            destino = document.createElement('optgroup');
+            destino.label = 'Demais fitofisionomias do bioma';
+            select.appendChild(destino);
+        }
+        dados.fitofisionomias.forEach((f, i) => {
+            if (typeof f.total_tC_ha !== 'number' || indicadas.indexOf(i) !== -1) return;
+            destino.appendChild(criarOpcao(f, i));
         });
     }
     atualizarPainelEstoque();
@@ -295,6 +316,11 @@ function resolverEstoque(bioma) {
             estoque = DamnumValoracao.estoqueDoMapa(consultaMapa, tabela);
         } else {
             estoque = tabela;
+            if (consultaIBGE) {
+                estoque.indicacaoIBGE = Object.assign({}, consultaIBGE, {
+                    escolhaEntreIndicadas: consultaIBGE.candidatas.some(c => String(c.indice) === valorCampo('fitofisionomia'))
+                });
+            }
         }
     }
     estoque.secundaria = secundaria;
@@ -321,6 +347,51 @@ function atualizarPainelEstoque() {
         campoEmissao.value = '';
         origem.textContent = erro.message;
     }
+}
+
+// ============================================================
+// INDICAÇÃO DA FITOFISIONOMIA PELO MAPA DE VEGETAÇÃO DO IBGE
+// Solução provisória enquanto o mapa do Quarto Inventário não está disponível.
+// ============================================================
+
+async function consultarVegetacaoIBGE() {
+    const bioma = document.getElementById('bioma').value;
+    const saida = document.getElementById('resultadoIBGE');
+    const lat = parseFloat(valorCampo('ibgeLatitude'));
+    const lon = parseFloat(valorCampo('ibgeLongitude'));
+    saida.style.display = '';
+    if (isNaN(lat) || isNaN(lon) || lat < -34 || lat > 6 || lon < -74 || lon > -34) {
+        saida.textContent = 'Informe latitude e longitude em graus decimais, dentro do Brasil (ex.: -12.5 e -55.5).';
+        return;
+    }
+    const botao = document.getElementById('btnConsultarIBGE');
+    botao.disabled = true;
+    saida.textContent = 'Consultando o IBGE...';
+    try {
+        const props = await DamnumIBGE.consultarPonto(lon, lat);
+        const fitofisionomias = tabelaQCN.biomas[DamnumValoracao.BIOMA_QCN[bioma]].fitofisionomias;
+        const r = DamnumIBGE.interpretar(props, fitofisionomias);
+        r.lat = lat;
+        r.lon = lon;
+        r.quando = new Date().toLocaleString('pt-BR');
+        r.fonte = DamnumIBGE.FONTE;
+        consultaIBGE = r;
+        preencherFitofisionomias(bioma, true);
+        let texto = r.descricao;
+        if (r.tipo === 'formacao') {
+            document.getElementById('fitofisionomia').value = String(r.candidatas[0].indice);
+            texto += ' A fitofisionomia foi selecionada na lista; confira.';
+        } else if (r.tipo === 'regiao') {
+            texto += ' Formações dessa região na tabela: ' + r.candidatas.map(c => c.sigla + ' (' + numeroBR(c.tC, 2) + ' tC/ha)').join('; ') + '. Faixa: de ' + numeroBR(r.minimo, 2) + ' a ' + numeroBR(r.maximo, 2) + ' tC/ha. Escolha a formação na lista acima; sem escolha, vale a média do bioma.';
+        }
+        saida.textContent = texto;
+    } catch (erro) {
+        consultaIBGE = null;
+        saida.textContent = 'Não foi possível consultar o IBGE (' + erro.message + '). Escolha a fitofisionomia na lista ou use a média do bioma.';
+    } finally {
+        botao.disabled = false;
+    }
+    atualizarPainelEstoque();
 }
 
 // ============================================================
@@ -834,6 +905,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     ['estoqueUsuario', 'fonteEstoqueUsuario'].forEach(id => {
         document.getElementById(id).addEventListener('input', atualizarPainelEstoque);
     });
+
+    // Indicação da fitofisionomia pelo IBGE
+    document.getElementById('btnConsultarIBGE').addEventListener('click', consultarVegetacaoIBGE);
 
     // Mapa por estado
     if (DamnumMapa.MAPA_QCN_ATIVO) {

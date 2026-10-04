@@ -15,6 +15,7 @@ Site estático, publicado em https://damnum.consciencia.eco.br. Não há etapa d
 - `js/relatorio.js`: relatório no formato do art. 524 do CPC e tabela mês a mês (CSV).
 - `js/series.js`: consulta às séries (Banco Central, IBGE), com reserva.
 - `js/mapa-qcn.js`: estoque pelo mapa do Quarto Inventário por estado. Desligado por `MAPA_QCN_ATIVO = false` até existir `data/qcn_estoques.pmtiles`.
+- `js/ibge-vegetacao.js`: indicação da fitofisionomia pelo mapa de vegetação do IBGE (WFS), provisória.
 - `data/`: tabela de estoques do Quarto Inventário e séries de referência embutidas.
 - `vendor/damnum-geo.js`: bibliotecas de mapa, geradas por `tools/build_vendor.sh`.
 - `tools/preprocessar_qcn.sh`: gera o PMTiles a partir dos arquivos por estado do INPE (exige GDAL e tippecanoe).

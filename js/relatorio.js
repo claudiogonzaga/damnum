@@ -214,6 +214,14 @@
                 return esc(s.estado || s.local || '') + ': ' + num(s.total, 2) + ' tC/ha';
             }).join('; ')));
         }
+        if (e.indicacaoIBGE) {
+            var i = e.indicacaoIBGE;
+            var escolha;
+            if (i.tipo === 'formacao') escolha = i.escolhaEntreIndicadas ? ' O usuário manteve a fitofisionomia indicada.' : ' O usuário não adotou a fitofisionomia indicada.';
+            else if (i.tipo === 'regiao') escolha = i.escolhaEntreIndicadas ? ' O usuário escolheu a formação entre as dessa região (faixa de ' + num(i.minimo, 2) + ' a ' + num(i.maximo, 2) + ' tC/ha).' : ' O usuário não escolheu formação dessa região (faixa de ' + num(i.minimo, 2) + ' a ' + num(i.maximo, 2) + ' tC/ha).';
+            else escolha = '';
+            linhas.push(linha('Indicação da fitofisionomia', 'Consulta ao mapa de vegetação do IBGE na coordenada de latitude ' + num(i.lat, 6) + ' e longitude ' + num(i.lon, 6) + ', em ' + esc(i.quando) + (i.legendaIBGE ? ' (legenda ' + esc(i.legendaIBGE) + ')' : '') + '. ' + esc(i.descricao) + escolha + ' A indicação vem do IBGE, e não do mapa do Quarto Inventário; o estoque é o da tabela. Fonte: ' + esc(i.fonte) + '.'));
+        }
         html += tabela(linhas);
         if (e.mapa && e.mapa.tipo === 'poligono') {
             html += '<p style="font-size:11pt;">Área calculada do polígono: ' + num(e.mapa.area_ha, 4) + ' ha. Polígonos do Quarto Inventário cruzados:</p>';
