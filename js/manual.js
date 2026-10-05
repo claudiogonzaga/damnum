@@ -79,10 +79,10 @@
         });
     }
 
-    // Âncora estável a partir do texto do título (ex.: "Atualização monetária"
-    // vira #atualizacao-monetaria), para que links de outras páginas funcionem.
+    // Âncora estável a partir do texto do título (ex.: "9 ATUALIZAÇÃO MONETÁRIA"
+    // vira #atualizacao-monetaria, sem o número da seção), para que links de outras páginas funcionem.
     function ancora(texto, usadas) {
-        var base = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'secao';
+        var base = texto.replace(/^[\d.]+\s+/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'secao';
         var id = base, n = 2;
         while (usadas[id]) id = base + '-' + (n++);
         usadas[id] = true;
