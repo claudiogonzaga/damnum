@@ -819,7 +819,7 @@ function mostrarResultado(r) {
     const notaDataDano = document.getElementById('notaDataDano');
     if (!r.dataInformada) {
         notaDataDano.style.display = '';
-        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida a data do dano, os valores estão na data de hoje e não receberam atualização. Nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a correção e os juros de mora correm da data do evento danoso. <a href="metodologia.html#atualizacao" target="_blank" style="color:#2c5530;">Saiba mais sobre a atualização</a>';
+        notaDataDano.innerHTML = '<strong>Atenção:</strong> Como não foi inserida a data do dano, os valores estão na data de hoje e não receberam atualização. Nos termos da <strong>Súmula 43 do STJ</strong> (<em>"Incide correção monetária sobre dívida por ato ilícito a partir da data do efetivo prejuízo"</em>) e da <strong>Súmula 54 do STJ</strong>, a correção e os juros de mora correm da data do evento danoso. <a href="manual.html#atualizacao-monetaria" target="_blank" style="color:#2c5530;">Saiba mais sobre a atualização</a>';
     } else {
         notaDataDano.style.display = 'none';
     }

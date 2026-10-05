@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const raiz = path.join(__dirname, '..');
-const publicados = ['script.js', 'index.html', 'metodologia.html', 'contato.html', 'changelog.html']
+const publicados = ['script.js', 'index.html', 'manual.html', 'contato.html']
     .concat(fs.readdirSync(path.join(raiz, 'js')).map(f => 'js/' + f));
 
 test('nenhuma chamada a serviço de IP', () => {

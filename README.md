@@ -19,8 +19,7 @@ Site estático, publicado em https://damnum.consciencia.eco.br. Não há etapa d
 - `data/`: tabela de estoques do Quarto Inventário e séries de referência embutidas.
 - `vendor/damnum-geo.js`: bibliotecas de mapa, geradas por `tools/build_vendor.sh`.
 - `tools/preprocessar_qcn.sh`: gera o PMTiles a partir dos arquivos por estado do INPE (exige GDAL e tippecanoe).
-- `manual.html`, `js/manual.js`: manual colaborativo. O texto fica num Google Docs compartilhado como "qualquer pessoa pode comentar"; a página o lê (exportação em HTML), monta o sumário e leva a quem quiser sugerir. Se a leitura falhar, mostra o documento em quadro.
-- `changelog.html`: versões e pendências.
+- `manual.html`, `js/manual.js`: Manual e Metodologia (inclui o histórico de versões), colaborativo. O texto fica num Google Docs compartilhado como "qualquer pessoa pode comentar"; a página o lê (exportação em HTML), monta o sumário e leva a quem quiser sugerir. Se a leitura falhar, mostra o documento em quadro.
 
 ## Testes
 

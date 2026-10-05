@@ -6,7 +6,7 @@
 
     // Documento do manual no Google Drive dos autores, compartilhado como
     // "qualquer pessoa com o link pode comentar" (comentar inclui sugerir).
-    var MANUAL_DOC_ID = '1i6beHt0DjX7Lnr2tRyVBqHV5Jnxa0hAhS3hd_UB5_Lo';
+    var MANUAL_DOC_ID = '1Diu0GZxO423uIhulJWfmuiVeNpm0RcUcGhQQoiAeOwY';
     var URL_DOC = 'https://docs.google.com/document/d/' + MANUAL_DOC_ID;
     var URL_EDITAR = URL_DOC + '/edit';
     var URL_HTML = URL_DOC + '/export?format=html';
@@ -79,12 +79,23 @@
         });
     }
 
+    // Âncora estável a partir do texto do título (ex.: "Atualização monetária"
+    // vira #atualizacao-monetaria), para que links de outras páginas funcionem.
+    function ancora(texto, usadas) {
+        var base = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'secao';
+        var id = base, n = 2;
+        while (usadas[id]) id = base + '-' + (n++);
+        usadas[id] = true;
+        return id;
+    }
+
     function montarSumario(conteudo, sumario) {
         var lista = document.createElement('ul');
+        var usadas = {};
         var titulos = conteudo.querySelectorAll('h1, h2');
         Array.prototype.forEach.call(titulos, function (h, i) {
             if (i === 0 && h.tagName === 'H1') { h.className = 'manual-titulo'; return; } // título do documento
-            h.id = 'secao-' + i;
+            h.id = ancora(h.textContent, usadas);
             var item = document.createElement('li');
             item.className = h.tagName === 'H2' ? 'nivel-2' : 'nivel-1';
             var link = document.createElement('a');
