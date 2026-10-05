@@ -6,7 +6,7 @@
 
     // Documento do manual no Google Drive dos autores, compartilhado como
     // "qualquer pessoa com o link pode comentar" (comentar inclui sugerir).
-    var MANUAL_DOC_ID = '1Diu0GZxO423uIhulJWfmuiVeNpm0RcUcGhQQoiAeOwY';
+    var MANUAL_DOC_ID = '1i6beHt0DjX7Lnr2tRyVBqHV5Jnxa0hAhS3hd_UB5_Lo';
     var URL_DOC = 'https://docs.google.com/document/d/' + MANUAL_DOC_ID;
     var URL_EDITAR = URL_DOC + '/edit';
     var URL_HTML = URL_DOC + '/export?format=html';
