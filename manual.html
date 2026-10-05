@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAMNUM - Manual</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .manual-barra {
+            max-width: 1100px; margin: 0 auto 20px auto; padding: 14px 20px;
+            background: #e8f5e9; border-left: 4px solid #27ae60; border-radius: 6px;
+            display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+        }
+        .manual-barra p { margin: 0; flex: 1; min-width: 240px; font-family: 'Times New Roman', serif; line-height: 1.5; color: #1a3a2a; }
+        .manual-barra a { text-decoration: none; white-space: nowrap; }
+        .manual-leitura { max-width: 1100px; margin: 0 auto; display: flex; gap: 28px; align-items: flex-start; }
+        .manual-sumario {
+            flex: 0 0 260px; position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto;
+            background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 16px 18px;
+        }
+        .manual-sumario h2 { font-family: 'Cinzel', serif; color: #2c5530; font-size: 1.1em; margin-bottom: 10px; }
+        .manual-sumario ul { list-style: none; margin: 0; padding: 0; }
+        .manual-sumario li { margin: 0 0 6px 0; line-height: 1.35; }
+        .manual-sumario li.nivel-2 { padding-left: 14px; font-size: 0.92em; }
+        .manual-sumario a { color: #2c5530; text-decoration: none; font-family: 'Times New Roman', serif; }
+        .manual-sumario a:hover { text-decoration: underline; }
+        .manual-conteudo {
+            flex: 1; min-width: 0; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 28px 34px; font-family: 'Times New Roman', serif; color: #333; line-height: 1.8; font-size: 1.08em;
+        }
+        .manual-conteudo h1, .manual-conteudo h2, .manual-conteudo h3 { font-family: 'Cinzel', serif; color: #2c5530; scroll-margin-top: 80px; line-height: 1.3; }
+        .manual-conteudo h1 { font-size: 1.45em; margin: 30px 0 12px 0; padding-bottom: 6px; border-bottom: 2px solid #4a7c59; }
+        .manual-conteudo h1.manual-titulo { font-size: 1.8em; margin-top: 0; border-bottom: 0; }
+        .manual-conteudo h2 { font-size: 1.15em; color: #1a3a2a; margin: 22px 0 8px 0; }
+        .manual-conteudo p { margin: 0 0 12px 0; text-align: justify; }
+        .manual-conteudo ul, .manual-conteudo ol { margin: 0 0 14px 24px; }
+        .manual-conteudo li { margin-bottom: 6px; }
+        .manual-conteudo a { color: #2c5530; }
+        .manual-conteudo table { border-collapse: collapse; margin: 12px 0; }
+        .manual-conteudo td, .manual-conteudo th { border: 1px solid #ccc; padding: 6px 10px; }
+        .manual-aviso { max-width: 1100px; margin: 0 auto 10px auto; font-family: 'Times New Roman', serif; color: #555; }
+        .manual-iframe { display: block; width: 100%; max-width: 1100px; height: 80vh; margin: 0 auto; border: 1px solid #ccc; border-radius: 8px; background: white; }
+        @media (max-width: 800px) {
+            .manual-leitura { flex-direction: column; }
+            .manual-sumario { position: static; flex: none; width: 100%; max-height: none; }
+            .manual-conteudo { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">DAMNUM</div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Início</a></li>
+                <li><a href="metodologia.html" class="nav-link">Metodologia</a></li>
+                <li><a href="manual.html" class="nav-link active">Manual</a></li>
+                <li><a href="changelog.html" class="nav-link">Versões</a></li>
+                <li><a href="contato.html" class="nav-link">Contato</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header-light">
+            <h1>Manual</h1>
+            <div class="bioma-visual">
+                <div class="bioma-image-container">
+                    <img src="images/lobo_guara.jpg" alt="Lobo-guará" class="bioma-image">
+                </div>
+            </div>
+        </div>
+
+        <main>
+
+            <div class="manual-barra">
+                <p>Este manual é colaborativo. Qualquer pessoa pode comentar e sugerir alterações; os autores revisam as sugestões. É preciso uma conta Google para contribuir. O texto é carregado do Google Docs, que recebe o endereço de quem abre esta página.</p>
+                <a class="link-contribuir btn-download" href="#" target="_blank" rel="noopener">Comentar ou sugerir alterações</a>
+            </div>
+
+            <div id="manualLeitura" class="manual-leitura">
+                <nav class="manual-sumario" aria-label="Sumário do manual">
+                    <h2>Sumário</h2>
+                    <div id="manualSumario"></div>
+                </nav>
+                <article id="manualConteudo" class="manual-conteudo">
+                    <p>Carregando o manual...</p>
+                </article>
+            </div>
+
+            <div id="manualQuadro" style="display:none;">
+                <p class="manual-aviso">Não foi possível montar o sumário nesta página. O manual aparece abaixo, direto do Google Docs.</p>
+                <iframe title="Manual do DAMNUM" class="manual-iframe"></iframe>
+            </div>
+
+        </main>
+
+        <footer class="footer">
+            <div class="contador-valoracoes">
+                <span class="contador-label">Valorações realizadas:</span>
+                <span class="contador-numero" id="contadorValoracao">0</span>
+            </div>
+            <p>© 2026 Claudio Angelo Correa Gonzaga e José Guilherme Roquette. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script>
+        function obterContadorValoracoes() {
+            const cookieConsent = localStorage.getItem('cookieConsent');
+            if (cookieConsent === 'accepted') {
+                const contador = localStorage.getItem('contadorValoracoes');
+                return contador ? parseInt(contador) : 0;
+            }
+            return 0;
+        }
+        function atualizarExibicaoContador() {
+            const contador = obterContadorValoracoes();
+            document.getElementById('contadorValoracao').textContent = contador;
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarExibicaoContador();
+        });
+    </script>
+    <script src="js/manual.js"></script>
+</body>
+</html>
