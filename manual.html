@@ -14,6 +14,14 @@
         }
         .manual-barra p { margin: 0; flex: 1; min-width: 240px; font-family: 'Times New Roman', serif; line-height: 1.5; color: #1a3a2a; }
         .manual-barra a { text-decoration: none; white-space: nowrap; }
+        .manual-referencia {
+            max-width: 1100px; margin: 0 auto 24px auto; padding: 16px 22px; background: white;
+            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); font-family: 'Times New Roman', serif; line-height: 1.6; color: #333;
+        }
+        .manual-referencia h2 { font-family: 'Cinzel', serif; color: #2c5530; font-size: 1.1em; margin: 0 0 8px 0; }
+        .manual-referencia p { margin: 0 0 12px 0; text-align: justify; }
+        .manual-referencia a { color: #2c5530; word-break: break-word; }
+        .manual-referencia a.btn-download { display: inline-block; color: white; text-decoration: none; }
         .manual-leitura { max-width: 1100px; margin: 0 auto; display: flex; gap: 28px; align-items: flex-start; }
         .manual-sumario {
             flex: 0 0 260px; position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto;
@@ -74,6 +82,12 @@
             <div class="manual-barra">
                 <p>Este manual é colaborativo. Qualquer pessoa pode comentar e sugerir alterações; os autores revisam as sugestões. É preciso uma conta Google para contribuir. O texto é carregado do Google Docs, que recebe o endereço de quem abre esta página.</p>
                 <a class="link-contribuir btn-download" href="#" target="_blank" rel="noopener">Comentar ou sugerir alterações</a>
+            </div>
+
+            <div class="manual-referencia">
+                <h2>Base metodológica</h2>
+                <p>GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; BRASILEIRO, Andrea Castelo Branco; SINISGALLI, Paulo Antonio de Almeida. Valoração e compensação ecológica dos danos ambientais causados pelo desmatamento ilegal. <em>Anais do V Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM)</em>, 5., 2024, São Paulo. São Paulo: IEE-USP, 2025. p. 210-217. Disponível em: <a href="https://damnum.consciencia.eco.br/metodologia.pdf" target="_blank" rel="noopener">https://damnum.consciencia.eco.br/metodologia.pdf</a>.</p>
+                <a class="btn-download" href="metodologia.pdf" target="_blank" rel="noopener">Abrir o PDF do artigo (SICAM 2024)</a>
             </div>
 
             <div id="manualLeitura" class="manual-leitura">
