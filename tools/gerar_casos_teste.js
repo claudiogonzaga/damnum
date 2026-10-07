@@ -9,6 +9,7 @@ const raiz = path.join(__dirname, '..');
 const saida = process.argv[2] || path.join(raiz, '_insumos_v7/entrega');
 const series = JSON.parse(fs.readFileSync(path.join(raiz, 'data/series_referencia.json'), 'utf8'));
 const qcn = JSON.parse(fs.readFileSync(path.join(raiz, 'data/estoques_qcn_fitofisionomias.json'), 'utf8'));
+const tempos = JSON.parse(fs.readFileSync(path.join(raiz, 'data/tempos_recuperacao.json'), 'utf8'));
 fs.mkdirSync(saida, { recursive: true });
 
 const casos = [];
@@ -24,7 +25,7 @@ for (const caso of casos) {
         versao: '7.0', bioma: caso.bioma, entendimento: caso.entendimento,
         dataCalculo: new Date(2026, 9, 4, 12, 0, 0), dataDano: new Date(2019, 5, 15),
         areas: { fora: 10, em: 2 }, reparacaoInSitu: true,
-        taxaInterinoPct: 6, tempoRecuperacao: 15,
+        interino: Object.assign(V.interinoPadrao('gonzaga', V.formaDaVegetacao(qcn, caso.bioma, ''), tempos), { referencias: tempos.referencias }),
         parametros: { precoSocialCO2USD: 24.20, precoMercadoCO2USD: 5.00, cotacaoDolar: 5.22, origemCotacao: 'valor fixo do caso de teste' },
         estoque: V.estoqueDaTabela(qcn, caso.bioma, ''),
         opcaoExtrapatrimonial: 'reais', manual: null,

@@ -149,21 +149,57 @@
         return t;
     }
 
+    var ROTULO_FORMA = { floresta: 'formação florestal', savana: 'formação savânica ou campestre' };
+
     function blocoInterino(r) {
         var p = r.parcelas.interino;
+        var it = r.interino;
         var html = subtitulo('2.2 Dano interino');
-        if (!(r.areas.em > 0)) {
-            return html + '<p>Não há área em APP e ARL informada. Dano interino = ' + moeda(0) + '.</p>';
-        }
-        if (!r.reparacaoInSitu) {
+        var temProtegida = r.areas.em > 0 && r.reparacaoInSitu;
+        if (!temProtegida && !(it.valorAreaFora > 0)) {
+            if (!(r.areas.em > 0)) return html + '<p>Não há área em APP e ARL informada. Dano interino = ' + moeda(0) + '.</p>';
             return html + '<p style="text-align:justify;">Como a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área em APP/ARL). Dano interino = ' + moeda(0) + '.</p>';
         }
+        var caex = it.metodo === 'caex';
+        var forma = it.forma ? ROTULO_FORMA[it.forma] : '';
         var linhas = [];
-        linhas.push(linha('Fórmula', 'A<sub>2</sub> × custo de recuperação por hectare × i × (t + 1) ÷ 2'));
-        linhas.push(linha('Parâmetros e fontes', num(p.area, 4) + ' ha × ' + moeda(r.custo.valorHa) + '/ha × ' + num(r.interino.fator, 4) + ', com i = ' + num(r.interino.taxaPct, 2) + '% ao ano e t = ' + r.interino.tempo + ' anos (Gonzaga et al., 2025). Custo por hectare: o mesmo do dano material.'));
+        linhas.push(linha('Método', caex
+            ? 'Nota Técnica 03/2022 do CAEx Ambiental do MPMT (atualizada em 17/01/2024), método defendido por José Guilherme Roquette: soma dos juros decrescentes sobre o custo de reposição durante o tempo de recuperação.'
+            : 'Gonzaga et al. (2025): juros sobre o custo de recuperação, com decréscimo linear do dano ao longo do tempo de recuperação. É o método padrão da calculadora.'));
+        if (temProtegida) {
+            linhas.push(linha('Fórmula', caex
+                ? 'A<sub>2</sub> × Σ<sub>a = 1..t</sub> [custo × i ÷ (1 + i)<sup>a</sup>] (Nota Técnica, item 1.5)'
+                : 'A<sub>2</sub> × custo de recuperação por hectare × i × (t + 1) ÷ 2'));
+            linhas.push(linha('Parâmetros e fontes', num(r.areas.em, 4) + ' ha × ' + moeda(r.custo.valorHa) + '/ha × ' + num(it.fator, 4) + ', com i = ' + num(it.taxaPct, 2) + '% ao ano e t = ' + num(it.tempo, it.tempo % 1 ? 1 : 0) + ' anos' + (forma ? ' (' + forma + ')' : '') + '. ' + (caex
+                ? 'A Nota adota como taxa a média da série histórica do IPCA de 1995 a 2023 (6,82%) e, como tempo de recuperação, 100 anos para floresta e 30 anos para cerrado. A Nota usa custos de reposição próprios (Timotheo et al., 2017); aqui a fórmula é aplicada ao custo de recuperação do DAMNUM (Portaria Ibama 118/2022).'
+                : (it.estatisticas ? 'O tempo padrão é a mediana dos tempos de recuperação publicados (quadro abaixo).' : '') + ' Custo por hectare: o mesmo do dano material.')));
+        }
+        if (it.valorAreaFora > 0) {
+            linhas.push(linha('Área fora de APP e reserva legal', num(r.areas.fora, 4) + ' ha × ' + moeda(r.custo.valorHa) + '/ha × ' + num(it.jurosAnoUm, 6) + ' (juros do ano 1, i ÷ (1 + i)) × ' + num(it.anosAteRegularizacao, 0) + ' anos entre o desmatamento e o pedido de regularização = ' + moeda(it.valorAreaFora) + ' (Nota Técnica, item 1.7). A própria Nota registra que há duas posições sobre a existência de dano indenizável nessa área.' + (r.parcelas.material.valor > 0 ? ' Atenção: neste cálculo a mesma área também recebe dano material; confira se as duas parcelas devem ser cumuladas.' : '')));
+            if (temProtegida) linhas.push(linha('Área em APP e reserva legal', moeda(it.valorAreaProtegida)));
+        }
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
         linhas = linhas.concat(textoAtualizacaoPatrimonial(r, p));
-        return html + tabela(linhas);
+        html += tabela(linhas);
+
+        if (!caex && temProtegida && it.faixa && it.faixa.length) {
+            var e = it.estatisticas;
+            var th = TD + ' background:#f5f5f5;';
+            html += '<p style="font-size:11pt; text-align:justify;"><b>Faixa do dano interino conforme o tempo de recuperação</b> (' + forma + '; taxa de ' + num(it.taxaPct, 2) + '% ao ano; valores na data-base, antes da atualização):</p>';
+            html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Atributo recuperado</th><th style="' + th + ' text-align:left;">Fonte</th><th style="' + th + '">Tempo (anos)</th><th style="' + th + '">Dano interino</th></tr>';
+            it.faixa.forEach(function (f) {
+                html += '<tr><td style="' + TD + '">' + esc(f.atributo) + (f.nota ? ' <span style="color:#666;">(' + esc(f.nota) + ')</span>' : '') + '</td><td style="' + TD + '">' + esc(f.fonte) + '</td><td style="' + TDR + '">' + num(f.anos, 0) + '</td><td style="' + TDR + '">' + moeda(f.valor) + '</td></tr>';
+            });
+            function resumo(rotulo, anos, valor, destaque) {
+                return '<tr style="background:' + (destaque ? '#e8f5e9' : '#fafafa') + ';"><td style="' + TD + '" colspan="2"><b>' + rotulo + '</b></td><td style="' + TDR + '"><b>' + num(anos, anos % 1 ? 1 : 0) + '</b></td><td style="' + TDR + '"><b>' + moeda(valor) + '</b></td></tr>';
+            }
+            html += resumo('Mínimo', e.minimo, e.valor_minimo) + resumo('Mediana', e.mediana, e.valor_mediana, true) + resumo('Máximo', e.maximo, e.valor_maximo) + '</table>';
+            html += '<p style="font-size:10pt; color:#555; text-align:justify;">' + (it.tempo === e.mediana
+                ? 'O valor adotado corresponde à mediana.'
+                : 'O valor adotado usa t = ' + num(it.tempo, it.tempo % 1 ? 1 : 0) + ' anos, informado pelo usuário, e não a mediana.') +
+                (e.quantidade === 1 ? ' Há um único tempo publicado para esta forma de vegetação; não há faixa.' : '') + '</p>';
+        }
+        return html;
     }
 
     function blocoCarbono(r, chave, numero, nome, rotuloPreco, precoUSD, precoBRL, fontePreco) {
@@ -406,6 +442,7 @@
         linhas.push(linha('Data e hora do cálculo', r.dataCalculo.toLocaleString('pt-BR')));
         linhas.push(linha('Entendimento escolhido', nomeEntendimento(r.entendimento)));
         linhas.push(linha('Fitofisionomia e fonte do estoque', (r.estoque.sigla ? esc(r.estoque.sigla) + ' — ' + esc(r.estoque.nome) + '. ' : '') + esc(r.estoque.descricaoOrigem) + ' (' + num(r.estoque.tC, 2) + ' tC/ha)'));
+        linhas.push(linha('Método do dano interino', r.interino.metodo === 'caex' ? 'Nota Técnica 03/2022 do CAEx Ambiental/MPMT (Roquette)' : 'Gonzaga et al. (2025)'));
         linhas.push(linha('Juros sobre danos extrapatrimoniais antes de set./2024', r.atualizacao.opcaoExtrapatrimonial === 'reais' ? 'opção (a): juros reais, Selic deduzida do IPCA-15' : 'opção (b): não computados'));
         r.consultas.forEach(function (c) {
             linhas.push(linha('Consulta: ' + esc(c.serie), esc(c.fonte) + ' — ' + esc(c.quando) + ' — ' + esc(c.situacao)));
@@ -431,6 +468,11 @@
         html += '<p style="' + p + '">BRASIL. Ministério da Ciência, Tecnologia e Inovações. <em>Quarta Comunicação Nacional do Brasil à Convenção-Quadro das Nações Unidas sobre Mudança do Clima. Relatório de Referência: Setor Uso da Terra, Mudança do Uso da Terra e Florestas</em>. Brasília: MCTI, 2020. Tabelas 23 a 28.</p>';
         html += '<p style="' + p + '">CONSELHO DA JUSTIÇA FEDERAL. <em>Manual de orientação de procedimentos para os cálculos na Justiça Federal</em>. Brasília: CJF, 2026. Capítulo 4, item 4.2.</p>';
         html += '<p style="' + p + '">CONSELHO NACIONAL DE JUSTIÇA. <em>Protocolo para julgamento de ações ambientais: segundo escopo</em>. Brasília: CNJ, 2024. Recomendação CNJ 156/2024.</p>';
+        if (r.interino.metodo === 'caex') {
+            html += '<p style="' + p + '">MINISTÉRIO PÚBLICO DO ESTADO DE MATO GROSSO. Centro de Apoio Técnico à Execução Ambiental. <em>Nota Técnica n. 03, de 31 de maio de 2022</em>. Atualizada em 17 jan. 2024. Dispõe sobre metodologia padrão para valoração monetária dos danos ambientais causados por desmatamentos no Estado de Mato Grosso. Cuiabá: CAEx Ambiental, 2024.</p>';
+        } else if (r.interino.faixa && r.interino.faixa.length) {
+            (r.interino.referencias || []).forEach(function (ref) { html += '<p style="' + p + '">' + esc(ref) + '</p>'; });
+        }
         html += '<p style="' + p + '">RICKE, Katharine et al. Country-level social cost of carbon. <em>Nature Climate Change</em>, v. 8, n. 10, p. 895-900, 2018. Disponível em: &lt;https://www.nature.com/articles/s41558-018-0282-y&gt;.</p>';
         return html;
     }

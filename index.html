@@ -212,13 +212,35 @@
                         <input type="text" id="emissaoEquivalente" value="" readonly>
                     </div>
                     <div class="parametro-item">
+                        <label for="metodoInterino">Método do dano interino: <a href="manual.html#calculo-de-cada-parcela" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>
+                        <select id="metodoInterino">
+                            <option value="gonzaga">Gonzaga et al. (2025): juros com decréscimo linear</option>
+                            <option value="caex">CAEx/MPMT, Nota Técnica 03/2022 (Roquette): soma de juros decrescentes</option>
+                        </select>
+                        <span id="notaMetodoInterino" class="nota-parametro"></span>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="formaVegetacao">Forma da vegetação, para o tempo de recuperação:</label>
+                        <select id="formaVegetacao">
+                            <option value="floresta">Formação florestal</option>
+                            <option value="savana">Formação savânica ou campestre</option>
+                        </select>
+                        <span class="nota-parametro">Definida pela fitofisionomia escolhida; pode ser alterada.</span>
+                    </div>
+                    <div class="parametro-item">
                         <label for="taxaJurosAnual">Taxa de juros anual do dano interino (%):</label>
-                        <input type="number" id="taxaJurosAnual" value="6" step="0.1" min="0" max="30">
+                        <input type="number" id="taxaJurosAnual" value="6" step="0.01" min="0" max="30">
                         <span id="avisoTaxaInterino" class="aviso-parametro" style="display:none;">Informe a taxa em percentual, entre 0 e 30 (ex.: 6 para 6% ao ano).</span>
                     </div>
                     <div class="parametro-item">
-                        <label for="tempoRecuperacao">Tempo mínimo para recuperação dos serviços ecossistêmicos básicos (anos):</label>
-                        <input type="number" id="tempoRecuperacao" value="15" step="1" min="1">
+                        <label for="tempoRecuperacao">Tempo de recuperação da vegetação (anos):</label>
+                        <input type="number" id="tempoRecuperacao" value="55" step="0.5" min="1">
+                        <span id="notaTempoRecuperacao" class="nota-parametro"></span>
+                    </div>
+                    <div class="parametro-item" id="itemAnosRegularizacao" style="display:none;">
+                        <label for="anosRegularizacao">Área fora de APP e reserva legal: anos entre o desmatamento e o pedido de regularização (opcional):</label>
+                        <input type="number" id="anosRegularizacao" value="" step="1" min="0" placeholder="Em branco: não calcula">
+                        <span class="nota-parametro">Nota Técnica 03/2022, item 1.7: juros do ano 1 × número de anos. Soma-se ao dano interino.</span>
                     </div>
                     <div class="parametro-item">
                         <label for="jurosExtrapatrimoniais">Juros sobre danos extrapatrimoniais antes de set./2024: <a href="manual.html#atualizacao-monetaria" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>

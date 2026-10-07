@@ -239,7 +239,8 @@ function valorCampo(id) {
 let tabelaQCN = null;      // data/estoques_qcn_fitofisionomias.json
 let consultaMapa = null;   // resultado da consulta ao mapa por estado (polígono ou coordenada)
 let poligonoUsuario = null;
-let consultaIBGE = null;   // indicação da fitofisionomia pelo mapa de vegetação do IBGE
+let consultaIBGE = null;
+let temposRecuperacao = null; // data/tempos_recuperacao.json (dano interino)   // indicação da fitofisionomia pelo mapa de vegetação do IBGE
 
 async function carregarTabelaQCN() {
     try {
@@ -251,6 +252,65 @@ async function carregarTabelaQCN() {
         console.error('Erro ao carregar a tabela de estoques do QCN:', erro);
         document.getElementById('origemEstoque').textContent = 'Não foi possível carregar a tabela de estoques. Recarregue a página ou informe o estoque do caso.';
     }
+}
+
+async function carregarTemposRecuperacao() {
+    try {
+        const resposta = await fetch('data/tempos_recuperacao.json');
+        if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+        temposRecuperacao = await resposta.json();
+        atualizarPadroesInterino(true);
+    } catch (erro) {
+        console.error('Erro ao carregar os tempos de recuperação:', erro);
+        document.getElementById('notaTempoRecuperacao').textContent = 'Não foi possível carregar os tempos de recuperação publicados. Informe o tempo.';
+    }
+}
+
+// Ajusta a forma da vegetação, a taxa e o tempo do dano interino aos padrões do
+// método escolhido. Campos que o usuário alterou só voltam ao padrão com `forcar`
+// (troca de método).
+function atualizarPadroesInterino(forcar) {
+    const metodo = valorCampo('metodoInterino');
+    const bioma = document.getElementById('bioma').value;
+    const campoForma = document.getElementById('formaVegetacao');
+    const campoTaxa = document.getElementById('taxaJurosAnual');
+    const campoTempo = document.getElementById('tempoRecuperacao');
+    if (bioma && !campoForma.dataset.editado) {
+        campoForma.value = DamnumValoracao.formaDaVegetacao(tabelaQCN, bioma, valorCampo('fitofisionomia'));
+    }
+    document.getElementById('itemAnosRegularizacao').style.display = metodo === 'caex' ? '' : 'none';
+    document.getElementById('notaMetodoInterino').textContent = metodo === 'caex'
+        ? 'Custo × Σ i ÷ (1 + i)ᵃ, do ano 1 ao ano t. Taxa: média do IPCA de 1995 a 2023.'
+        : 'Custo × i × (t + 1) ÷ 2. Método padrão, do artigo do SICAM.';
+    if (!temposRecuperacao) return;
+    const padrao = DamnumValoracao.interinoPadrao(metodo, campoForma.value, temposRecuperacao);
+    if (forcar || !campoTaxa.dataset.editado) { campoTaxa.value = padrao.taxaPct; delete campoTaxa.dataset.editado; }
+    if (forcar || !campoTempo.dataset.editado) { campoTempo.value = padrao.tempo; delete campoTempo.dataset.editado; }
+    const nota = document.getElementById('notaTempoRecuperacao');
+    if (metodo === 'caex') {
+        nota.textContent = 'Nota Técnica 03/2022: 100 anos para floresta e 30 anos para cerrado.';
+    } else {
+        const f = DamnumCalc.faixaDeTempos(padrao.pontos);
+        nota.textContent = f.quantidade > 1
+            ? 'Tempos publicados: de ' + numeroBR(f.minimo, 0) + ' a ' + numeroBR(f.maximo, 0) + ' anos (' + f.quantidade + ' estimativas). Padrão: a mediana, ' + numeroBR(f.mediana, f.mediana % 1 ? 1 : 0) + ' anos. O relatório mostra toda a faixa.'
+            : 'Um único tempo publicado para esta forma de vegetação: ' + numeroBR(f.mediana, 0) + ' anos.';
+    }
+    validarTaxaInterino();
+}
+
+// Configuração do dano interino a partir dos campos da tela.
+function lerInterino() {
+    const metodo = valorCampo('metodoInterino');
+    const forma = valorCampo('formaVegetacao');
+    return {
+        metodo,
+        forma,
+        pontos: temposRecuperacao ? temposRecuperacao.formas[forma].pontos : [],
+        referencias: temposRecuperacao ? temposRecuperacao.referencias : [],
+        taxaPct: parseFloat(valorCampo('taxaJurosAnual')),
+        tempo: parseFloat(valorCampo('tempoRecuperacao')),
+        anosAteRegularizacao: metodo === 'caex' ? (parseFloat(valorCampo('anosRegularizacao')) || 0) : 0
+    };
 }
 
 function preencherFitofisionomias(bioma, manterIBGE) {
@@ -295,6 +355,7 @@ function preencherFitofisionomias(bioma, manterIBGE) {
         });
     }
     atualizarPainelEstoque();
+    atualizarPadroesInterino(false);
 }
 
 // Decide o estoque do caso pela ordem de reserva: (4) informado pelo usuário,
@@ -681,6 +742,11 @@ async function calcularValoracao() {
         return;
     }
 
+    if (!(parseFloat(valorCampo('tempoRecuperacao')) >= 1)) {
+        alert('Informe o tempo de recuperação da vegetação, em anos.');
+        return;
+    }
+
     const parametros = obterParametrosAtuais();
     if (!(parametros.cotacaoDolar > 0) || isNaN(parametros.precoSocialCO2USD) || isNaN(parametros.precoMercadoCO2USD)) {
         alert('Confira os preços do carbono e a cotação do dólar.');
@@ -744,8 +810,7 @@ async function calcularValoracao() {
             dataDano,
             areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea },
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
-            taxaInterinoPct,
-            tempoRecuperacao: parseFloat(valorCampo('tempoRecuperacao')) || 15,
+            interino: lerInterino(),
             parametros,
             estoque,
             opcaoExtrapatrimonial: valorCampo('jurosExtrapatrimoniais'),
@@ -891,6 +956,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     iniciarSlideshow();
     buscarCotacaoDolar();
     carregarTabelaQCN();
+    carregarTemposRecuperacao();
     atualizarParametrosCalculados();
 
     biomaSelect.addEventListener('change', function() {
@@ -924,7 +990,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('cotacaoDolar').addEventListener('change', function() {
         origemCotacao = 'informada pelo usuário';
     });
-    document.getElementById('taxaJurosAnual').addEventListener('input', validarTaxaInterino);
+    document.getElementById('taxaJurosAnual').addEventListener('input', function() {
+        this.dataset.editado = '1';
+        validarTaxaInterino();
+    });
+    document.getElementById('tempoRecuperacao').addEventListener('input', function() { this.dataset.editado = '1'; });
+    document.getElementById('metodoInterino').addEventListener('change', function() { atualizarPadroesInterino(true); });
+    document.getElementById('formaVegetacao').addEventListener('change', function() {
+        this.dataset.editado = '1';
+        atualizarPadroesInterino(true);
+    });
+    document.getElementById('fitofisionomia').addEventListener('change', function() { atualizarPadroesInterino(false); });
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();

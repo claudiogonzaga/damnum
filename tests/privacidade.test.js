@@ -30,6 +30,6 @@ test('endpoint do contador inalterado', () => {
 
 test('taxa do dano interino: rótulo em percentual e padrão 6', () => {
     const html = fs.readFileSync(path.join(raiz, 'index.html'), 'utf8');
-    assert.match(html, /id="taxaJurosAnual" value="6" step="0.1" min="0" max="30"/);
+    assert.match(html, /id="taxaJurosAnual" value="6" step="0.01" min="0" max="30"/);
     assert.match(html, /Taxa de juros anual do dano interino \(%\)/);
 });

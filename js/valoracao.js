@@ -30,6 +30,65 @@
         'MATA ATLÂNTICA': 'Mata Atlântica'
     };
 
+    // Dano interino: parâmetros de cada método.
+    var INTERINO_GONZAGA = { taxaPct: 6 };
+    // Nota Técnica 03/2022 do CAEx Ambiental/MPMT (atualizada em 17/01/2024):
+    // taxa igual à média da série histórica do IPCA de 1995 a 2023 (item 3.1);
+    // 100 anos para floresta (item 3.2.4) e 30 anos para cerrado (item 3.2.5).
+    var INTERINO_CAEX = { taxaPct: 6.82, tempo: { floresta: 100, savana: 30 } };
+
+    // Forma da vegetação para o tempo de recuperação. Com a fitofisionomia
+    // escolhida, vale a categoria do Quarto Inventário (F = florestal; G e OFL =
+    // savânica ou campestre). Sem ela, o Cerrado é tratado como savânico, como na
+    // Nota Técnica do CAEx, e os demais biomas como florestais, que é a categoria
+    // predominante de todos eles na tabela do Inventário.
+    function formaDaVegetacao(tabelaQCN, bioma, indiceFitofisionomia) {
+        if (tabelaQCN && indiceFitofisionomia !== null && indiceFitofisionomia !== undefined && indiceFitofisionomia !== '') {
+            var f = tabelaQCN.biomas[BIOMA_QCN[bioma]].fitofisionomias[indiceFitofisionomia];
+            return f.categoria === 'F' ? 'floresta' : 'savana';
+        }
+        return bioma === 'CERRADO' ? 'savana' : 'floresta';
+    }
+
+    // Configuração padrão do dano interino para um método e uma forma de vegetação.
+    function interinoPadrao(metodo, forma, temposRecuperacao) {
+        var pontos = temposRecuperacao.formas[forma].pontos;
+        if (metodo === 'caex') {
+            return { metodo: 'caex', forma: forma, pontos: pontos, taxaPct: INTERINO_CAEX.taxaPct, tempo: INTERINO_CAEX.tempo[forma], anosAteRegularizacao: 0 };
+        }
+        return { metodo: 'gonzaga', forma: forma, pontos: pontos, taxaPct: INTERINO_GONZAGA.taxaPct, tempo: C.faixaDeTempos(pontos).mediana, anosAteRegularizacao: 0 };
+    }
+
+    // Calcula o dano interino por hectare e descreve o método.
+    function calcularInterino(config, custoHa, areaInterino, areaFora) {
+        var r = {
+            metodo: config.metodo, forma: config.forma, taxaPct: config.taxaPct, tempo: config.tempo,
+            faixa: null, estatisticas: null, valorAreaProtegida: 0, valorAreaFora: 0, anosAteRegularizacao: 0, jurosAnoUm: null
+        };
+        if (config.metodo === 'caex') {
+            r.fator = C.fatorInterinoCAEx(config.taxaPct, config.tempo);
+            r.jurosAnoUm = C.jurosAnoUmCAEx(config.taxaPct);
+            r.anosAteRegularizacao = config.anosAteRegularizacao > 0 ? config.anosAteRegularizacao : 0;
+            r.valorAreaFora = areaFora * custoHa * r.jurosAnoUm * r.anosAteRegularizacao;
+        } else {
+            r.fator = C.fatorInterino(config.taxaPct, config.tempo);
+            var pontos = config.pontos || [];
+            if (pontos.length) {
+                r.estatisticas = C.faixaDeTempos(pontos);
+                r.faixa = pontos.map(function (p) {
+                    var fator = C.fatorInterino(config.taxaPct, p.anos);
+                    return { anos: p.anos, atributo: p.atributo, fonte: p.fonte, nota: p.nota || '', fator: fator, valor: areaInterino * custoHa * fator };
+                });
+                ['minimo', 'maximo', 'mediana'].forEach(function (k) {
+                    r.estatisticas['valor_' + k] = areaInterino * custoHa * C.fatorInterino(config.taxaPct, r.estatisticas[k]);
+                });
+            }
+        }
+        r.referencias = config.referencias || [];
+        r.valorAreaProtegida = areaInterino * custoHa * r.fator;
+        return r;
+    }
+
     var FONTE_QCN = 'Quarta Comunicação Nacional, Relatório de Referência LULUCF (MCTI, 2020)';
 
     // Meses de cada série de que o cálculo precisa, para decidir se uma fonte serve.
@@ -174,11 +233,13 @@
 
         var fora = entrada.areas.fora, em = entrada.areas.em, total = fora + em;
         var reparacao = entrada.reparacaoInSitu && em > 0;
-        var fatorInterino = C.fatorInterino(entrada.taxaInterinoPct, entrada.tempoRecuperacao);
         var areaMaterial = reparacao ? fora : total;
         var areaInterino = reparacao ? em : 0;
         var valorMaterialGonzaga = areaMaterial * custo.valorHa;
-        var valorInterino = areaInterino * custo.valorHa * fatorInterino;
+        // Sem configuração própria, vale o método de Gonzaga et al. com a taxa e o tempo informados.
+        var configInterino = entrada.interino || { metodo: 'gonzaga', forma: null, pontos: [], taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao };
+        var interino = calcularInterino(configInterino, custo.valorHa, areaInterino, fora);
+        var valorInterino = interino.valorAreaProtegida + interino.valorAreaFora;
 
         var parametros = Object.assign({}, entrada.parametros);
         parametros.precoSocialCO2BRL = C.arredondar(parametros.precoSocialCO2USD * parametros.cotacaoDolar, 2);
@@ -221,7 +282,7 @@
             areas: { fora: fora, em: em, total: total, observacao: entrada.areas.observacao || '' },
             reparacaoInSitu: reparacao,
             custo: custo,
-            interino: { taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao, fator: fatorInterino },
+            interino: interino,
             parametros: parametros,
             estoque: entrada.estoque,
             parcelas: parcelas,
@@ -259,8 +320,9 @@
             areaFora: entrada.areas.fora,
             areaEm: entrada.areas.em,
             reparacaoInSitu: !!entrada.reparacaoInSitu,
-            taxaInterinoPct: entrada.taxaInterinoPct,
-            tempoRecuperacao: entrada.tempoRecuperacao,
+            interino: entrada.interino
+                ? { metodo: entrada.interino.metodo, forma: entrada.interino.forma, taxaPct: entrada.interino.taxaPct, tempo: entrada.interino.tempo, anosAteRegularizacao: entrada.interino.anosAteRegularizacao || 0 }
+                : { metodo: 'gonzaga', taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao },
             precoSocialCO2USD: entrada.parametros.precoSocialCO2USD,
             precoMercadoCO2USD: entrada.parametros.precoMercadoCO2USD,
             cotacaoDolar: entrada.parametros.cotacaoDolar,
@@ -274,6 +336,11 @@
     return {
         CUSTOS_PORTARIA_118: CUSTOS_PORTARIA_118,
         BIOMA_QCN: BIOMA_QCN,
+        INTERINO_GONZAGA: INTERINO_GONZAGA,
+        INTERINO_CAEX: INTERINO_CAEX,
+        formaDaVegetacao: formaDaVegetacao,
+        interinoPadrao: interinoPadrao,
+        calcularInterino: calcularInterino,
         exigenciasDeSeries: exigenciasDeSeries,
         estoqueDaTabela: estoqueDaTabela,
         estoqueDoUsuario: estoqueDoUsuario,

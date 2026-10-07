@@ -222,9 +222,45 @@
 
     // ---------- dano interino ----------
 
-    // Fórmula mantida: custo × i × (t + 1) / 2. A taxa entra em percentual.
+    // Método de Gonzaga et al. (2025): juros sobre o custo de recuperação, com
+    // decréscimo linear do dano ao longo do tempo de recuperação.
+    // DI = custo × i × (t + 1) / 2. A taxa entra em percentual.
     function fatorInterino(taxaPercentual, tempoAnos) {
         return (taxaPercentual / 100) * (tempoAnos + 1) / 2;
+    }
+
+    // Método da Nota Técnica 03/2022 do CAEx Ambiental/MPMT (atualizada em
+    // 17/01/2024), item 1.5: soma dos juros decrescentes sobre o custo de
+    // reposição, DI = Σ (a = 1..t) CR × i / (1 + i)^a = CR × [1 − (1 + i)^−t].
+    // Conferido com o Quadro 1 da Nota: 9.999,84 × fator(6,82%; 100) = 9.986,20
+    // e 9.999,84 × fator(6,82%; 30) = 8.618,13.
+    function fatorInterinoCAEx(taxaPercentual, tempoAnos) {
+        var i = taxaPercentual / 100;
+        var soma = 0;
+        for (var a = 1; a <= tempoAnos; a++) soma += i / Math.pow(1 + i, a);
+        return soma;
+    }
+
+    // Mesma Nota, item 1.7 e Quadro 2: juros do ano 1, i / (1 + i), usados na área
+    // fora de APP e reserva legal, multiplicados pelos anos entre o desmatamento
+    // e o pedido de regularização. Conferido: 9.999,84 × 0,0682 / 1,0682 = 638,45.
+    function jurosAnoUmCAEx(taxaPercentual) {
+        var i = taxaPercentual / 100;
+        return i / (1 + i);
+    }
+
+    function mediana(valores) {
+        var v = valores.slice().sort(function (a, b) { return a - b; });
+        if (v.length === 0) return null;
+        var meio = Math.floor(v.length / 2);
+        return v.length % 2 ? v[meio] : (v[meio - 1] + v[meio]) / 2;
+    }
+
+    // Faixa dos tempos de recuperação publicados: mínimo, máximo e mediana.
+    function faixaDeTempos(pontos) {
+        var anos = pontos.map(function (p) { return p.anos; });
+        if (anos.length === 0) return null;
+        return { minimo: Math.min.apply(null, anos), maximo: Math.max.apply(null, anos), mediana: mediana(anos), quantidade: anos.length };
     }
 
     function validarTaxaInterino(taxaPercentual) {
@@ -289,6 +325,10 @@
         custoNoMes: custoNoMes,
         ultimoMesDisponivel: ultimoMesDisponivel,
         fatorInterino: fatorInterino,
+        fatorInterinoCAEx: fatorInterinoCAEx,
+        jurosAnoUmCAEx: jurosAnoUmCAEx,
+        mediana: mediana,
+        faixaDeTempos: faixaDeTempos,
         validarTaxaInterino: validarTaxaInterino,
         carbonoParaCO2: carbonoParaCO2,
         mediaPonderadaBioma: mediaPonderadaBioma,
