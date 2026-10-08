@@ -249,6 +249,18 @@
         return i / (1 + i);
     }
 
+    // ---------- lucro do ilícito ambiental (LIA) ----------
+
+    // Ganho de antecipar a valorização da terra: fator 1 − (1 + r)^−t.
+    function fatorAntecipacao(taxaRealPct, anos) {
+        return 1 - Math.pow(1 + taxaRealPct / 100, -anos);
+    }
+
+    // Capitalização composta anual: (1 + i)^t.
+    function fatorCapitalizacao(taxaPct, anos) {
+        return Math.pow(1 + taxaPct / 100, anos);
+    }
+
     function mediana(valores) {
         var v = valores.slice().sort(function (a, b) { return a - b; });
         if (v.length === 0) return null;
@@ -327,6 +339,8 @@
         fatorInterino: fatorInterino,
         fatorInterinoCAEx: fatorInterinoCAEx,
         jurosAnoUmCAEx: jurosAnoUmCAEx,
+        fatorAntecipacao: fatorAntecipacao,
+        fatorCapitalizacao: fatorCapitalizacao,
         mediana: mediana,
         faixaDeTempos: faixaDeTempos,
         validarTaxaInterino: validarTaxaInterino,

@@ -202,6 +202,44 @@
         return html;
     }
 
+    // Lucro do ilícito ambiental (LIA): seis parcelas, combinadas pela situação
+    // jurídica da área e pela existência de atividade agropecuária.
+    function blocoLIA(r) {
+        var l = r.lia;
+        if (!l) return '';
+        var c = l.config;
+        var html = subtitulo('2.5 Lucro do ilícito ambiental (LIA)');
+        html += '<p style="text-align:justify;">Restituição do proveito econômico do infrator, a "mais-valia ecológica ilícita" (STJ, REsp 1.145.083/MG e REsp 1.198.727/MG), que se cumula com a reparação do dano. Método de Gonzaga, Roquette, Silva e Sinisgalli (trabalho submetido ao SICAM 2026). O LIA mede o ganho do infrator, e não a perda da sociedade.</p>';
+        var linhas = [];
+        linhas.push(linha('Intervalo', num(c.anos, 0) + ' anos, do ano do desmatamento ao ano da regularização ou da recomposição (' + esc(r.liaAnoRegularizacao) + ')'));
+        linhas.push(linha('Atividade agropecuária', l.comAtividade
+            ? 'sim (' + esc(c.rotuloAtividade || c.atividade) + '); presume-se o uso de toda a área desmatada desde o desmatamento, cabendo ao infrator provar uso parcial ou cessado (Súmula 618/STJ; CPC, art. 373, § 1º)'
+            : 'não; a terra entra pela antecipação da valorização'));
+        linhas.push(linha('Composição', 'área autorizável (fora de APP e reserva legal): CL + ' + (l.comAtividade ? 'Σ(L + R)' : 'ΔVT') + ' + GR; área não autorizável (APP e reserva legal): Gf + ' + (l.comAtividade ? 'Σ(L + R)' : 'ΔVT') + ' + GR'));
+        html += tabela(linhas);
+
+        var th = TD + ' background:#f5f5f5;';
+        html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + ' text-align:left;">Cálculo</th><th style="' + th + '">Área autorizável (' + num(l.autorizavel.area, 4) + ' ha)</th><th style="' + th + '">Área não autorizável (' + num(l.naoAutorizavel.area, 4) + ' ha)</th></tr>';
+        function ln(rotulo, calculo, campo) {
+            html += '<tr><td style="' + TD + '">' + rotulo + '</td><td style="' + TD + '">' + calculo + '</td><td style="' + TDR + '">' + moeda(l.autorizavel[campo]) + '</td><td style="' + TDR + '">' + moeda(l.naoAutorizavel[campo]) + '</td></tr>';
+        }
+        ln('Gf — produto florestal retirado', 'área × ' + num(c.volumeM3, 0) + ' m³/ha × ' + moeda(c.precoMadeira) + '/m³; só na área não autorizável', 'produtoFlorestal');
+        ln('CL — licenciamento evitado', '(taxas de ' + moeda(c.taxasLicenciamento) + ' + honorários de ' + moeda(c.honorariosHa) + '/ha) × (1 + ' + num(c.taxaNominalPct, 2) + '%)<sup>' + num(c.anos, 0) + '</sup> = × ' + num(l.fatorLicenciamento, 4) + '; só na área autorizável', 'licenciamento');
+        if (l.comAtividade) {
+            ln('ΣL — lucro da atividade', 'área × EBITDA de ' + moeda(c.ebitda) + '/ha/ano × ' + num(c.anosAtividade, 0) + ' anos', 'lucro');
+            ln('ΣR — renda da terra', 'área × arrendamento deduzido de ' + moeda(c.arrendamento) + '/ha/ano × ' + num(c.anosAtividade, 0) + ' anos', 'renda');
+        } else {
+            ln('ΔVT — antecipação da valorização', 'área × ΔV de ' + moeda(c.valorizacao) + '/ha × [1 − (1 + ' + num(c.taxaRealPct, 2) + '%)<sup>−' + num(c.anos, 0) + '</sup>] = × ' + num(l.fatorAntecipacao, 4), 'antecipacao');
+        }
+        ln('GR — adiamento da reposição florestal', 'área × taxa de reposição de ' + moeda(c.reposicaoHa) + '/ha × [(1 + ' + num(c.taxaNominalPct, 2) + '%)<sup>' + num(c.anos, 0) + '</sup> − 1] = × ' + num(l.fatorReposicao, 4), 'reposicao');
+        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '" colspan="2"><b>Subtotal</b></td><td style="' + TDR + '"><b>' + moeda(l.autorizavel.total) + '</b></td><td style="' + TDR + '"><b>' + moeda(l.naoAutorizavel.total) + '</b></td></tr></table>';
+        html += '<div style="background:#e8f5e9; padding:6px 12px; margin:8px 0; border-radius:4px; font-weight:bold;">LUCRO DO ILÍCITO AMBIENTAL = ' + moeda(r.parcelas.lia.valor) + '</div>';
+        html += '<p style="font-size:10pt; color:#555; text-align:justify;">Fontes dos parâmetros: ' + esc(c.fontes || 'informados pelo usuário') + ' Os valores são nominais das fontes e não recebem, na calculadora, correção nem juros. A reposição florestal em si não entra no LIA, porque é obrigação autônoma; entra só o ganho de adiá-la.</p>';
+        l.avisos.forEach(function (a) { html += nota(esc(a)); });
+        if (c.referenciaMT) html += nota('Os parâmetros de referência são de <b>Mato Grosso</b> (IMEA, SENAR-MT, SEMA/MT, INCRA e Banco Central). Para outros estados, substitua-os pelos do mercado regional de terras, da rentabilidade por hectare, da tabela de taxas do órgão ambiental e da lei florestal local.');
+        return html;
+    }
+
     function blocoCarbono(r, chave, numero, nome, rotuloPreco, precoUSD, precoBRL, fontePreco) {
         var p = r.parcelas[chave];
         var e = r.estoque;
@@ -296,6 +334,7 @@
         html += blocoCarbono(r, 'mercado', '2.3', 'Dano extrapatrimonial (mercado voluntário de carbono)', 'Preço no mercado voluntário', r.parametros.precoMercadoCO2USD, r.parametros.precoMercadoCO2BRL, 'piso do Fundo Amazônia, Protocolo do CNJ, 2024, p. 66');
         html += blocoCarbono(r, 'social', '2.4', 'Dano climático (custo social do carbono)', 'Custo social do carbono', r.parametros.precoSocialCO2USD, r.parametros.precoSocialCO2BRL, 'cenário SSP2/RCP6.0, Ricke et al., 2018');
         r.avisosPiso.forEach(function (a) { html += nota(esc(a)); });
+        html += blocoLIA(r);
         return html;
     }
 
@@ -387,7 +426,9 @@
         var th = TD + ' background:#f5f5f5;';
         html += '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;">' +
             '<tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Valor original</th><th style="' + th + '">Correção</th><th style="' + th + '">Juros</th><th style="' + th + '">Valor atualizado</th></tr>';
-        [['Dano material', p.material], ['Dano interino', p.interino], ['Dano extrapatrimonial (mercado voluntário)', p.mercado], ['Dano climático (custo social do carbono)', p.social]].forEach(function (par) {
+        var listaParcelas = [['Dano material', p.material], ['Dano interino', p.interino], ['Dano extrapatrimonial (mercado voluntário)', p.mercado], ['Dano climático (custo social do carbono)', p.social]];
+        if (p.lia) listaParcelas.push(['Lucro do ilícito ambiental (LIA)', p.lia]);
+        listaParcelas.forEach(function (par) {
             var x = par[1];
             html += '<tr><td style="' + TD + '">' + par[0] + '</td><td style="' + TDR + '">' + moeda(x.valor) + '</td><td style="' + TDR + '">' + moeda(x.correcao) + '</td><td style="' + TDR + '">' + moeda(x.juros) + '</td><td style="' + TDR + '">' + moeda(x.total) + '</td></tr>';
         });
@@ -410,7 +451,9 @@
             : 'Caso fosse adotada a metodologia de <b>' + nomeEntendimento('gonzaga') + '</b>, que considera o dano material (custo de recuperação da vegetação nativa conforme a Portaria Ibama 118/2022) como parcela indenizável autônoma, os valores seriam:') + '</p>';
         var th = TD + ' background:#f5f5f5;';
         html += '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Valor original</th><th style="' + th + '">Valor atualizado</th></tr>';
-        [['Dano material', a.material], ['Dano interino', a.interino], ['Dano extrapatrimonial (mercado voluntário)', r.parcelas.mercado], ['Dano climático (custo social do carbono)', r.parcelas.social]].forEach(function (par) {
+        var listaAlt = [['Dano material', a.material], ['Dano interino', a.interino], ['Dano extrapatrimonial (mercado voluntário)', r.parcelas.mercado], ['Dano climático (custo social do carbono)', r.parcelas.social]];
+        if (r.parcelas.lia) listaAlt.push(['Lucro do ilícito ambiental (LIA)', r.parcelas.lia]);
+        listaAlt.forEach(function (par) {
             html += '<tr><td style="' + TD + '">' + par[0] + '</td><td style="' + TDR + '">' + moeda(par[1].valor) + '</td><td style="' + TDR + '">' + moeda(par[1].total) + '</td></tr>';
         });
         html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Total</b></td><td style="' + TDR + '"><b>' + moeda(a.totalOriginal) + '</b></td><td style="' + TDR + '"><b>' + moeda(a.totalAtualizado) + '</b></td></tr></table>';
@@ -443,6 +486,7 @@
         linhas.push(linha('Entendimento escolhido', nomeEntendimento(r.entendimento)));
         linhas.push(linha('Fitofisionomia e fonte do estoque', (r.estoque.sigla ? esc(r.estoque.sigla) + ' — ' + esc(r.estoque.nome) + '. ' : '') + esc(r.estoque.descricaoOrigem) + ' (' + num(r.estoque.tC, 2) + ' tC/ha)'));
         linhas.push(linha('Método do dano interino', r.interino.metodo === 'caex' ? 'Nota Técnica 03/2022 do CAEx Ambiental/MPMT (Roquette)' : 'Gonzaga et al. (2025)'));
+        linhas.push(linha('Lucro do ilícito ambiental (LIA)', r.lia ? 'calculado' : 'não calculado'));
         linhas.push(linha('Juros sobre danos extrapatrimoniais antes de set./2024', r.atualizacao.opcaoExtrapatrimonial === 'reais' ? 'opção (a): juros reais, Selic deduzida do IPCA-15' : 'opção (b): não computados'));
         r.consultas.forEach(function (c) {
             linhas.push(linha('Consulta: ' + esc(c.serie), esc(c.fonte) + ' — ' + esc(c.quando) + ' — ' + esc(c.situacao)));
@@ -468,6 +512,9 @@
         html += '<p style="' + p + '">BRASIL. Ministério da Ciência, Tecnologia e Inovações. <em>Quarta Comunicação Nacional do Brasil à Convenção-Quadro das Nações Unidas sobre Mudança do Clima. Relatório de Referência: Setor Uso da Terra, Mudança do Uso da Terra e Florestas</em>. Brasília: MCTI, 2020. Tabelas 23 a 28.</p>';
         html += '<p style="' + p + '">CONSELHO DA JUSTIÇA FEDERAL. <em>Manual de orientação de procedimentos para os cálculos na Justiça Federal</em>. Brasília: CJF, 2026. Capítulo 4, item 4.2.</p>';
         html += '<p style="' + p + '">CONSELHO NACIONAL DE JUSTIÇA. <em>Protocolo para julgamento de ações ambientais: segundo escopo</em>. Brasília: CNJ, 2024. Recomendação CNJ 156/2024.</p>';
+        if (r.lia) {
+            html += '<p style="' + p + '">GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; SILVA, Anelise Gomes da; SINISGALLI, Paulo Antonio de Almeida. Proposta de valoração do proveito econômico do ilícito ambiental. Trabalho submetido ao Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM), 2026. Não publicado.</p>';
+        }
         if (r.interino.metodo === 'caex') {
             html += '<p style="' + p + '">MINISTÉRIO PÚBLICO DO ESTADO DE MATO GROSSO. Centro de Apoio Técnico à Execução Ambiental. <em>Nota Técnica n. 03, de 31 de maio de 2022</em>. Atualizada em 17 jan. 2024. Dispõe sobre metodologia padrão para valoração monetária dos danos ambientais causados por desmatamentos no Estado de Mato Grosso. Cuiabá: CAEx Ambiental, 2024.</p>';
         } else if (r.interino.faixa && r.interino.faixa.length) {

@@ -11,7 +11,7 @@ Site estático, publicado em https://damnum.consciencia.eco.br. Não há etapa d
 
 - `index.html`, `script.js`, `style.css`: a calculadora.
 - `js/calculo.js`: correção, juros, custo na data do dano e estoque (sem rede e sem DOM).
-- `js/valoracao.js`: monta a valoração a partir da entrada e das séries.
+- `js/valoracao.js`: monta a valoração a partir da entrada e das séries. Traz também os dois métodos do dano interino e o lucro do ilícito ambiental (LIA), com os parâmetros de referência de Mato Grosso em `LIA_REFERENCIA_MT`.
 - `js/relatorio.js`: relatório no formato do art. 524 do CPC e tabela mês a mês (CSV).
 - `js/series.js`: consulta às séries (Banco Central, IBGE), com reserva.
 - `js/mapa-qcn.js`: estoque pelo mapa do Quarto Inventário por estado. Desligado por `MAPA_QCN_ATIVO = false` até existir `data/qcn_estoques.pmtiles`.

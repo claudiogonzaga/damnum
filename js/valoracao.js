@@ -89,6 +89,93 @@
         return r;
     }
 
+    // ---------- lucro do ilícito ambiental (LIA) ----------
+    // Método de Gonzaga, Roquette, Silva e Sinisgalli (resumo expandido submetido
+    // ao SICAM 2026, "proveito econômico do ilícito ambiental"). Os valores abaixo
+    // são os parâmetros de referência de MATO GROSSO citados no trabalho; servem
+    // de ponto de partida e são todos editáveis na tela.
+    var LIA_REFERENCIA_MT = {
+        upf: 263.97,                 // UPF/MT de set./2026 (Portaria 120/2026-SEFAZ)
+        taxaRealPct: 3.74,           // Selic real média, 2010 a 2025 (BCB, SGS 4390 e 433)
+        taxaNominalPct: 9.73,        // Selic nominal média, 2010 a 2025
+        atividades: {
+            soja: { rotulo: 'soja', ebitda: 1558.57, arrendamento: 305.33,
+                fonte: 'EBITDA médio de 2017 a 2023 (Rossi et al., 2023); arrendamento deduzido médio de 2021/22 a 2025/26 (IMEA, 2026)' },
+            pecuaria: { rotulo: 'pecuária de corte', ebitda: 374.54, arrendamento: 0,
+                fonte: 'EBITDA médio de 2016 a 2023 (Rossi et al., 2023); na cria e no ciclo completo o arrendamento deduzido é nulo (IMEA, 2026)' }
+        },
+        // Valorização da terra no mercado Norte Araguaia (INCRA, 2024): só como exemplo.
+        valorizacaoExemplo: { pastagem: 10636.44, agricola: 33020.24 },
+        // Lei 11.179/2020-MT: Plano de Exploração Florestal, 5 + 0,2 UPF por hectare;
+        // Diagnóstico Ambiental, 65 UPF, acima de 1.000 ha (LC 233/2005).
+        pefFixoUPF: 5, pefPorHaUPF: 0.2, diagnosticoUPF: 65, diagnosticoAcimaDeHa: 1000,
+        vistoria: 5500,              // estimativa do trabalho: dois técnicos, dois dias, 600 km
+        honorariosHa: 99.83,         // piso: inventário R$ 50/ha (mercado) + georreferenciamento R$ 49,83/ha (INCRA, 2025)
+        // Reposição florestal (Decreto 1.313/2022-MT): 0,10 UPF por m³ de tora e
+        // 0,02 UPF por estéreo de lenha. Volumes presumidos da LC 233/2005, art. 46, § 3º.
+        reposicaoUPF: {
+            'CERRADO': 1.3,              // 65 estéreos de lenha (valor do trabalho: R$ 343,16/ha)
+            'FLORESTA AMAZÔNICA': 4.3    // DERIVADO, a conferir: 30 m³ de tora (3,0) + 50 m³ de lenha = 65 st (1,3)
+        },
+        reposicaoDemaisUPF: 0.78,    // DERIVADO, a conferir: 39 estéreos de lenha
+        volumeM3: { 'CERRADO': 50 }, volumeDemaisM3: 30
+    };
+
+    // Valores padrão do LIA para um caso (bioma, áreas e intervalo em anos).
+    function liaPadrao(bioma, areaFora, atividade, anos) {
+        var ref = LIA_REFERENCIA_MT;
+        var at = ref.atividades[atividade] || null;
+        var taxasUPF = areaFora > 0 ? ref.pefFixoUPF + ref.pefPorHaUPF * areaFora + (areaFora > ref.diagnosticoAcimaDeHa ? ref.diagnosticoUPF : 0) : 0;
+        var trUPF = ref.reposicaoUPF[bioma] !== undefined ? ref.reposicaoUPF[bioma] : ref.reposicaoDemaisUPF;
+        return {
+            atividade: atividade, anos: anos, anosAtividade: anos,
+            ebitda: at ? at.ebitda : 0, arrendamento: at ? at.arrendamento : 0,
+            valorizacao: 0, taxaRealPct: ref.taxaRealPct, taxaNominalPct: ref.taxaNominalPct,
+            volumeM3: ref.volumeM3[bioma] !== undefined ? ref.volumeM3[bioma] : ref.volumeDemaisM3, precoMadeira: 0,
+            taxasLicenciamento: C.arredondar(taxasUPF * ref.upf + (areaFora > 0 ? ref.vistoria : 0), 2),
+            honorariosHa: ref.honorariosHa,
+            reposicaoHa: C.arredondar(trUPF * ref.upf, 2)
+        };
+    }
+
+    // Calcula o LIA pela árvore de decisão do trabalho:
+    //   área não autorizável (APP e reserva legal): Gf + Σ(L + R) + GR, com atividade; Gf + ΔVT + GR, sem ela;
+    //   área autorizável (demais áreas):            CL + Σ(L + R) + GR, com atividade; CL + ΔVT + GR, sem ela.
+    function calcularLIA(cfg, areaFora, areaEm) {
+        var comAtividade = cfg.atividade !== 'nenhuma';
+        var t = cfg.anos;
+        var fatorAnt = C.fatorAntecipacao(cfg.taxaRealPct, t);
+        var fatorCL = C.fatorCapitalizacao(cfg.taxaNominalPct, t);
+        var fatorGR = C.fatorCapitalizacao(cfg.taxaNominalPct, t) - 1;
+        function porArea(area, autorizavel) {
+            var p = { area: area, autorizavel: autorizavel, produtoFlorestal: 0, licenciamento: 0, lucro: 0, renda: 0, antecipacao: 0, reposicao: 0 };
+            if (!(area > 0)) { p.total = 0; return p; }
+            if (autorizavel) p.licenciamento = (cfg.taxasLicenciamento + cfg.honorariosHa * area) * fatorCL;
+            else p.produtoFlorestal = area * cfg.volumeM3 * cfg.precoMadeira;
+            if (comAtividade) {
+                p.lucro = area * cfg.ebitda * cfg.anosAtividade;
+                p.renda = area * cfg.arrendamento * cfg.anosAtividade;
+            } else {
+                p.antecipacao = area * cfg.valorizacao * fatorAnt;
+            }
+            p.reposicao = area * cfg.reposicaoHa * fatorGR;
+            p.total = p.produtoFlorestal + p.licenciamento + p.lucro + p.renda + p.antecipacao + p.reposicao;
+            return p;
+        }
+        var autorizavel = porArea(areaFora, true);
+        var naoAutorizavel = porArea(areaEm, false);
+        var avisos = [];
+        if (areaEm > 0 && !(cfg.precoMadeira > 0)) avisos.push('O preço do produto florestal não foi informado; a parcela do produto florestal retirado (Gf) ficou em zero.');
+        if (!comAtividade && !(cfg.valorizacao > 0)) avisos.push('A valorização da terra (ΔV) não foi informada; a parcela de antecipação da valorização (ΔVT) ficou em zero.');
+        if (comAtividade && cfg.anosAtividade !== t) avisos.push('O lucro e a renda da terra foram somados por ' + cfg.anosAtividade + ' anos de atividade, e não pelos ' + t + ' anos do intervalo.');
+        return {
+            config: cfg, comAtividade: comAtividade,
+            fatorAntecipacao: fatorAnt, fatorLicenciamento: fatorCL, fatorReposicao: fatorGR,
+            autorizavel: autorizavel, naoAutorizavel: naoAutorizavel,
+            total: autorizavel.total + naoAutorizavel.total, avisos: avisos
+        };
+    }
+
     var FONTE_QCN = 'Quarta Comunicação Nacional, Relatório de Referência LULUCF (MCTI, 2020)';
 
     // Meses de cada série de que o cálculo precisa, para decidir se uma fonte serve.
@@ -252,10 +339,19 @@
             social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL), ctx)
         };
 
+        // Lucro do ilícito ambiental: calculado até o ano da regularização, em valores
+        // nominais das fontes; não recebe correção nem juros na calculadora.
+        var lia = entrada.lia ? calcularLIA(entrada.lia, fora, em) : null;
+        if (lia) {
+            var valorLia = C.arredondar(lia.total, 2);
+            parcelas.lia = { valor: valorLia, correcao: 0, juros: 0, total: valorLia };
+        }
+
         function somar(campo, lista) {
             return C.arredondar(lista.reduce(function (s, p) { return s + p[campo]; }, 0), 2);
         }
         var todas = [parcelas.material, parcelas.interino, parcelas.mercado, parcelas.social];
+        if (lia) todas.push(parcelas.lia);
         var totais = { original: somar('valor', todas), correcao: somar('correcao', todas), juros: somar('juros', todas), atualizado: somar('total', todas) };
 
         // Entendimento alternativo, como na versão 6: no IRDR 13/TJMT o material e
@@ -264,6 +360,7 @@
             ? { material: parcelaPatrimonial(0, areaMaterial, ctx), interino: parcelaPatrimonial(0, areaInterino, ctx) }
             : { material: parcelaPatrimonial(valorMaterialGonzaga, areaMaterial, ctx), interino: parcelaPatrimonial(valorInterino, areaInterino, ctx) };
         var altTodas = [alt.material, alt.interino, parcelas.mercado, parcelas.social];
+        if (lia) altTodas.push(parcelas.lia);
         alt.totalOriginal = somar('valor', altTodas);
         alt.totalAtualizado = somar('total', altTodas);
 
@@ -283,6 +380,8 @@
             reparacaoInSitu: reparacao,
             custo: custo,
             interino: interino,
+            lia: lia,
+            liaAnoRegularizacao: entrada.lia ? entrada.lia.anoRegularizacao : null,
             parametros: parametros,
             estoque: entrada.estoque,
             parcelas: parcelas,
@@ -329,6 +428,7 @@
             estoqueTC: entrada.estoque.tC,
             origemEstoque: entrada.estoque.origem,
             opcaoExtrapatrimonial: entrada.opcaoExtrapatrimonial,
+            lia: entrada.lia || null,
             manual: entrada.manual || null
         });
     }
@@ -336,6 +436,9 @@
     return {
         CUSTOS_PORTARIA_118: CUSTOS_PORTARIA_118,
         BIOMA_QCN: BIOMA_QCN,
+        LIA_REFERENCIA_MT: LIA_REFERENCIA_MT,
+        liaPadrao: liaPadrao,
+        calcularLIA: calcularLIA,
         INTERINO_GONZAGA: INTERINO_GONZAGA,
         INTERINO_CAEX: INTERINO_CAEX,
         formaDaVegetacao: formaDaVegetacao,

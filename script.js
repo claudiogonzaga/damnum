@@ -298,6 +298,79 @@ function atualizarPadroesInterino(forcar) {
     validarTaxaInterino();
 }
 
+// ============================================================
+// LUCRO DO ILÍCITO AMBIENTAL (LIA)
+// ============================================================
+
+const CAMPOS_LIA_PADRAO = ['liaEbitda', 'liaArrendamento', 'liaAnosAtividade', 'liaVolume', 'liaTaxasLicenciamento', 'liaHonorariosHa', 'liaReposicaoHa'];
+
+function anosDoLIA() {
+    const dataDano = obterDataDano();
+    if (!dataDano) return null;
+    const anoFim = parseInt(valorCampo('liaAnoRegularizacao'), 10) || new Date().getFullYear();
+    return { anoFim, anos: anoFim - dataDano.getFullYear() };
+}
+
+// Preenche os campos do LIA com os valores de referência, sem tocar no que o
+// usuário já alterou.
+function atualizarPadroesLIA() {
+    const ativo = document.getElementById('liaAtivo').checked;
+    document.getElementById('camposLIA').style.display = ativo ? '' : 'none';
+    const atividade = valorCampo('liaAtividade');
+    document.getElementById('liaComAtividade').style.display = atividade === 'nenhuma' ? 'none' : '';
+    document.getElementById('liaSemAtividade').style.display = atividade === 'nenhuma' ? '' : 'none';
+    const bioma = document.getElementById('bioma').value;
+    if (!ativo || !bioma) return;
+    const intervalo = anosDoLIA();
+    const areaFora = parseFloat(valorCampo('areaForaAPP')) || 0;
+    const padrao = DamnumValoracao.liaPadrao(bioma, areaFora, atividade, intervalo ? Math.max(intervalo.anos, 0) : 0);
+    const valores = {
+        liaEbitda: padrao.ebitda, liaArrendamento: padrao.arrendamento, liaAnosAtividade: padrao.anosAtividade,
+        liaVolume: padrao.volumeM3, liaTaxasLicenciamento: padrao.taxasLicenciamento,
+        liaHonorariosHa: padrao.honorariosHa, liaReposicaoHa: padrao.reposicaoHa
+    };
+    CAMPOS_LIA_PADRAO.forEach(id => {
+        const campo = document.getElementById(id);
+        if (!campo.dataset.editado) campo.value = valores[id];
+    });
+    const ref = DamnumValoracao.LIA_REFERENCIA_MT;
+    document.getElementById('liaFonteAtividade').textContent = ref.atividades[atividade]
+        ? 'Referência de Mato Grosso: ' + ref.atividades[atividade].fonte + '. Com atividades diferentes ao longo do tempo, informe a média do período.'
+        : 'Informe o lucro e o arrendamento do caso, com a fonte no processo.';
+    document.getElementById('liaNotaReposicao').textContent = bioma === 'CERRADO'
+        ? 'Mato Grosso, Cerrado: 65 estéreos de lenha por hectare (LC 233/2005) × 0,02 UPF/MT (Decreto 1.313/2022) = 1,3 UPF/MT.'
+        : 'Mato Grosso: valor derivado dos volumes presumidos da LC 233/2005 e das taxas do Decreto 1.313/2022; confira antes de usar.';
+}
+
+// Configuração do LIA a partir da tela, ou null se não for calcular.
+// Lança Error com mensagem para o usuário se faltar dado obrigatório.
+function lerLIA() {
+    if (!document.getElementById('liaAtivo').checked) return null;
+    const intervalo = anosDoLIA();
+    if (!intervalo) throw new Error('Para calcular o lucro do ilícito ambiental, informe a data do dano.');
+    if (intervalo.anos < 0) throw new Error('O ano da regularização não pode ser anterior ao ano do dano.');
+    const n = id => parseFloat(valorCampo(id)) || 0;
+    const atividade = valorCampo('liaAtividade');
+    const ref = DamnumValoracao.LIA_REFERENCIA_MT;
+    const editados = CAMPOS_LIA_PADRAO.filter(id => document.getElementById(id).dataset.editado);
+    return {
+        atividade,
+        rotuloAtividade: ref.atividades[atividade] ? ref.atividades[atividade].rotulo : 'informada pelo usuário',
+        anoRegularizacao: intervalo.anoFim,
+        anos: intervalo.anos,
+        anosAtividade: atividade === 'nenhuma' ? 0 : n('liaAnosAtividade'),
+        ebitda: n('liaEbitda'), arrendamento: n('liaArrendamento'),
+        valorizacao: n('liaValorizacao'),
+        taxaRealPct: n('liaTaxaReal'), taxaNominalPct: n('liaTaxaNominal'),
+        volumeM3: n('liaVolume'), precoMadeira: n('liaPrecoMadeira'),
+        taxasLicenciamento: n('liaTaxasLicenciamento'), honorariosHa: n('liaHonorariosHa'),
+        reposicaoHa: n('liaReposicaoHa'),
+        referenciaMT: true,
+        fontes: 'valores de referência de Mato Grosso: EBITDA e arrendamento (Rossi et al., 2023; IMEA, 2026), taxas da SEMA/MT (Lei 11.179/2020) e UPF/MT de set./2026, honorários (mercado e INCRA, 2025), reposição florestal (Decreto 1.313/2022 e LC 233/2005) e Selic (Banco Central).' +
+            (editados.length ? ' O usuário alterou ' + editados.length + ' dos valores de referência.' : '')
+    };
+}
+
 // Configuração do dano interino a partir dos campos da tela.
 function lerInterino() {
     const metodo = valorCampo('metodoInterino');
@@ -764,10 +837,11 @@ async function calcularValoracao() {
         return;
     }
 
-    let estoque, manual;
+    let estoque, manual, lia;
     try {
         estoque = resolverEstoque(bioma);
         manual = lerFatoresManuais();
+        lia = lerLIA();
     } catch (erro) {
         alert(erro.message);
         return;
@@ -811,6 +885,7 @@ async function calcularValoracao() {
             areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea },
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
             interino: lerInterino(),
+            lia,
             parametros,
             estoque,
             opcaoExtrapatrimonial: valorCampo('jurosExtrapatrimoniais'),
@@ -861,6 +936,8 @@ function mostrarResultado(r) {
     document.getElementById('danoExtrapatrimonialMercado').textContent = formatarMoeda(p.mercado.valor);
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
     document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);
+    document.getElementById('secaoLIA').style.display = r.lia ? '' : 'none';
+    if (r.lia) document.getElementById('valorLIA').textContent = formatarMoeda(p.lia.valor);
 
     const notaDanoMaterial = document.getElementById('notaDanoMaterial');
     if (r.areas.em > 0) {
@@ -970,6 +1047,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     ['estoqueUsuario', 'fonteEstoqueUsuario'].forEach(id => {
         document.getElementById(id).addEventListener('input', atualizarPainelEstoque);
+    });
+
+    // Lucro do ilícito ambiental
+    ['liaAtivo', 'liaAtividade', 'liaAnoRegularizacao', 'bioma', 'dataDano'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarPadroesLIA);
+    });
+    document.getElementById('areaForaAPP').addEventListener('input', atualizarPadroesLIA);
+    CAMPOS_LIA_PADRAO.forEach(id => {
+        document.getElementById(id).addEventListener('input', function() { this.dataset.editado = '1'; });
+    });
+    document.getElementById('liaAtividade').addEventListener('change', function() {
+        ['liaEbitda', 'liaArrendamento'].forEach(id => delete document.getElementById(id).dataset.editado);
+        atualizarPadroesLIA();
     });
 
     // Indicação da fitofisionomia pelo IBGE

@@ -151,6 +151,62 @@
                     </label>
                 </div>
 
+                <div class="input-group" id="grupoLIA">
+                    <label class="caixa-opcao">
+                        <input type="checkbox" id="liaAtivo">
+                        Calcular o lucro do ilícito ambiental (LIA)
+                    </label>
+                    <p class="ajuda-campo">Restituição do que o infrator ganhou com o desmatamento (a "mais-valia ecológica ilícita" do STJ), que se soma à reparação do dano. Exige a data do dano. Os valores de referência são de <strong>Mato Grosso</strong>; confira e ajuste cada um.</p>
+                    <div id="camposLIA" class="campos-lia" style="display:none;">
+                        <label for="liaAnoRegularizacao">Ano da regularização ou da recomposição (em branco: ano atual, ainda sem regularização):</label>
+                        <input type="number" id="liaAnoRegularizacao" step="1" min="2001" placeholder="Ex.: 2026">
+
+                        <label for="liaAtividade">Atividade agropecuária instalada na área:</label>
+                        <select id="liaAtividade">
+                            <option value="soja">Soja</option>
+                            <option value="pecuaria">Pecuária de corte</option>
+                            <option value="outra">Outra (informar o lucro por hectare)</option>
+                            <option value="nenhuma">Nenhuma (área desmatada e sem cultura)</option>
+                        </select>
+
+                        <div id="liaComAtividade">
+                            <label for="liaEbitda">Lucro operacional (EBITDA) médio, R$ por hectare por ano:</label>
+                            <input type="number" id="liaEbitda" step="0.01" min="0">
+                            <label for="liaArrendamento">Arrendamento deduzido no EBITDA (renda da terra), R$ por hectare por ano:</label>
+                            <input type="number" id="liaArrendamento" step="0.01" min="0">
+                            <label for="liaAnosAtividade">Anos de atividade (padrão: todo o intervalo):</label>
+                            <input type="number" id="liaAnosAtividade" step="1" min="0">
+                            <p id="liaFonteAtividade" class="ajuda-campo"></p>
+                        </div>
+                        <div id="liaSemAtividade" style="display:none;">
+                            <label for="liaValorizacao">Valorização da terra (ΔV): valor com uso agropecuário menos valor com vegetação nativa, R$ por hectare:</label>
+                            <input type="number" id="liaValorizacao" step="0.01" min="0" placeholder="Planilha de Preços Referenciais do INCRA para o mercado regional">
+                            <p class="ajuda-campo">Exemplo do mercado Norte Araguaia/MT (INCRA, 2024): R$ 10.636,44 para pastagem e R$ 33.020,24 para uso agrícola.</p>
+                        </div>
+
+                        <label for="liaVolume">Área em APP e reserva legal: volume de produto florestal retirado, m³ por hectare:</label>
+                        <input type="number" id="liaVolume" step="0.1" min="0">
+                        <label for="liaPrecoMadeira">Preço do produto florestal, R$ por m³ (sem preço, essa parcela fica em zero):</label>
+                        <input type="number" id="liaPrecoMadeira" step="0.01" min="0" placeholder="Preço de mercado da região">
+
+                        <label for="liaTaxasLicenciamento">Área fora de APP e reserva legal: taxas de licenciamento evitadas, R$ (total):</label>
+                        <input type="number" id="liaTaxasLicenciamento" step="0.01" min="0">
+                        <label for="liaHonorariosHa">Honorários técnicos evitados (inventário, georreferenciamento), R$ por hectare:</label>
+                        <input type="number" id="liaHonorariosHa" step="0.01" min="0">
+                        <p class="ajuda-campo">Taxas da SEMA/MT (Lei 11.179/2020): Plano de Exploração Florestal, 5 + 0,2 UPF/MT por hectare; vistoria, cerca de R$ 5.500; Diagnóstico Ambiental, 65 UPF/MT, acima de 1.000 ha. UPF/MT de set./2026: R$ 263,97. Honorários: piso de R$ 50/ha de inventário mais R$ 49,83/ha de georreferenciamento. EIA/RIMA e compensação, quando exigíveis, devem ser somados às taxas.</p>
+
+                        <label for="liaReposicaoHa">Taxa de reposição florestal não paga, R$ por hectare:</label>
+                        <input type="number" id="liaReposicaoHa" step="0.01" min="0">
+                        <p id="liaNotaReposicao" class="ajuda-campo"></p>
+
+                        <label for="liaTaxaReal">Selic real média do período (% ao ano):</label>
+                        <input type="number" id="liaTaxaReal" step="0.01" min="0" value="3.74">
+                        <label for="liaTaxaNominal">Selic nominal média do período (% ao ano):</label>
+                        <input type="number" id="liaTaxaNominal" step="0.01" min="0" value="9.73">
+                        <p class="ajuda-campo">Médias de 2010 a 2025 (Banco Central, séries SGS 4390 e 433). Ajuste para o período do caso.</p>
+                    </div>
+                </div>
+
                 <details class="input-group identificacao-524">
                     <summary>Dados para cumprimento de sentença (art. 524 do CPC)</summary>
                     <p class="ajuda-campo">Preenchimento opcional; exigido apenas no requerimento de cumprimento de sentença. Estes dados ficam só neste navegador e no relatório; não são enviados a servidor algum.</p>
@@ -310,6 +366,13 @@
                     <h4>Dano Climático (Custo Social do Carbono)</h4>
                     <div class="valor-item">
                         <span id="danoExtrapatrimonialSocial" class="valor-destaque"></span>
+                    </div>
+                </div>
+
+                <div class="resultado-secao" id="secaoLIA" style="display:none;">
+                    <h4>Lucro do Ilícito Ambiental (LIA)</h4>
+                    <div class="valor-item">
+                        <span id="valorLIA" class="valor-destaque"></span>
                     </div>
                 </div>
 

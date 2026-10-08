@@ -992,3 +992,13 @@ header h2 {
     color: #c62828;
     margin-bottom: 8px;
 }
+
+/* v7: lucro do ilícito ambiental */
+.campos-lia {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: #f8faf8;
+    border-left: 3px solid #4a7c59;
+    border-radius: 4px;
+}
+.campos-lia label { margin-top: 10px; }
