@@ -189,7 +189,8 @@
     function textoTimotheo(r, chave) {
         var c = r.timotheo.custos[chave];
         return 'Custo de reposição: ' + moeda(c.valor) + '/ha (' + c.rotulo + '; Timotheo et al., 2017, na Nota Técnica 03/2022 do CAEx, com valores "atualizados conforme o IPCA no período 2017-2023")' +
-            (r.custo.fator === null ? '.' : ', levado de ' + C.rotuloMes(r.timotheo.mesBase) + ' a ' + C.rotuloMes(r.custo.mesReferencia) + ' pelo IPCA-15. A Nota não indica o mês do valor; adotou-se dez./2023, ponto a confirmar.');
+
+            ', pelo valor da Nota, sem reajuste.';
     }
 
     // Dano residual: fração dos serviços ecossistêmicos que não se recupera.
@@ -198,6 +199,11 @@
         var d = r.residual;
         var caex = d.metodo === 'caex';
         var html = subtitulo('2.3 Dano residual');
+        if (!(d.area > 0)) {
+            return html + '<p style="text-align:justify;">' + (r.areas.em > 0
+                ? 'Como a reparação <em>in situ</em> não será promovida, não há dano residual a calcular: ele é a parcela que a restauração não devolve.'
+                : 'Não há área com reparação <em>in situ</em> informada.') + ' Dano residual = ' + moeda(0) + '.</p>';
+        }
         html += '<p style="text-align:justify;">Parcela dos serviços ecossistêmicos que não volta ao estado anterior mesmo depois de concluída a restauração. Não se confunde com o dano interino, que mede a perda durante a recuperação.</p>';
         var linhas = [];
         linhas.push(linha('Método', caex

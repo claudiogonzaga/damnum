@@ -950,7 +950,7 @@ function mostrarResultado(r) {
     document.getElementById('danoMaterialMedia').textContent = formatarMoeda(p.material.valor);
     document.getElementById('danoInterinoMedia').textContent = formatarMoeda(p.interino.valor);
     document.getElementById('danoResidual').textContent = formatarMoeda(p.residual.valor);
-    document.getElementById('notaDanoResidual').textContent = r.residual.metodo === 'caex' ? '' : 'Em espécie: proteção perpétua de ' + numeroBR(r.residual.areaEmEspecie, 2) + ' ha de vegetação nativa. Faixa em dinheiro: de ' + formatarMoeda(r.residual.estatisticas.valor_minimo) + ' a ' + formatarMoeda(r.residual.estatisticas.valor_maximo) + '.';
+    document.getElementById('notaDanoResidual').textContent = r.residual.metodo === 'caex' || !(r.residual.area > 0) ? '' : 'Em espécie: proteção perpétua de ' + numeroBR(r.residual.areaEmEspecie, 2) + ' ha de vegetação nativa. Faixa em dinheiro: de ' + formatarMoeda(r.residual.estatisticas.valor_minimo) + ' a ' + formatarMoeda(r.residual.estatisticas.valor_maximo) + '.';
     document.getElementById('danoExtrapatrimonialMercado').textContent = formatarMoeda(p.mercado.valor);
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
     document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);

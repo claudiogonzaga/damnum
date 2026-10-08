@@ -42,12 +42,11 @@ test('interino: o método do CAEx usa o custo de Timotheo; o padrão usa o custo
     const padrao = V.calcular(entrada(), series);
     assert.strictEqual(padrao.interino.custoHa, padrao.custo.valorHa);
     const caex = V.calcular(entrada({ interino: V.interinoPadrao('caex', 'floresta') }), series);
-    // Dano em dez./2023, mês-base adotado para os valores da Nota: custo sem reajuste.
     assert.strictEqual(caex.interino.custoHa, 9999.84);
     assert.notStrictEqual(caex.interino.custoHa, caex.custo.valorHa);
+    // Valor da Nota, sem reajuste, qualquer que seja a data do dano.
     const antes = V.calcular(entrada({ dataDano: new Date(2020, 5, 15), interino: V.interinoPadrao('caex', 'floresta') }), series);
-    assert.strictEqual(antes.interino.custoHa, C.arredondar(9999.84 * series.ipca15_indice['202006'] / series.ipca15_indice['202312'], 2));
-    assert.ok(antes.interino.custoHa < 9999.84);
+    assert.strictEqual(antes.interino.custoHa, 9999.84);
 });
 
 test('residual padrão: faixa do percentual não recuperado, de 1,99% a 26%, mediana de 14%', () => {
@@ -69,11 +68,14 @@ test('residual do CAEx reproduz o Relatório Técnico 963/2026: 215,71 ha = R$ 2
     assert.strictEqual(r.parcelas.residual.valor, 2621482.72);
 });
 
-test('na valoração: o residual incide sobre toda a área, é atualizado como parcela patrimonial e entra nos totais', () => {
+test('na valoração: o residual só incide na área com reparação in situ, é atualizado e entra nos totais', () => {
     const r = V.calcular(entrada({ areas: { fora: 10, em: 2 } }), series);
-    assert.strictEqual(r.residual.area, 12);
-    assert.strictEqual(r.parcelas.residual.valor, C.arredondar(12 * r.custo.valorHa * 0.14, 2));
+    assert.strictEqual(r.residual.area, 2);
+    assert.strictEqual(r.parcelas.residual.valor, C.arredondar(2 * r.custo.valorHa * 0.14, 2));
     assert.ok(r.parcelas.residual.correcao > 0 && r.parcelas.residual.juros > 0);
+    const semReparo = V.calcular(entrada({ areas: { fora: 10, em: 2 }, reparacaoInSitu: false }), series);
+    assert.strictEqual(semReparo.parcelas.residual.valor, 0);
+    assert.ok(R.gerarHTML(semReparo).includes('não há dano residual a calcular'));
     const p = r.parcelas;
     assert.strictEqual(r.totais.original, C.arredondar(p.material.valor + p.interino.valor + p.residual.valor + p.mercado.valor + p.social.valor, 2));
     const outro = entrada({ residual: Object.assign(V.residualPadrao('gonzaga'), { pfePct: 20 }) });
@@ -86,6 +88,6 @@ test('relatório: seções do interino e do residual em cada método', () => {
         '2.4 Dano extrapatrimonial', '2.5 Dano climático', 'POORTER, Lourens'].forEach(t => assert.ok(padrao.includes(t), 'falta: ' + t));
     assert.ok(!padrao.includes('tempo de recuperação</b>'));
     const caex = R.gerarHTML(V.calcular(entrada({ interino: V.interinoPadrao('caex', 'floresta'), residual: V.residualPadrao('caex') }), series));
-    ['Nota Técnica 03/2022', 'Relatório Técnico 963/2026', 'Timotheo et al., 2017', 'ponto a confirmar', 'A × (custo de reposição × PFE) ÷ i'].forEach(t => assert.ok(caex.includes(t), 'falta: ' + t));
+    ['Nota Técnica 03/2022', 'Relatório Técnico 963/2026', 'Timotheo et al., 2017', 'sem reajuste', 'A × (custo de reposição × PFE) ÷ i'].forEach(t => assert.ok(caex.includes(t), 'falta: ' + t));
     assert.ok(!caex.includes('Faixa do dano residual'));
 });

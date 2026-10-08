@@ -33,9 +33,7 @@
     // ---------- custos de reposição da Nota Técnica do CAEx ----------
     // Nota Técnica 03/2022 do CAEx Ambiental/MPMT (atualizada em 17/01/2024), itens
     // 3.2.2, 3.2.3 e 3.2.1 (sem reparação): custos de Timotheo et al. (2017),
-    // "atualizados conforme o IPCA no período 2017-2023". A Nota não indica o mês;
-    // a calculadora adota dez./2023 como base (PENDENTE de confirmação).
-    var MES_BASE_TIMOTHEO = '202312';
+    // "atualizados conforme o IPCA no período 2017-2023". Entram pelo valor da Nota.
     var CUSTOS_TIMOTHEO = {
         alta: { valor: 6656.91, rotulo: 'desmatamento com alta resiliência: isolamento e condução da regeneração natural ("cercamento")' },
         baixa: { valor: 9999.84, rotulo: 'desmatamento com baixa resiliência: isolamento e plantio de mudas em 5 m × 5 m ("adensamento")' },
@@ -111,7 +109,8 @@
         return { metodo: 'gonzaga', pfePct: C.faixaDeValores(RESIDUAL_PONTOS.map(function (p) { return p.pct; })).mediana, k: 1 };
     }
 
-    // Método padrão: DR = A × PFE × k × custo de referência (estoque, sem taxa);
+    // O residual só existe onde há reparação in situ: é o que a restauração não
+    // devolve. Método padrão: DR = A × PFE × k × custo de referência (estoque, sem taxa);
     // em espécie, a regra é proteger A × PFE × k hectares em perpetuidade.
     // CAEx (RT 963/2026): DR = A × (CR × PFE) ÷ i.
     function calcularResidual(config, custoHa, custoCaexHa, area) {
@@ -441,19 +440,15 @@
         var areaMaterial = reparacao ? fora : total;
         var areaInterino = reparacao ? em : 0;
         var valorMaterialGonzaga = areaMaterial * custo.valorHa;
-        // Custo de Timotheo et al. (Nota Técnica do CAEx) no mesmo mês de referência
-        // do custo do DAMNUM, para os métodos do CAEx.
-        function custoTimotheo(chave) {
-            var valor = CUSTOS_TIMOTHEO[chave].valor;
-            if (custo.fator === null) return valor;
-            return C.arredondar(C.reindexar(valor, series, MES_BASE_TIMOTHEO, custo.mesReferencia), 2);
-        }
+        // Custo de Timotheo et al., pelo valor da Nota Técnica do CAEx, sem reajuste,
+        // como nos cálculos do próprio CAEx.
+        function custoTimotheo(chave) { return CUSTOS_TIMOTHEO[chave].valor; }
         // Sem configuração própria, vale o método de Gonzaga et al. com a taxa e o tempo informados.
         var configInterino = entrada.interino || { metodo: 'gonzaga', forma: null, taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao };
         var interino = calcularInterino(configInterino, custo.valorHa, configInterino.metodo === 'caex' ? custoTimotheo(configInterino.resiliencia) : null, areaInterino, fora);
         var valorInterino = interino.valorAreaProtegida + interino.valorAreaFora;
         var configResidual = entrada.residual || residualPadrao('gonzaga');
-        var residual = calcularResidual(configResidual, custo.valorHa, configResidual.metodo === 'caex' ? custoTimotheo(configResidual.custo) : null, total);
+        var residual = calcularResidual(configResidual, custo.valorHa, configResidual.metodo === 'caex' ? custoTimotheo(configResidual.custo) : null, areaInterino);
 
         var parametros = Object.assign({}, entrada.parametros);
         parametros.precoSocialCO2BRL = C.arredondar(parametros.precoSocialCO2USD * parametros.cotacaoDolar, 2);
@@ -462,7 +457,7 @@
         var parcelas = {
             material: parcelaPatrimonial(entrada.entendimento === 'irdr' ? 0 : valorMaterialGonzaga, areaMaterial, ctx),
             interino: parcelaPatrimonial(valorInterino, areaInterino, ctx),
-            residual: parcelaPatrimonial(residual.valor, total, ctx),
+            residual: parcelaPatrimonial(residual.valor, areaInterino, ctx),
             mercado: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL), ctx),
             social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL), ctx)
         };
@@ -517,7 +512,7 @@
             custo: custo,
             interino: interino,
             residual: residual,
-            timotheo: { mesBase: MES_BASE_TIMOTHEO, custos: CUSTOS_TIMOTHEO },
+            timotheo: { custos: CUSTOS_TIMOTHEO },
             lia: lia,
             liaAnoRegularizacao: entrada.lia ? entrada.lia.anoRegularizacao : null,
             parametros: parametros,
@@ -581,7 +576,6 @@
         calcularLIA: calcularLIA,
         atualizarLIA: atualizarLIA,
         CUSTOS_TIMOTHEO: CUSTOS_TIMOTHEO,
-        MES_BASE_TIMOTHEO: MES_BASE_TIMOTHEO,
         RESIDUAL_PONTOS: RESIDUAL_PONTOS,
         RESIDUAL_CAEX: RESIDUAL_CAEX,
         residualPadrao: residualPadrao,
