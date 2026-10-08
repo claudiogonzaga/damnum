@@ -268,11 +268,17 @@
         return v.length % 2 ? v[meio] : (v[meio - 1] + v[meio]) / 2;
     }
 
-    // Faixa dos tempos de recuperação publicados: mínimo, máximo e mediana.
-    function faixaDeTempos(pontos) {
-        var anos = pontos.map(function (p) { return p.anos; });
-        if (anos.length === 0) return null;
-        return { minimo: Math.min.apply(null, anos), maximo: Math.max.apply(null, anos), mediana: mediana(anos), quantidade: anos.length };
+    // Faixa de estimativas publicadas: mínimo, máximo e mediana.
+    function faixaDeValores(valores) {
+        if (valores.length === 0) return null;
+        return { minimo: Math.min.apply(null, valores), maximo: Math.max.apply(null, valores), mediana: mediana(valores), quantidade: valores.length };
+    }
+
+    // Leva um valor de um mês-base a outro mês pelo número-índice do IPCA-15.
+    function reindexar(valor, series, mesBase, mesAlvo) {
+        var base = exigir(series.ipca15_indice, 'IPCA-15 (número-índice)', mesBase);
+        var alvo = exigir(series.ipca15_indice, 'IPCA-15 (número-índice)', mesAlvo);
+        return valor * (alvo / base);
     }
 
     function validarTaxaInterino(taxaPercentual) {
@@ -342,7 +348,8 @@
         fatorAntecipacao: fatorAntecipacao,
         fatorCapitalizacao: fatorCapitalizacao,
         mediana: mediana,
-        faixaDeTempos: faixaDeTempos,
+        faixaDeValores: faixaDeValores,
+        reindexar: reindexar,
         validarTaxaInterino: validarTaxaInterino,
         carbonoParaCO2: carbonoParaCO2,
         mediaPonderadaBioma: mediaPonderadaBioma,

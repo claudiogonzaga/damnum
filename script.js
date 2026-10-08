@@ -240,7 +240,7 @@ let tabelaQCN = null;      // data/estoques_qcn_fitofisionomias.json
 let consultaMapa = null;   // resultado da consulta ao mapa por estado (polígono ou coordenada)
 let poligonoUsuario = null;
 let consultaIBGE = null;
-let temposRecuperacao = null; // data/tempos_recuperacao.json (dano interino)   // indicação da fitofisionomia pelo mapa de vegetação do IBGE
+  // indicação da fitofisionomia pelo mapa de vegetação do IBGE
 
 async function carregarTabelaQCN() {
     try {
@@ -251,18 +251,6 @@ async function carregarTabelaQCN() {
     } catch (erro) {
         console.error('Erro ao carregar a tabela de estoques do QCN:', erro);
         document.getElementById('origemEstoque').textContent = 'Não foi possível carregar a tabela de estoques. Recarregue a página ou informe o estoque do caso.';
-    }
-}
-
-async function carregarTemposRecuperacao() {
-    try {
-        const resposta = await fetch('data/tempos_recuperacao.json');
-        if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
-        temposRecuperacao = await resposta.json();
-        atualizarPadroesInterino(true);
-    } catch (erro) {
-        console.error('Erro ao carregar os tempos de recuperação:', erro);
-        document.getElementById('notaTempoRecuperacao').textContent = 'Não foi possível carregar os tempos de recuperação publicados. Informe o tempo.';
     }
 }
 
@@ -282,27 +270,46 @@ function atualizarPadroesInterino(forcar) {
     document.getElementById('notaMetodoInterino').textContent = metodo === 'caex'
         ? 'Custo × Σ i ÷ (1 + i)ᵃ, do ano 1 ao ano t. Taxa: média do IPCA de 1995 a 2023.'
         : 'Custo × i × (t + 1) ÷ 2. Método padrão, do artigo do SICAM.';
-    if (!temposRecuperacao) return;
-    const padrao = DamnumValoracao.interinoPadrao(metodo, campoForma.value, temposRecuperacao);
+    document.getElementById('itemResiliencia').style.display = metodo === 'caex' ? '' : 'none';
+    const padrao = DamnumValoracao.interinoPadrao(metodo, campoForma.value);
     if (forcar || !campoTaxa.dataset.editado) { campoTaxa.value = padrao.taxaPct; delete campoTaxa.dataset.editado; }
     if (forcar || !campoTempo.dataset.editado) { campoTempo.value = padrao.tempo; delete campoTempo.dataset.editado; }
-    const nota = document.getElementById('notaTempoRecuperacao');
-    if (metodo === 'caex') {
-        nota.textContent = 'Nota Técnica 03/2022: 100 anos para floresta e 30 anos para cerrado.';
-    } else {
-        const f = DamnumCalc.faixaDeTempos(padrao.pontos);
-        nota.textContent = f.quantidade > 1
-            ? 'Tempos publicados: de ' + numeroBR(f.minimo, 0) + ' a ' + numeroBR(f.maximo, 0) + ' anos (' + f.quantidade + ' estimativas). Padrão: a mediana, ' + numeroBR(f.mediana, f.mediana % 1 ? 1 : 0) + ' anos. O relatório mostra toda a faixa.'
-            : 'Um único tempo publicado para esta forma de vegetação: ' + numeroBR(f.mediana, 0) + ' anos.';
-    }
+    document.getElementById('notaTempoRecuperacao').textContent = metodo === 'caex'
+        ? 'Nota Técnica 03/2022: 100 anos para floresta e 30 anos para cerrado.'
+        : 'Mínimo de 15 anos, do artigo do SICAM. Informe tempo maior quando o caso o justificar.';
     validarTaxaInterino();
+}
+
+// Dano residual: percentual e taxa padrão do método escolhido.
+function atualizarPadroesResidual(forcar) {
+    const metodo = valorCampo('metodoResidual');
+    const padrao = DamnumValoracao.residualPadrao(metodo);
+    const campoPfe = document.getElementById('pfeResidual');
+    if (forcar || !campoPfe.dataset.editado) { campoPfe.value = padrao.pfePct; delete campoPfe.dataset.editado; }
+    document.getElementById('itemTaxaResidual').style.display = metodo === 'caex' ? '' : 'none';
+    document.getElementById('notaMetodoResidual').textContent = metodo === 'caex'
+        ? 'Área × (custo de reposição × percentual) ÷ taxa de juros.'
+        : 'Área × custo de recuperação × percentual. Método padrão.';
+    const f = DamnumCalc.faixaDeValores(DamnumValoracao.RESIDUAL_PONTOS.map(p => p.pct));
+    document.getElementById('notaPfeResidual').textContent = metodo === 'caex'
+        ? 'Relatório Técnico 963/2026: 1,99%, com pesos iguais para os doze atributos de Poorter et al. (2021).'
+        : 'Estimativas publicadas: de ' + numeroBR(f.minimo, 2) + '% a ' + numeroBR(f.maximo, 0) + '% (' + f.quantidade + ' estimativas). Padrão: a mediana, ' + numeroBR(f.mediana, 0) + '%. O relatório mostra toda a faixa.';
+}
+
+function lerResidual() {
+    const metodo = valorCampo('metodoResidual');
+    const padrao = DamnumValoracao.residualPadrao(metodo);
+    padrao.pfePct = parseFloat(valorCampo('pfeResidual'));
+    if (metodo === 'caex') padrao.taxaPct = parseFloat(valorCampo('taxaResidual'));
+    return padrao;
 }
 
 // ============================================================
 // LUCRO DO ILÍCITO AMBIENTAL (LIA)
 // ============================================================
 
-const CAMPOS_LIA_PADRAO = ['liaEbitda', 'liaArrendamento', 'liaAnosAtividade', 'liaVolume', 'liaTaxasLicenciamento', 'liaHonorariosHa', 'liaReposicaoHa'];
+const CAMPOS_LIA_PADRAO = ['liaEbitda', 'liaArrendamento', 'liaAnosAtividade', 'liaVolume', 'liaTaxasLicenciamento', 'liaHonorariosHa', 'liaReposicaoHa', 'liaEiaRima'];
+const CAMPOS_LIA = CAMPOS_LIA_PADRAO.concat(['liaAnoRegularizacao', 'liaAtividade', 'liaValorizacao', 'liaPrecoMadeira', 'liaTaxaReal', 'liaTaxaNominal']);
 
 function anosDoLIA() {
     const dataDano = obterDataDano();
@@ -314,20 +321,18 @@ function anosDoLIA() {
 // Preenche os campos do LIA com os valores de referência, sem tocar no que o
 // usuário já alterou.
 function atualizarPadroesLIA() {
-    const ativo = document.getElementById('liaAtivo').checked;
-    document.getElementById('camposLIA').style.display = ativo ? '' : 'none';
     const atividade = valorCampo('liaAtividade');
     document.getElementById('liaComAtividade').style.display = atividade === 'nenhuma' ? 'none' : '';
     document.getElementById('liaSemAtividade').style.display = atividade === 'nenhuma' ? '' : 'none';
     const bioma = document.getElementById('bioma').value;
-    if (!ativo || !bioma) return;
+    if (!bioma) return;
     const intervalo = anosDoLIA();
     const areaFora = parseFloat(valorCampo('areaForaAPP')) || 0;
-    const padrao = DamnumValoracao.liaPadrao(bioma, areaFora, atividade, intervalo ? Math.max(intervalo.anos, 0) : 0);
+    const padrao = DamnumValoracao.liaPadrao(bioma, areaFora, atividade, intervalo ? Math.max(intervalo.anos, 0) : 0, valorCampo('formaVegetacao'));
     const valores = {
         liaEbitda: padrao.ebitda, liaArrendamento: padrao.arrendamento, liaAnosAtividade: padrao.anosAtividade,
         liaVolume: padrao.volumeM3, liaTaxasLicenciamento: padrao.taxasLicenciamento,
-        liaHonorariosHa: padrao.honorariosHa, liaReposicaoHa: padrao.reposicaoHa
+        liaHonorariosHa: padrao.honorariosHa, liaReposicaoHa: padrao.reposicaoHa, liaEiaRima: padrao.eiaRima || ''
     };
     CAMPOS_LIA_PADRAO.forEach(id => {
         const campo = document.getElementById(id);
@@ -342,12 +347,12 @@ function atualizarPadroesLIA() {
         : 'Mato Grosso: valor derivado dos volumes presumidos da LC 233/2005 e das taxas do Decreto 1.313/2022; confira antes de usar.';
 }
 
-// Configuração do LIA a partir da tela, ou null se não for calcular.
-// Lança Error com mensagem para o usuário se faltar dado obrigatório.
+// Configuração do LIA a partir da tela. Sem a data do dano não há intervalo e o
+// LIA não é calculado (null). Lança Error com mensagem para o usuário se o ano
+// da regularização for inconsistente.
 function lerLIA() {
-    if (!document.getElementById('liaAtivo').checked) return null;
     const intervalo = anosDoLIA();
-    if (!intervalo) throw new Error('Para calcular o lucro do ilícito ambiental, informe a data do dano.');
+    if (!intervalo) return null;
     if (intervalo.anos < 0) throw new Error('O ano da regularização não pode ser anterior ao ano do dano.');
     const n = id => parseFloat(valorCampo(id)) || 0;
     const atividade = valorCampo('liaAtividade');
@@ -365,8 +370,10 @@ function lerLIA() {
         volumeM3: n('liaVolume'), precoMadeira: n('liaPrecoMadeira'),
         taxasLicenciamento: n('liaTaxasLicenciamento'), honorariosHa: n('liaHonorariosHa'),
         reposicaoHa: n('liaReposicaoHa'),
+        eiaRima: n('liaEiaRima'),
+        mesBaseLicenciamento: ['liaTaxasLicenciamento', 'liaHonorariosHa', 'liaEiaRima'].some(id => document.getElementById(id).dataset.editado) ? null : ref.mesBaseLicenciamento,
         referenciaMT: true,
-        fontes: 'valores de referência de Mato Grosso: EBITDA e arrendamento (Rossi et al., 2023; IMEA, 2026), taxas da SEMA/MT (Lei 11.179/2020) e UPF/MT de set./2026, honorários (mercado e INCRA, 2025), reposição florestal (Decreto 1.313/2022 e LC 233/2005) e Selic (Banco Central).' +
+        fontes: 'valores de referência de Mato Grosso: EBITDA e arrendamento (Rossi et al., 2023; IMEA, 2026), taxas da SEMA/MT (Lei 11.179/2020) e UPF/MT de set./2026, honorários técnicos e EIA/RIMA (orçamento de empresa de consultoria ambiental de Mato Grosso, set./2026, por faixa de área), reposição florestal (Decreto 1.313/2022 e LC 233/2005) e Selic (Banco Central).' +
             (editados.length ? ' O usuário alterou ' + editados.length + ' dos valores de referência.' : '')
     };
 }
@@ -378,8 +385,7 @@ function lerInterino() {
     return {
         metodo,
         forma,
-        pontos: temposRecuperacao ? temposRecuperacao.formas[forma].pontos : [],
-        referencias: temposRecuperacao ? temposRecuperacao.referencias : [],
+        resiliencia: metodo === 'caex' ? valorCampo('resilienciaInterino') : null,
         taxaPct: parseFloat(valorCampo('taxaJurosAnual')),
         tempo: parseFloat(valorCampo('tempoRecuperacao')),
         anosAteRegularizacao: metodo === 'caex' ? (parseFloat(valorCampo('anosRegularizacao')) || 0) : 0
@@ -885,6 +891,7 @@ async function calcularValoracao() {
             areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea },
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
             interino: lerInterino(),
+            residual: lerResidual(),
             lia,
             parametros,
             estoque,
@@ -933,6 +940,8 @@ function mostrarResultado(r) {
     const p = r.parcelas;
     document.getElementById('danoMaterialMedia').textContent = formatarMoeda(p.material.valor);
     document.getElementById('danoInterinoMedia').textContent = formatarMoeda(p.interino.valor);
+    document.getElementById('danoResidual').textContent = formatarMoeda(p.residual.valor);
+    document.getElementById('notaDanoResidual').textContent = r.residual.metodo === 'caex' ? '' : 'Em espécie: proteção perpétua de ' + numeroBR(r.residual.areaEmEspecie, 2) + ' ha de vegetação nativa. Faixa em dinheiro: de ' + formatarMoeda(r.residual.estatisticas.valor_minimo) + ' a ' + formatarMoeda(r.residual.estatisticas.valor_maximo) + '.';
     document.getElementById('danoExtrapatrimonialMercado').textContent = formatarMoeda(p.mercado.valor);
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
     document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);
@@ -1033,7 +1042,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     iniciarSlideshow();
     buscarCotacaoDolar();
     carregarTabelaQCN();
-    carregarTemposRecuperacao();
+    atualizarPadroesInterino(true);
+    atualizarPadroesResidual(true);
+    atualizarPadroesLIA();
     atualizarParametrosCalculados();
 
     biomaSelect.addEventListener('change', function() {
@@ -1050,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // Lucro do ilícito ambiental
-    ['liaAtivo', 'liaAtividade', 'liaAnoRegularizacao', 'bioma', 'dataDano'].forEach(id => {
+    ['liaAtividade', 'liaAnoRegularizacao', 'bioma', 'dataDano', 'formaVegetacao', 'fitofisionomia'].forEach(id => {
         document.getElementById(id).addEventListener('change', atualizarPadroesLIA);
     });
     document.getElementById('areaForaAPP').addEventListener('input', atualizarPadroesLIA);
@@ -1086,6 +1097,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     document.getElementById('tempoRecuperacao').addEventListener('input', function() { this.dataset.editado = '1'; });
     document.getElementById('metodoInterino').addEventListener('change', function() { atualizarPadroesInterino(true); });
+    document.getElementById('metodoResidual').addEventListener('change', function() { atualizarPadroesResidual(true); });
+    document.getElementById('pfeResidual').addEventListener('input', function() { this.dataset.editado = '1'; });
     document.getElementById('formaVegetacao').addEventListener('change', function() {
         this.dataset.editado = '1';
         atualizarPadroesInterino(true);

@@ -151,13 +151,10 @@
                     </label>
                 </div>
 
-                <div class="input-group" id="grupoLIA">
-                    <label class="caixa-opcao">
-                        <input type="checkbox" id="liaAtivo">
-                        Calcular o lucro do ilícito ambiental (LIA)
-                    </label>
-                    <p class="ajuda-campo">Restituição do que o infrator ganhou com o desmatamento (a "mais-valia ecológica ilícita" do STJ), que se soma à reparação do dano. Exige a data do dano. Os valores de referência são de <strong>Mato Grosso</strong>; confira e ajuste cada um.</p>
-                    <div id="camposLIA" class="campos-lia" style="display:none;">
+                <details class="input-group" id="grupoLIA">
+                    <summary>Lucro do ilícito ambiental (LIA): parâmetros</summary>
+                    <p class="ajuda-campo">Restituição do que o infrator ganhou com o desmatamento (a "mais-valia ecológica ilícita" do STJ), que se soma à reparação do dano. É calculado sempre que a data do dano for informada, com os valores abaixo. Os valores de referência são de <strong>Mato Grosso</strong>; confira e ajuste cada um.</p>
+                    <div id="camposLIA" class="campos-lia">
                         <label for="liaAnoRegularizacao">Ano da regularização ou da recomposição (em branco: ano atual, ainda sem regularização):</label>
                         <input type="number" id="liaAnoRegularizacao" step="1" min="2001" placeholder="Ex.: 2026">
 
@@ -191,9 +188,11 @@
 
                         <label for="liaTaxasLicenciamento">Área fora de APP e reserva legal: taxas de licenciamento evitadas, R$ (total):</label>
                         <input type="number" id="liaTaxasLicenciamento" step="0.01" min="0">
-                        <label for="liaHonorariosHa">Honorários técnicos evitados (inventário, georreferenciamento), R$ por hectare:</label>
+                        <label for="liaHonorariosHa">Honorários técnicos evitados (caracterização da vegetação, inventário florestal e Plano de Exploração Florestal), R$ por hectare:</label>
                         <input type="number" id="liaHonorariosHa" step="0.01" min="0">
-                        <p class="ajuda-campo">Taxas da SEMA/MT (Lei 11.179/2020): Plano de Exploração Florestal, 5 + 0,2 UPF/MT por hectare; vistoria, cerca de R$ 5.500; Diagnóstico Ambiental, 65 UPF/MT, acima de 1.000 ha. UPF/MT de set./2026: R$ 263,97. Honorários: piso de R$ 50/ha de inventário mais R$ 49,83/ha de georreferenciamento. EIA/RIMA e compensação, quando exigíveis, devem ser somados às taxas.</p>
+                        <label for="liaEiaRima">Custo evitado do EIA/RIMA, R$ (total; exigível acima de 1.000 ha):</label>
+                        <input type="number" id="liaEiaRima" step="0.01" min="0" placeholder="Em branco: não há">
+                        <p class="ajuda-campo">Taxas da SEMA/MT (Lei 11.179/2020): Plano de Exploração Florestal, 5 + 0,2 UPF/MT por hectare; vistoria, cerca de R$ 5.500; Diagnóstico Ambiental, 65 UPF/MT, acima de 1.000 ha. UPF/MT de set./2026: R$ 263,97. Honorários e EIA/RIMA: orçamento de empresa de consultoria ambiental de Mato Grosso (set./2026) para 50, 150 e 1.500 ha, em vegetação savânica e florestal; a calculadora usa o cenário da faixa de área (até 100 ha, de 100 a 1.000 ha, acima de 1.000 ha). Sem alteração sua, esses valores são levados ao mês do dano pelo IPCA-15.</p>
 
                         <label for="liaReposicaoHa">Taxa de reposição florestal não paga, R$ por hectare:</label>
                         <input type="number" id="liaReposicaoHa" step="0.01" min="0">
@@ -205,7 +204,7 @@
                         <input type="number" id="liaTaxaNominal" step="0.01" min="0" value="9.73">
                         <p class="ajuda-campo">Médias de 2010 a 2025 (Banco Central, séries SGS 4390 e 433). Ajuste para o período do caso.</p>
                     </div>
-                </div>
+                </details>
 
                 <details class="input-group identificacao-524">
                     <summary>Dados para cumprimento de sentença (art. 524 do CPC)</summary>
@@ -290,13 +289,40 @@
                     </div>
                     <div class="parametro-item">
                         <label for="tempoRecuperacao">Tempo de recuperação da vegetação (anos):</label>
-                        <input type="number" id="tempoRecuperacao" value="55" step="0.5" min="1">
+                        <input type="number" id="tempoRecuperacao" value="15" step="0.5" min="1">
                         <span id="notaTempoRecuperacao" class="nota-parametro"></span>
+                    </div>
+                    <div class="parametro-item" id="itemResiliencia" style="display:none;">
+                        <label for="resilienciaInterino">Custo de reposição (Timotheo et al., 2017, na Nota Técnica):</label>
+                        <select id="resilienciaInterino">
+                            <option value="baixa">Baixa resiliência: plantio em 5 m × 5 m (R$ 9.999,84/ha)</option>
+                            <option value="alta">Alta resiliência: condução da regeneração (R$ 6.656,91/ha)</option>
+                            <option value="plantio">Plantio total em 3 m × 2 m (R$ 41.649,33/ha)</option>
+                        </select>
+                        <span class="nota-parametro">Valores de 2023, levados ao mês do dano pelo IPCA-15.</span>
                     </div>
                     <div class="parametro-item" id="itemAnosRegularizacao" style="display:none;">
                         <label for="anosRegularizacao">Área fora de APP e reserva legal: anos entre o desmatamento e o pedido de regularização (opcional):</label>
                         <input type="number" id="anosRegularizacao" value="" step="1" min="0" placeholder="Em branco: não calcula">
                         <span class="nota-parametro">Nota Técnica 03/2022, item 1.7: juros do ano 1 × número de anos. Soma-se ao dano interino.</span>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="metodoResidual">Método do dano residual: <a href="manual.html#calculo-de-cada-parcela" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>
+                        <select id="metodoResidual">
+                            <option value="gonzaga">Gonzaga et al. (2026): percentual não recuperado × custo de recuperação</option>
+                            <option value="caex">CAEx/MPMT, RT 963/2026 (Roquette): perda anual ÷ taxa de juros</option>
+                        </select>
+                        <span id="notaMetodoResidual" class="nota-parametro"></span>
+                    </div>
+                    <div class="parametro-item">
+                        <label for="pfeResidual">Percentual que não se recupera (%):</label>
+                        <input type="number" id="pfeResidual" value="14" step="0.01" min="0" max="100">
+                        <span id="notaPfeResidual" class="nota-parametro"></span>
+                    </div>
+                    <div class="parametro-item" id="itemTaxaResidual" style="display:none;">
+                        <label for="taxaResidual">Taxa de juros do dano residual (% ao ano):</label>
+                        <input type="number" id="taxaResidual" value="6.82" step="0.01" min="0.01" max="30">
+                        <span class="nota-parametro">Média do IPCA de 1995 a 2023. Custo de reposição: plantio total, R$ 41.649,33/ha (Timotheo et al., 2017).</span>
                     </div>
                     <div class="parametro-item">
                         <label for="jurosExtrapatrimoniais">Juros sobre danos extrapatrimoniais antes de set./2024: <a href="manual.html#atualizacao-monetaria" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>
@@ -353,6 +379,15 @@
                         <span class="label">Valor:</span>
                         <span id="danoInterinoMedia" class="valor"></span>
                     </div>
+                </div>
+
+                <div class="resultado-secao">
+                    <h4>Dano Residual</h4>
+                    <div class="valor-item valor-destaque-medio">
+                        <span class="label">Valor:</span>
+                        <span id="danoResidual" class="valor"></span>
+                    </div>
+                    <p id="notaDanoResidual" class="nota-explicativa"></p>
                 </div>
 
                 <div class="resultado-secao">

@@ -54,7 +54,7 @@ test('patrimoniais: principal corrigido e juros truncados, como no Manual', () =
     assert.strictEqual(a.principalCorrigido, C.truncar(r.parcelas.material.valor * a.coeficiente, 2));
     assert.strictEqual(a.juros, C.truncar(a.principalCorrigido * a.percentualJuros / 100, 2));
     assert.strictEqual(r.totais.atualizado, C.arredondar(
-        r.parcelas.material.total + r.parcelas.interino.total + r.parcelas.mercado.total + r.parcelas.social.total, 2));
+        r.parcelas.material.total + r.parcelas.interino.total + r.parcelas.residual.total + r.parcelas.mercado.total + r.parcelas.social.total, 2));
 });
 
 test('sem data do dano: valores na data do cálculo, sem atualização', () => {

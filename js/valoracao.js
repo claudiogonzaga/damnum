@@ -30,18 +30,31 @@
         'MATA ATLÂNTICA': 'Mata Atlântica'
     };
 
-    // Dano interino: parâmetros de cada método.
-    var INTERINO_GONZAGA = { taxaPct: 6 };
-    // Nota Técnica 03/2022 do CAEx Ambiental/MPMT (atualizada em 17/01/2024):
-    // taxa igual à média da série histórica do IPCA de 1995 a 2023 (item 3.1);
-    // 100 anos para floresta (item 3.2.4) e 30 anos para cerrado (item 3.2.5).
-    var INTERINO_CAEX = { taxaPct: 6.82, tempo: { floresta: 100, savana: 30 } };
+    // ---------- custos de reposição da Nota Técnica do CAEx ----------
+    // Nota Técnica 03/2022 do CAEx Ambiental/MPMT (atualizada em 17/01/2024), itens
+    // 3.2.2, 3.2.3 e 3.2.1 (sem reparação): custos de Timotheo et al. (2017),
+    // "atualizados conforme o IPCA no período 2017-2023". A Nota não indica o mês;
+    // a calculadora adota dez./2023 como base (PENDENTE de confirmação).
+    var MES_BASE_TIMOTHEO = '202312';
+    var CUSTOS_TIMOTHEO = {
+        alta: { valor: 6656.91, rotulo: 'desmatamento com alta resiliência: isolamento e condução da regeneração natural ("cercamento")' },
+        baixa: { valor: 9999.84, rotulo: 'desmatamento com baixa resiliência: isolamento e plantio de mudas em 5 m × 5 m ("adensamento")' },
+        plantio: { valor: 41649.33, rotulo: 'isolamento e plantio total de mudas em 3 m × 2 m' }
+    };
 
-    // Forma da vegetação para o tempo de recuperação. Com a fitofisionomia
-    // escolhida, vale a categoria do Quarto Inventário (F = florestal; G e OFL =
-    // savânica ou campestre). Sem ela, o Cerrado é tratado como savânico, como na
-    // Nota Técnica do CAEx, e os demais biomas como florestais, que é a categoria
-    // predominante de todos eles na tabela do Inventário.
+    // ---------- dano interino ----------
+    // Gonzaga et al. (2025): custo × i × (t + 1) ÷ 2; taxa de 6% e tempo mínimo de 15 anos.
+    var INTERINO_GONZAGA = { taxaPct: 6, tempo: 15 };
+    // Nota Técnica 03/2022 do CAEx: taxa igual à média do IPCA de 1995 a 2023
+    // (item 3.1); 100 anos para floresta (3.2.4) e 30 anos para cerrado (3.2.5);
+    // custo de reposição de Timotheo et al. conforme a resiliência.
+    var INTERINO_CAEX = { taxaPct: 6.82, tempo: { floresta: 100, savana: 30 }, resiliencia: 'baixa' };
+
+    // Forma da vegetação para o tempo de recuperação da Nota do CAEx. Com a
+    // fitofisionomia escolhida, vale a categoria do Quarto Inventário (F =
+    // florestal; G e OFL = savânica ou campestre). Sem ela, o Cerrado é tratado
+    // como savânico, como na Nota, e os demais biomas como florestais, que é a
+    // categoria predominante de todos eles na tabela do Inventário.
     function formaDaVegetacao(tabelaQCN, bioma, indiceFitofisionomia) {
         if (tabelaQCN && indiceFitofisionomia !== null && indiceFitofisionomia !== undefined && indiceFitofisionomia !== '') {
             var f = tabelaQCN.biomas[BIOMA_QCN[bioma]].fitofisionomias[indiceFitofisionomia];
@@ -50,42 +63,77 @@
         return bioma === 'CERRADO' ? 'savana' : 'floresta';
     }
 
-    // Configuração padrão do dano interino para um método e uma forma de vegetação.
-    function interinoPadrao(metodo, forma, temposRecuperacao) {
-        var pontos = temposRecuperacao.formas[forma].pontos;
+    function interinoPadrao(metodo, forma) {
         if (metodo === 'caex') {
-            return { metodo: 'caex', forma: forma, pontos: pontos, taxaPct: INTERINO_CAEX.taxaPct, tempo: INTERINO_CAEX.tempo[forma], anosAteRegularizacao: 0 };
+            return { metodo: 'caex', forma: forma, taxaPct: INTERINO_CAEX.taxaPct, tempo: INTERINO_CAEX.tempo[forma], resiliencia: INTERINO_CAEX.resiliencia, anosAteRegularizacao: 0 };
         }
-        return { metodo: 'gonzaga', forma: forma, pontos: pontos, taxaPct: INTERINO_GONZAGA.taxaPct, tempo: C.faixaDeTempos(pontos).mediana, anosAteRegularizacao: 0 };
+        return { metodo: 'gonzaga', forma: forma, taxaPct: INTERINO_GONZAGA.taxaPct, tempo: INTERINO_GONZAGA.tempo, anosAteRegularizacao: 0 };
     }
 
-    // Calcula o dano interino por hectare e descreve o método.
-    function calcularInterino(config, custoHa, areaInterino, areaFora) {
-        var r = {
-            metodo: config.metodo, forma: config.forma, taxaPct: config.taxaPct, tempo: config.tempo,
-            faixa: null, estatisticas: null, valorAreaProtegida: 0, valorAreaFora: 0, anosAteRegularizacao: 0, jurosAnoUm: null
-        };
+    // `custoHa`: custo do DAMNUM (Portaria Ibama 118/2022) no mês de referência.
+    // `custoCaexHa`: custo de Timotheo et al. no mesmo mês, usado só no método do CAEx.
+    function calcularInterino(config, custoHa, custoCaexHa, areaInterino, areaFora) {
+        var r = { metodo: config.metodo, forma: config.forma, taxaPct: config.taxaPct, tempo: config.tempo,
+            valorAreaProtegida: 0, valorAreaFora: 0, anosAteRegularizacao: 0, jurosAnoUm: null, resiliencia: null };
         if (config.metodo === 'caex') {
+            r.resiliencia = config.resiliencia;
+            r.custoHa = custoCaexHa;
             r.fator = C.fatorInterinoCAEx(config.taxaPct, config.tempo);
             r.jurosAnoUm = C.jurosAnoUmCAEx(config.taxaPct);
             r.anosAteRegularizacao = config.anosAteRegularizacao > 0 ? config.anosAteRegularizacao : 0;
-            r.valorAreaFora = areaFora * custoHa * r.jurosAnoUm * r.anosAteRegularizacao;
+            r.valorAreaFora = areaFora * r.custoHa * r.jurosAnoUm * r.anosAteRegularizacao;
         } else {
+            r.custoHa = custoHa;
             r.fator = C.fatorInterino(config.taxaPct, config.tempo);
-            var pontos = config.pontos || [];
-            if (pontos.length) {
-                r.estatisticas = C.faixaDeTempos(pontos);
-                r.faixa = pontos.map(function (p) {
-                    var fator = C.fatorInterino(config.taxaPct, p.anos);
-                    return { anos: p.anos, atributo: p.atributo, fonte: p.fonte, nota: p.nota || '', fator: fator, valor: areaInterino * custoHa * fator };
-                });
-                ['minimo', 'maximo', 'mediana'].forEach(function (k) {
-                    r.estatisticas['valor_' + k] = areaInterino * custoHa * C.fatorInterino(config.taxaPct, r.estatisticas[k]);
-                });
-            }
         }
-        r.referencias = config.referencias || [];
-        r.valorAreaProtegida = areaInterino * custoHa * r.fator;
+        r.valorAreaProtegida = areaInterino * r.custoHa * r.fator;
+        return r;
+    }
+
+    // ---------- dano residual ----------
+    // Fração permanentemente perdida dos serviços ecossistêmicos (PFE), em % do
+    // custo de reposição: estimativas reunidas no trabalho
+    // sobre o dano residual submetido ao SICAM 2026. A faixa (mínimo, máximo e
+    // mediana) é calculada a partir destes pontos.
+    var RESIDUAL_PONTOS = [
+        { pct: 1.99, fonte: 'MPMT, Relatório Técnico 963/2026', nota: 'pesos iguais para os doze atributos de Poorter et al. (2021), cinco deles com déficit aos 120 anos' },
+        { pct: 10, fonte: 'Poorter et al. (2021)', nota: 'déficit do atributo mais lento (biomassa e composição de espécies) aos 120 anos' },
+        { pct: 14, fonte: 'Gonzaga et al. (2025)', nota: 'valor conservador a partir de Benayas et al. (2009), Moreno-Mateos et al. (2012) e Crouzeilles et al. (2016)' },
+        { pct: 23, fonte: 'Moreno-Mateos et al. (2012)', nota: 'funcionamento biogeoquímico de áreas úmidas restauradas' },
+        { pct: 26, fonte: 'Moreno-Mateos et al. (2012)', nota: 'estrutura biológica de áreas úmidas restauradas' }
+    ];
+    // MPMT, Relatório Técnico 963/2026 (SAT 77578): (CR × PFE) ÷ i, do método CATE II
+    // (Ribas, 1996), com PFE de 1,99%, i de 6,82% e CR de R$ 41.649,33/ha.
+    var RESIDUAL_CAEX = { pfePct: 1.99, taxaPct: 6.82, custo: 'plantio' };
+
+    function residualPadrao(metodo) {
+        if (metodo === 'caex') return { metodo: 'caex', pfePct: RESIDUAL_CAEX.pfePct, taxaPct: RESIDUAL_CAEX.taxaPct, custo: RESIDUAL_CAEX.custo, k: 1 };
+        return { metodo: 'gonzaga', pfePct: C.faixaDeValores(RESIDUAL_PONTOS.map(function (p) { return p.pct; })).mediana, k: 1 };
+    }
+
+    // Método padrão: DR = A × PFE × k × custo de referência (estoque, sem taxa);
+    // em espécie, a regra é proteger A × PFE × k hectares em perpetuidade.
+    // CAEx (RT 963/2026): DR = A × (CR × PFE) ÷ i.
+    function calcularResidual(config, custoHa, custoCaexHa, area) {
+        var pfe = config.pfePct / 100;
+        var r = { metodo: config.metodo, pfePct: config.pfePct, area: area, k: config.k || 1, faixa: null, estatisticas: null };
+        if (config.metodo === 'caex') {
+            r.custoHa = custoCaexHa;
+            r.taxaPct = config.taxaPct;
+            r.custo = config.custo;
+            r.valor = area * (custoCaexHa * pfe) / (config.taxaPct / 100);
+        } else {
+            r.custoHa = custoHa;
+            r.areaEmEspecie = area * pfe * r.k;
+            r.valor = area * custoHa * pfe * r.k;
+            r.estatisticas = C.faixaDeValores(RESIDUAL_PONTOS.map(function (p) { return p.pct; }));
+            r.faixa = RESIDUAL_PONTOS.map(function (p) {
+                return { pct: p.pct, fonte: p.fonte, nota: p.nota, valor: area * custoHa * (p.pct / 100) * r.k };
+            });
+            ['minimo', 'maximo', 'mediana'].forEach(function (c) {
+                r.estatisticas['valor_' + c] = area * custoHa * (r.estatisticas[c] / 100) * r.k;
+            });
+        }
         return r;
     }
 
@@ -110,7 +158,19 @@
         // Diagnóstico Ambiental, 65 UPF, acima de 1.000 ha (LC 233/2005).
         pefFixoUPF: 5, pefPorHaUPF: 0.2, diagnosticoUPF: 65, diagnosticoAcimaDeHa: 1000,
         vistoria: 5500,              // estimativa do trabalho: dois técnicos, dois dias, 600 km
-        honorariosHa: 99.83,         // piso: inventário R$ 50/ha (mercado) + georreferenciamento R$ 49,83/ha (INCRA, 2025)
+        // Honorários técnicos para instruir o pedido de autorização de desmatamento
+        // na SEMA/MT (caracterização fitoecológica, inventário florestal e Plano de
+        // Exploração Florestal) e EIA/RIMA: orçamento de empresa de consultoria
+        // ambiental de Mato Grosso, data-base set./2026, para cenários de 50, 150 e
+        // 1.500 ha. Cada cenário vale para a faixa de área em que se encontra; os
+        // limites de 100 e 1.000 ha são da calculadora (o de 1.000 ha é o do EIA/RIMA).
+        mesBaseLicenciamento: '202609',
+        honorarios: [
+            { ateHa: 100, cenarioHa: 50, savana: 39360.00, floresta: 44160.00 },
+            { ateHa: 1000, cenarioHa: 150, savana: 76800.00, floresta: 92160.00 },
+            { ateHa: Infinity, cenarioHa: 1500, savana: 245760.00, floresta: 341760.00 }
+        ],
+        eiaRima: 220800.00, eiaRimaAcimaDeHa: 1000,
         // Reposição florestal (Decreto 1.313/2022-MT): 0,10 UPF por m³ de tora e
         // 0,02 UPF por estéreo de lenha. Volumes presumidos da LC 233/2005, art. 46, § 3º.
         reposicaoUPF: {
@@ -122,7 +182,14 @@
     };
 
     // Valores padrão do LIA para um caso (bioma, áreas e intervalo em anos).
-    function liaPadrao(bioma, areaFora, atividade, anos) {
+    // Honorários por hectare da faixa de área, conforme a forma da vegetação.
+    function honorariosDaFaixa(areaFora, forma) {
+        var ref = LIA_REFERENCIA_MT;
+        var faixa = ref.honorarios.filter(function (f) { return areaFora <= f.ateHa; })[0];
+        return { cenarioHa: faixa.cenarioHa, porHa: C.arredondar(faixa[forma === 'savana' ? 'savana' : 'floresta'] / faixa.cenarioHa, 2) };
+    }
+
+    function liaPadrao(bioma, areaFora, atividade, anos, forma) {
         var ref = LIA_REFERENCIA_MT;
         var at = ref.atividades[atividade] || null;
         var taxasUPF = areaFora > 0 ? ref.pefFixoUPF + ref.pefPorHaUPF * areaFora + (areaFora > ref.diagnosticoAcimaDeHa ? ref.diagnosticoUPF : 0) : 0;
@@ -133,7 +200,9 @@
             valorizacao: 0, taxaRealPct: ref.taxaRealPct, taxaNominalPct: ref.taxaNominalPct,
             volumeM3: ref.volumeM3[bioma] !== undefined ? ref.volumeM3[bioma] : ref.volumeDemaisM3, precoMadeira: 0,
             taxasLicenciamento: C.arredondar(taxasUPF * ref.upf + (areaFora > 0 ? ref.vistoria : 0), 2),
-            honorariosHa: ref.honorariosHa,
+            honorariosHa: honorariosDaFaixa(areaFora, forma || formaDaVegetacao(null, bioma, null)).porHa,
+            eiaRima: areaFora > ref.eiaRimaAcimaDeHa ? ref.eiaRima : 0,
+            mesBaseLicenciamento: ref.mesBaseLicenciamento,
             reposicaoHa: C.arredondar(trUPF * ref.upf, 2)
         };
     }
@@ -141,16 +210,19 @@
     // Calcula o LIA pela árvore de decisão do trabalho:
     //   área não autorizável (APP e reserva legal): Gf + Σ(L + R) + GR, com atividade; Gf + ΔVT + GR, sem ela;
     //   área autorizável (demais áreas):            CL + Σ(L + R) + GR, com atividade; CL + ΔVT + GR, sem ela.
-    function calcularLIA(cfg, areaFora, areaEm) {
+    // As parcelas saem em valores nominais das fontes; a atualização (correção e
+    // juros, pelo Manual da Justiça Federal) é feita depois, em atualizarLIA.
+    // `fatorLicenciamento` leva o custo de licenciamento do mês-base ao mês do dano.
+    function calcularLIA(cfg, areaFora, areaEm, fatorLicenciamento) {
+        var fLic = fatorLicenciamento || 1;
         var comAtividade = cfg.atividade !== 'nenhuma';
         var t = cfg.anos;
         var fatorAnt = C.fatorAntecipacao(cfg.taxaRealPct, t);
-        var fatorCL = C.fatorCapitalizacao(cfg.taxaNominalPct, t);
         var fatorGR = C.fatorCapitalizacao(cfg.taxaNominalPct, t) - 1;
         function porArea(area, autorizavel) {
             var p = { area: area, autorizavel: autorizavel, produtoFlorestal: 0, licenciamento: 0, lucro: 0, renda: 0, antecipacao: 0, reposicao: 0 };
             if (!(area > 0)) { p.total = 0; return p; }
-            if (autorizavel) p.licenciamento = (cfg.taxasLicenciamento + cfg.honorariosHa * area) * fatorCL;
+            if (autorizavel) p.licenciamento = (cfg.taxasLicenciamento + cfg.honorariosHa * area + (cfg.eiaRima || 0)) * fLic;
             else p.produtoFlorestal = area * cfg.volumeM3 * cfg.precoMadeira;
             if (comAtividade) {
                 p.lucro = area * cfg.ebitda * cfg.anosAtividade;
@@ -168,12 +240,58 @@
         if (areaEm > 0 && !(cfg.precoMadeira > 0)) avisos.push('O preço do produto florestal não foi informado; a parcela do produto florestal retirado (Gf) ficou em zero.');
         if (!comAtividade && !(cfg.valorizacao > 0)) avisos.push('A valorização da terra (ΔV) não foi informada; a parcela de antecipação da valorização (ΔVT) ficou em zero.');
         if (comAtividade && cfg.anosAtividade !== t) avisos.push('O lucro e a renda da terra foram somados por ' + cfg.anosAtividade + ' anos de atividade, e não pelos ' + t + ' anos do intervalo.');
+        if (areaFora > LIA_REFERENCIA_MT.eiaRimaAcimaDeHa) avisos.push('A área fora de APP e reserva legal passa de 1.000 ha, o que torna exigível o EIA/RIMA (Resolução CONAMA 01/1986, art. 2º, XVII). ' + (cfg.eiaRima > 0 ? '' : 'O custo do estudo não foi informado e ficou fora do cálculo. ') + 'A compensação do art. 36 da Lei 9.985/2000 não está no cálculo.');
         return {
             config: cfg, comAtividade: comAtividade,
-            fatorAntecipacao: fatorAnt, fatorLicenciamento: fatorCL, fatorReposicao: fatorGR,
+            fatorAntecipacao: fatorAnt, fatorReposicao: fatorGR, fatorLicenciamento: fLic,
             autorizavel: autorizavel, naoAutorizavel: naoAutorizavel,
             total: autorizavel.total + naoAutorizavel.total, avisos: avisos
         };
+    }
+
+    // Atualiza o LIA pelo Manual da Justiça Federal, com termo no evento danoso
+    // (Súmula 54/STJ). Correção e juros de cada valor contam do mês em que ele se forma:
+    //   - produto florestal, licenciamento evitado e antecipação da valorização: mês do dano;
+    //   - lucro e renda da terra: uma parcela por ano de atividade, no fim de cada ano;
+    //   - adiamento da reposição: mês da regularização, inclusive para os juros,
+    //     porque o ganho já vem capitalizado pela Selic até lá.
+    function atualizarLIA(lia, ctx) {
+        var grupos = [];
+        function somaDe(campo) { return lia.autorizavel[campo] + lia.naoAutorizavel[campo]; }
+        var noDano = somaDe('produtoFlorestal') + somaDe('licenciamento') + somaDe('antecipacao');
+        if (noDano > 0) grupos.push({ rotulo: 'produto florestal, licenciamento evitado e antecipação da valorização, no mês do dano', mes: ctx.mesDano, valor: noDano });
+        var anual = (somaDe('lucro') + somaDe('renda')) / (lia.config.anosAtividade || 1);
+        for (var k = 1; lia.comAtividade && k <= lia.config.anosAtividade; k++) {
+            var mes = C.somarMeses(ctx.mesDano, 12 * k);
+            grupos.push({ rotulo: 'lucro e renda da terra do ano ' + k, mes: mes > ctx.mesCalculo ? ctx.mesCalculo : mes, valor: anual });
+        }
+        var gr = somaDe('reposicao');
+        if (gr > 0) {
+            var mesReg = C.somarMeses(ctx.mesDano, 12 * lia.config.anos);
+            if (mesReg > ctx.mesCalculo) mesReg = ctx.mesCalculo;
+            grupos.push({ rotulo: 'adiamento da reposição, no mês da regularização', mes: mesReg, termoJuros: mesReg, valor: gr });
+        }
+        var p = { valor: 0, correcao: 0, juros: 0, total: 0, grupos: [] };
+        grupos.forEach(function (g) {
+            var valor = C.arredondar(g.valor, 2);
+            var linha = { rotulo: g.rotulo, mes: g.mes, valor: valor, principalCorrigido: valor, juros: 0, total: valor };
+            if (ctx.atualizar && valor > 0) {
+                var a;
+                if (ctx.manual) {
+                    var principal = C.truncar(valor * ctx.manual.coeficiente, 2);
+                    a = { principalCorrigido: principal, juros: C.truncar(principal * ctx.manual.jurosPatrimonial / 100, 2) };
+                } else {
+                    a = C.atualizarParcela(ctx.series, { valor: valor, mesValor: g.mes, mesTermoJuros: g.termoJuros || ctx.mesDano, mesCalculo: ctx.mesCalculo });
+                }
+                linha.principalCorrigido = a.principalCorrigido;
+                linha.juros = a.juros;
+                linha.total = C.arredondar(a.principalCorrigido + a.juros, 2);
+            }
+            p.valor += linha.valor; p.correcao += linha.principalCorrigido - linha.valor; p.juros += linha.juros; p.total += linha.total;
+            p.grupos.push(linha);
+        });
+        ['valor', 'correcao', 'juros', 'total'].forEach(function (c) { p[c] = C.arredondar(p[c], 2); });
+        return p;
     }
 
     var FONTE_QCN = 'Quarta Comunicação Nacional, Relatório de Referência LULUCF (MCTI, 2020)';
@@ -323,10 +441,19 @@
         var areaMaterial = reparacao ? fora : total;
         var areaInterino = reparacao ? em : 0;
         var valorMaterialGonzaga = areaMaterial * custo.valorHa;
+        // Custo de Timotheo et al. (Nota Técnica do CAEx) no mesmo mês de referência
+        // do custo do DAMNUM, para os métodos do CAEx.
+        function custoTimotheo(chave) {
+            var valor = CUSTOS_TIMOTHEO[chave].valor;
+            if (custo.fator === null) return valor;
+            return C.arredondar(C.reindexar(valor, series, MES_BASE_TIMOTHEO, custo.mesReferencia), 2);
+        }
         // Sem configuração própria, vale o método de Gonzaga et al. com a taxa e o tempo informados.
-        var configInterino = entrada.interino || { metodo: 'gonzaga', forma: null, pontos: [], taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao };
-        var interino = calcularInterino(configInterino, custo.valorHa, areaInterino, fora);
+        var configInterino = entrada.interino || { metodo: 'gonzaga', forma: null, taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao };
+        var interino = calcularInterino(configInterino, custo.valorHa, configInterino.metodo === 'caex' ? custoTimotheo(configInterino.resiliencia) : null, areaInterino, fora);
         var valorInterino = interino.valorAreaProtegida + interino.valorAreaFora;
+        var configResidual = entrada.residual || residualPadrao('gonzaga');
+        var residual = calcularResidual(configResidual, custo.valorHa, configResidual.metodo === 'caex' ? custoTimotheo(configResidual.custo) : null, total);
 
         var parametros = Object.assign({}, entrada.parametros);
         parametros.precoSocialCO2BRL = C.arredondar(parametros.precoSocialCO2USD * parametros.cotacaoDolar, 2);
@@ -335,22 +462,31 @@
         var parcelas = {
             material: parcelaPatrimonial(entrada.entendimento === 'irdr' ? 0 : valorMaterialGonzaga, areaMaterial, ctx),
             interino: parcelaPatrimonial(valorInterino, areaInterino, ctx),
+            residual: parcelaPatrimonial(residual.valor, total, ctx),
             mercado: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL), ctx),
             social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL), ctx)
         };
 
-        // Lucro do ilícito ambiental: calculado até o ano da regularização, em valores
-        // nominais das fontes; não recebe correção nem juros na calculadora.
-        var lia = entrada.lia ? calcularLIA(entrada.lia, fora, em) : null;
-        if (lia) {
-            var valorLia = C.arredondar(lia.total, 2);
-            parcelas.lia = { valor: valorLia, correcao: 0, juros: 0, total: valorLia };
+        // Lucro do ilícito ambiental: exige a data do dano (o intervalo conta dela).
+        var lia = null;
+        if (entrada.lia && dataInformada) {
+            // Custos de licenciamento orçados em mês posterior ao do dano são trazidos
+            // ao mês do dano pelo IPCA-15, para não contar a inflação duas vezes.
+            var base = entrada.lia.mesBaseLicenciamento, fLic = 1;
+            if (atualizar && !entrada.manual && base && mesDano < base) {
+                var mesAte = base > mesCalculo ? mesCalculo : base;
+                // IPCA-15 do mês em curso ainda não publicado: usa o último disponível.
+                while (mesAte > mesDano && typeof series.ipca15_indice[mesAte] !== 'number') mesAte = C.somarMeses(mesAte, -1);
+                fLic = C.reindexar(1, series, mesAte, mesDano);
+            }
+            lia = calcularLIA(entrada.lia, fora, em, fLic);
         }
+        if (lia) parcelas.lia = atualizarLIA(lia, ctx);
 
         function somar(campo, lista) {
             return C.arredondar(lista.reduce(function (s, p) { return s + p[campo]; }, 0), 2);
         }
-        var todas = [parcelas.material, parcelas.interino, parcelas.mercado, parcelas.social];
+        var todas = [parcelas.material, parcelas.interino, parcelas.residual, parcelas.mercado, parcelas.social];
         if (lia) todas.push(parcelas.lia);
         var totais = { original: somar('valor', todas), correcao: somar('correcao', todas), juros: somar('juros', todas), atualizado: somar('total', todas) };
 
@@ -359,7 +495,7 @@
         var alt = entrada.entendimento === 'gonzaga'
             ? { material: parcelaPatrimonial(0, areaMaterial, ctx), interino: parcelaPatrimonial(0, areaInterino, ctx) }
             : { material: parcelaPatrimonial(valorMaterialGonzaga, areaMaterial, ctx), interino: parcelaPatrimonial(valorInterino, areaInterino, ctx) };
-        var altTodas = [alt.material, alt.interino, parcelas.mercado, parcelas.social];
+        var altTodas = [alt.material, alt.interino, parcelas.residual, parcelas.mercado, parcelas.social];
         if (lia) altTodas.push(parcelas.lia);
         alt.totalOriginal = somar('valor', altTodas);
         alt.totalAtualizado = somar('total', altTodas);
@@ -380,6 +516,8 @@
             reparacaoInSitu: reparacao,
             custo: custo,
             interino: interino,
+            residual: residual,
+            timotheo: { mesBase: MES_BASE_TIMOTHEO, custos: CUSTOS_TIMOTHEO },
             lia: lia,
             liaAnoRegularizacao: entrada.lia ? entrada.lia.anoRegularizacao : null,
             parametros: parametros,
@@ -420,7 +558,7 @@
             areaEm: entrada.areas.em,
             reparacaoInSitu: !!entrada.reparacaoInSitu,
             interino: entrada.interino
-                ? { metodo: entrada.interino.metodo, forma: entrada.interino.forma, taxaPct: entrada.interino.taxaPct, tempo: entrada.interino.tempo, anosAteRegularizacao: entrada.interino.anosAteRegularizacao || 0 }
+                ? { metodo: entrada.interino.metodo, forma: entrada.interino.forma, taxaPct: entrada.interino.taxaPct, tempo: entrada.interino.tempo, resiliencia: entrada.interino.resiliencia || null, anosAteRegularizacao: entrada.interino.anosAteRegularizacao || 0 }
                 : { metodo: 'gonzaga', taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao },
             precoSocialCO2USD: entrada.parametros.precoSocialCO2USD,
             precoMercadoCO2USD: entrada.parametros.precoMercadoCO2USD,
@@ -428,6 +566,7 @@
             estoqueTC: entrada.estoque.tC,
             origemEstoque: entrada.estoque.origem,
             opcaoExtrapatrimonial: entrada.opcaoExtrapatrimonial,
+            residual: entrada.residual || null,
             lia: entrada.lia || null,
             manual: entrada.manual || null
         });
@@ -438,7 +577,15 @@
         BIOMA_QCN: BIOMA_QCN,
         LIA_REFERENCIA_MT: LIA_REFERENCIA_MT,
         liaPadrao: liaPadrao,
+        honorariosDaFaixa: honorariosDaFaixa,
         calcularLIA: calcularLIA,
+        atualizarLIA: atualizarLIA,
+        CUSTOS_TIMOTHEO: CUSTOS_TIMOTHEO,
+        MES_BASE_TIMOTHEO: MES_BASE_TIMOTHEO,
+        RESIDUAL_PONTOS: RESIDUAL_PONTOS,
+        RESIDUAL_CAEX: RESIDUAL_CAEX,
+        residualPadrao: residualPadrao,
+        calcularResidual: calcularResidual,
         INTERINO_GONZAGA: INTERINO_GONZAGA,
         INTERINO_CAEX: INTERINO_CAEX,
         formaDaVegetacao: formaDaVegetacao,
