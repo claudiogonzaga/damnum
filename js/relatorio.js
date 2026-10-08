@@ -175,8 +175,8 @@
                 : 'Custo por hectare: o mesmo do dano material. O tempo de 15 anos é o mínimo adotado no trabalho; informe tempo maior quando o caso o justificar.')));
         }
         if (it.valorAreaFora > 0) {
-            linhas.push(linha('Área fora de APP e reserva legal', num(r.areas.fora, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.jurosAnoUm, 6) + ' (juros do ano 1, i ÷ (1 + i)) × ' + num(it.anosAteRegularizacao, 0) + ' anos entre o desmatamento e o pedido de regularização = ' + moeda(it.valorAreaFora) + ' (Nota Técnica, item 1.7). A própria Nota registra que há duas posições sobre a existência de dano indenizável nessa área.' + (r.parcelas.material.valor > 0 ? ' Atenção: neste cálculo a mesma área também recebe dano material; confira se as duas parcelas devem ser cumuladas.' : '')));
-            if (temProtegida) linhas.push(linha('Área em APP e reserva legal', moeda(it.valorAreaProtegida)));
+            linhas.push(linha('Área passível de exploração (fora de APP e reserva legal), até a regularização', num(r.areas.fora, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.jurosAnoUm, 6) + ' (juros do ano 1, i ÷ (1 + i)) × ' + num(it.anosAteRegularizacao, 0) + ' anos entre o desmatamento e o pedido de regularização = ' + moeda(it.valorAreaFora) + ' (Nota Técnica, item 1.7). A própria Nota registra que há duas posições sobre a existência de dano indenizável nessa área.' + (r.parcelas.material.valor > 0 ? ' Atenção: neste cálculo a mesma área também recebe dano material; confira se as duas parcelas devem ser cumuladas.' : '')));
+            if (temProtegida) linhas.push(linha('Área em APP e reserva legal, até a recuperação', moeda(it.valorAreaProtegida)));
         }
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
         linhas = linhas.concat(textoAtualizacaoPatrimonial(r, p));

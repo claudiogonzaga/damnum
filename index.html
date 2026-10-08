@@ -302,9 +302,9 @@
                         <span class="nota-parametro">Valores de 2023, levados ao mês do dano pelo IPCA-15.</span>
                     </div>
                     <div class="parametro-item" id="itemAnosRegularizacao" style="display:none;">
-                        <label for="anosRegularizacao">Área fora de APP e reserva legal: anos entre o desmatamento e o pedido de regularização (opcional):</label>
-                        <input type="number" id="anosRegularizacao" value="" step="1" min="0" placeholder="Em branco: não calcula">
-                        <span class="nota-parametro">Nota Técnica 03/2022, item 1.7: juros do ano 1 × número de anos. Soma-se ao dano interino.</span>
+                        <label for="anosRegularizacao">Área passível de exploração (fora de APP e reserva legal): anos entre o desmatamento e a regularização:</label>
+                        <input type="number" id="anosRegularizacao" value="" step="1" min="0" placeholder="Em branco: do ano do dano ao da regularização">
+                        <span class="nota-parametro">Em APP e reserva legal a cobrança vai até a recuperação (tempo acima). Na área passível de exploração vai até a regularização: juros do ano 1 × número de anos (Nota Técnica 03/2022, item 1.7). Em branco, usa o ano da regularização informado nos parâmetros do LIA ou, sem ele, o ano atual. Informe 0 para não cobrar.</span>
                     </div>
                     <div class="parametro-item">
                         <label for="metodoResidual">Método do dano residual: <a href="manual.html#calculo-de-cada-parcela" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>

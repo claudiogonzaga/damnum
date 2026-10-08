@@ -382,13 +382,22 @@ function lerLIA() {
 function lerInterino() {
     const metodo = valorCampo('metodoInterino');
     const forma = valorCampo('formaVegetacao');
+    // Método do CAEx, área passível de exploração: a cobrança vai até a
+    // regularização. Em branco, vale o intervalo do ano do dano ao ano da
+    // regularização (ou ao ano atual, se ainda não houve).
+    let anosAteRegularizacao = 0;
+    if (metodo === 'caex') {
+        const informado = valorCampo('anosRegularizacao');
+        const intervalo = anosDoLIA();
+        anosAteRegularizacao = informado !== '' ? (parseFloat(informado) || 0) : (intervalo ? Math.max(intervalo.anos, 0) : 0);
+    }
     return {
         metodo,
         forma,
         resiliencia: metodo === 'caex' ? valorCampo('resilienciaInterino') : null,
         taxaPct: parseFloat(valorCampo('taxaJurosAnual')),
         tempo: parseFloat(valorCampo('tempoRecuperacao')),
-        anosAteRegularizacao: metodo === 'caex' ? (parseFloat(valorCampo('anosRegularizacao')) || 0) : 0
+        anosAteRegularizacao
     };
 }
 
