@@ -1,6 +1,6 @@
 #!/bin/sh
 # Gera vendor/damnum-geo.js, o pacote único com as bibliotecas de mapa usadas por
-# js/mapa-qcn.js (PMTiles, vector tiles, turf, leitura de KML/KMZ e shapefile).
+# js/mapa-qcn.js (turf, leitura de KML/KMZ e shapefile, gzip).
 # Rodar na raiz do repositório depois de `npm install`.
 set -e
 npx esbuild tools/vendor_entry.js \

@@ -317,12 +317,58 @@
         return html + tabela(linhas);
     }
 
+    // Detalhe da consulta ao mapa do Quarto Inventário: classes cruzadas, blocos
+    // usados, campo e fonte do dado; ou o motivo de o mapa não ter sido usado.
+    function blocoMapa(e) {
+        var html = '';
+        var m = e.mapa;
+        if (!m) {
+            if (e.avisoMapa) html += nota(esc(e.avisoMapa));
+            return html;
+        }
+        var th = TD + ' background:#f5f5f5;';
+        if (m.tipo === 'poligono') {
+            html += '<p style="font-size:11pt;">Área calculada do polígono: ' + num(m.area_ha, 4) + ' ha (método geodésico). Classes do mapa cruzadas:</p>';
+            html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr>' +
+                ['Bioma', 'Classe (c_pret)', 'Categoria', 'Formato do dado', 'Área de interseção (ha)', esc(m.campo) + ' (tC/ha)'].map(function (c) { return '<th style="' + th + '">' + c + '</th>'; }).join('') + '</tr>' +
+                m.partes.map(function (p) {
+                    return '<tr><td style="' + TD + '">' + esc(p.bioma) + '</td><td style="' + TD + '">' + esc(p.c_pret || 'não identificada') + '</td><td style="' + TD + '">' + esc(p.categ) + '</td><td style="' + TD + '">' + (p.formato === 'raster' ? 'raster (média dos pixels)' : 'vetor (polígono ' + esc(p.id) + ')') + '</td><td style="' + TDR + '">' + num(p.area_ha, 4) + '</td><td style="' + TDR + '">' + num(p.d, 2) + '</td></tr>';
+                }).join('') + '</table>';
+            html += '<p style="font-size:11pt;">Média ponderada pela área: ' + num(m.estoque_tC_ha, 2) + ' tC/ha, em ' + num(m.area_coberta_ha, 4) + ' ha com dado.' +
+                (m.pct_sem_dado > 0.005 ? ' Em ' + num(m.pct_sem_dado, 2) + '% do polígono a classe está sem dado no mapa.' : '') +
+                (m.pct_descoberto > 0.005 ? ' Parte do polígono fora da cobertura ou sem dado: ' + num(m.pct_descoberto, 2) + '%; nela foi usada a reserva: ' + esc(e.reservaDescoberta) + '.' : ' Todo o polígono tem dado no mapa.') +
+                ' Estoque final: <b>' + num(e.tC, 2) + ' tC/ha</b>.</p>';
+        } else {
+            html += '<p style="font-size:11pt;">Coordenada: latitude ' + num(m.lat, 6) + ', longitude ' + num(m.lon, 6) + '. Classe do mapa no ponto: ' + esc(m.classe.c_pret || 'não identificada') + ' (' + esc(m.classe.categ) + '), bioma ' + esc(m.classe.bioma) + ', dado em ' + (m.classe.formato === 'raster' ? 'raster' : 'vetor') + '; ' + esc(m.campo) + ' = ' + num(m.estoque_tC_ha, 2) + ' tC/ha.</p>';
+            var aviso = esc(m.aviso);
+            if (m.vizinhas.length) {
+                aviso += ' Classes a menos de 100 m do ponto: ' + m.vizinhas.map(function (v) {
+                    return esc(v.c_pret || 'não identificada') + ' (' + (typeof v.d === 'number' && v.d > 0 ? num(v.d, 2) + ' tC/ha' : 'sem dado') + ', a ' + num(v.distancia_m, 0) + ' m)';
+                }).join('; ') + '.';
+            }
+            html += nota(aviso);
+        }
+        var d = e.dados;
+        var linhas = [];
+        linhas.push(linha('Campo do estoque', esc(m.campo) + ': carbono total da vegetação original, acima e abaixo do solo, em tC/ha. Valor zero ou em branco é tratado como "sem dado", e não como estoque zero.'));
+        if (d) {
+            linhas.push(linha('Versão dos dados', esc(d.versao) + ', gerada em ' + esc(d.gerado_em) + (d.data_download ? '; arquivos do INPE baixados em ' + esc(d.data_download) : '')));
+            (d.fontes || []).forEach(function (f) {
+                linhas.push(linha('Fonte (' + esc(f.bioma) + ', ' + esc(f.uso) + ')', (f.arquivo ? esc(f.arquivo) + '; ' : '') + 'modificado no servidor do INPE em ' + esc(f.modificado_no_servidor) + '. ' + esc(f.url)));
+            });
+        }
+        linhas.push(linha('Blocos do mapa usados', esc(m.blocos.join(', '))));
+        linhas.push(linha('Privacidade', 'O polígono e a coordenada foram processados no navegador. Ao servidor de dados só foram pedidos os blocos acima.'));
+        return html + tabela(linhas);
+    }
+
     function blocoEstoque(r) {
         var e = r.estoque;
         var html = subtitulo('Estoque de carbono');
         var linhas = [];
+        linhas.push(linha('Tipo de entrada', esc(e.entrada || 'reserva')));
         linhas.push(linha('Origem do estoque', esc(e.descricaoOrigem)));
-        if (e.sigla) linhas.push(linha('Fitofisionomia', esc(e.sigla) + ' — ' + esc(e.nome)));
+        if (e.sigla) linhas.push(linha('Fitofisionomia', esc(e.sigla) + (e.nome ? ' — ' + esc(e.nome) : '')));
         linhas.push(linha('Estoque de carbono', '<b>' + num(e.tC, 2) + ' tC/ha</b>'));
         linhas.push(linha('Emissão equivalente', num(e.tC, 2) + ' tC/ha × 3,67 = <b>' + num(C.carbonoParaCO2(e.tC), 2) + ' tCO₂/ha</b> (Protocolo para Julgamento de Ações Ambientais, 2º escopo, CNJ, 2024, p. 59, nota 31)'));
         linhas.push(linha('Fonte', esc(e.fonte)));
@@ -332,35 +378,8 @@
                 return esc(s.estado || s.local || '') + ': ' + num(s.total, 2) + ' tC/ha';
             }).join('; ')));
         }
-        if (e.indicacaoIBGE) {
-            var i = e.indicacaoIBGE;
-            var escolha;
-            if (i.tipo === 'formacao') escolha = i.escolhaEntreIndicadas ? ' O usuário manteve a fitofisionomia indicada.' : ' O usuário não adotou a fitofisionomia indicada.';
-            else if (i.tipo === 'regiao') escolha = i.escolhaEntreIndicadas ? ' O usuário escolheu a formação entre as dessa região (faixa de ' + num(i.minimo, 2) + ' a ' + num(i.maximo, 2) + ' tC/ha).' : ' O usuário não escolheu formação dessa região (faixa de ' + num(i.minimo, 2) + ' a ' + num(i.maximo, 2) + ' tC/ha).';
-            else escolha = '';
-            linhas.push(linha('Indicação da fitofisionomia', 'Consulta ao mapa de vegetação do IBGE na coordenada de latitude ' + num(i.lat, 6) + ' e longitude ' + num(i.lon, 6) + ', em ' + esc(i.quando) + (i.legendaIBGE ? ' (legenda ' + esc(i.legendaIBGE) + ')' : '') + '. ' + esc(i.descricao) + escolha + ' A indicação vem do IBGE, e não do mapa do Quarto Inventário; o estoque é o da tabela. Fonte: ' + esc(i.fonte) + '.'));
-        }
         html += tabela(linhas);
-        if (e.mapa && e.mapa.tipo === 'poligono') {
-            html += '<p style="font-size:11pt;">Área calculada do polígono: ' + num(e.mapa.area_ha, 4) + ' ha. Polígonos do Quarto Inventário cruzados:</p>';
-            var cab = ['id', 'UF', 'Município', 'c_pret', 'cagrpret', 'Área de interseção (ha)', 'c_v_4i (tC/ha)'];
-            html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr>' +
-                cab.map(function (c) { return '<th style="' + TD + ' background:#f5f5f5;">' + c + '</th>'; }).join('') + '</tr>' +
-                e.mapa.partes.map(function (p) {
-                    return '<tr><td style="' + TD + '">' + esc(p.id) + '</td><td style="' + TD + '">' + esc(p.uf) + '</td><td style="' + TD + '">' + esc(p.mun_nome) + '</td><td style="' + TD + '">' + esc(p.c_pret) + '</td><td style="' + TD + '">' + esc(p.cagrpret) + '</td><td style="' + TDR + '">' + num(p.area_ha, 4) + '</td><td style="' + TDR + '">' + num(p.c_v_4i, 2) + '</td></tr>';
-                }).join('') + '</table>';
-            html += '<p style="font-size:11pt;">Média ponderada pela área: ' + num(e.mapa.estoque_tC_ha, 2) + ' tC/ha. Parte do polígono fora da cobertura do mapa: ' + num(e.mapa.pct_descoberto, 2) + '%' + (e.mapa.pct_descoberto > 0.005 ? ', à qual se aplicou ' + esc(e.reservaDescoberta) + '.' : '.') + '</p>';
-        }
-        if (e.mapa && e.mapa.tipo === 'coordenada') {
-            html += '<p style="font-size:11pt;">Coordenada: latitude ' + num(e.mapa.lat, 6) + ', longitude ' + num(e.mapa.lon, 6) + '. Polígono do Inventário: id ' + esc(e.mapa.poligono.id) + ', ' + esc(e.mapa.poligono.mun_nome) + '/' + esc(e.mapa.poligono.uf) + ', c_pret ' + esc(e.mapa.poligono.c_pret) + ' (' + esc(e.mapa.poligono.cagrpret) + ').</p>';
-            var aviso = esc(e.mapa.aviso);
-            if (e.mapa.vizinhas.length) {
-                aviso += ' Classes a menos de 100 m do ponto: ' + e.mapa.vizinhas.map(function (v) {
-                    return esc(v.c_pret) + ' (' + num(v.c_v_4i, 2) + ' tC/ha, a ' + num(v.distancia_m, 0) + ' m)';
-                }).join('; ') + '.';
-            }
-            html += nota(aviso);
-        }
+        html += blocoMapa(e);
         if (e.secundaria) {
             html += nota(e.origem === 'usuario'
                 ? 'A vegetação suprimida foi declarada secundária ou já degradada, e o estoque foi informado pelo usuário.'
@@ -528,7 +547,8 @@
         linhas.push(linha('Versão do DAMNUM', esc(r.versao) + ' — <a href="' + SITE + '/" target="_blank" style="color:#1a5276;">' + SITE + '</a>'));
         linhas.push(linha('Data e hora do cálculo', r.dataCalculo.toLocaleString('pt-BR')));
         linhas.push(linha('Entendimento escolhido', nomeEntendimento(r.entendimento)));
-        linhas.push(linha('Fitofisionomia e fonte do estoque', (r.estoque.sigla ? esc(r.estoque.sigla) + ' — ' + esc(r.estoque.nome) + '. ' : '') + esc(r.estoque.descricaoOrigem) + ' (' + num(r.estoque.tC, 2) + ' tC/ha)'));
+        linhas.push(linha('Fitofisionomia e fonte do estoque', (r.estoque.sigla ? esc(r.estoque.sigla) + (r.estoque.nome ? ' — ' + esc(r.estoque.nome) : '') + '. ' : '') + esc(r.estoque.descricaoOrigem) + ' (' + num(r.estoque.tC, 2) + ' tC/ha)'));
+        linhas.push(linha('Entrada do estoque de carbono', esc(r.estoque.entrada || 'reserva') + (r.estoque.mapa ? '; dados do mapa na versão ' + esc(r.estoque.dados ? r.estoque.dados.versao : 'não informada') : '')));
         linhas.push(linha('Método do dano interino', r.interino.metodo === 'caex' ? 'Nota Técnica 03/2022 do CAEx Ambiental/MPMT (Roquette)' : 'Gonzaga et al. (2025)'));
         linhas.push(linha('Método do dano residual', r.residual.metodo === 'caex' ? 'Relatório Técnico 963/2026 do CAEx Ambiental/MPMT (Roquette)' : 'Gonzaga et al. (2026), com ' + num(r.residual.pfePct, 2) + '% não recuperado'));
         linhas.push(linha('Lucro do ilícito ambiental (LIA)', r.lia ? 'calculado' : 'não calculado, porque a data do dano não foi informada'));

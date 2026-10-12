@@ -1,0 +1,17 @@
+{
+ "nota": "Casos de aceite de Mato Grosso (versão 7.1). Polígonos e coordenadas escolhidos pela instância codificadora, na falta dos KML dos autores; não representam casos reais.",
+ "poligonos": [
+  {"nome": "Amazônia, menor que dois pixels, Vera", "coords": [[[-55.5012, -12.5008], [-55.4981, -12.5015], [-55.4979, -12.4987], [-55.5004, -12.4979], [-55.5012, -12.5008]]]},
+  {"nome": "Amazônia, irregular, Juara", "coords": [[[-57.62, -11.13], [-57.585, -11.142], [-57.571, -11.118], [-57.59, -11.095], [-57.612, -11.101], [-57.62, -11.13]]]},
+  {"nome": "Cerrado, com um buraco, Primavera do Leste", "coords": [[[-54.33, -15.52], [-54.30, -15.525], [-54.295, -15.50], [-54.325, -15.495], [-54.33, -15.52]], [[-54.318, -15.513], [-54.310, -15.513], [-54.310, -15.506], [-54.318, -15.506], [-54.318, -15.513]]]},
+  {"nome": "Pantanal, Poconé", "coords": [[[-56.74, -16.62], [-56.69, -16.63], [-56.685, -16.59], [-56.73, -16.585], [-56.74, -16.62]]]},
+  {"nome": "Transição Amazônia/Cerrado, Sinop/Sorriso", "coords": [[[-55.60, -12.335], [-55.53, -12.345], [-55.525, -12.29], [-55.59, -12.285], [-55.60, -12.335]]]}
+ ],
+ "coordenadas": [
+  {"nome": "ponto de teste da Fase 0", "lon": -55.5, "lat": -12.5},
+  {"nome": "Amazônia, Alta Floresta", "lon": -56.1, "lat": -9.9},
+  {"nome": "Cerrado, Primavera do Leste", "lon": -54.31, "lat": -15.51},
+  {"nome": "Cerrado, Barra do Garças", "lon": -52.4, "lat": -15.7},
+  {"nome": "Pantanal, Poconé", "lon": -56.71, "lat": -16.61}
+ ]
+}

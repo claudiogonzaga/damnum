@@ -1,6 +1,7 @@
-// DAMNUM — estoque de carbono pelo mapa do Quarto Inventário Nacional por estado
-// (item 1.6-A). Tudo roda no navegador: o polígono e a coordenada do usuário
-// não saem da máquina; do servidor só se leem faixas de bytes do arquivo PMTiles.
+// DAMNUM — estoque de carbono pelo mapa do Quarto Inventário Nacional (versão 7.1).
+// O mapa é servido em blocos estáticos (células de grade). Tudo o mais roda no
+// navegador: o polígono e a coordenada do usuário não saem da máquina; ao
+// servidor de dados só se pedem a versão, o índice e os blocos que cobrem a área.
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
         module.exports = factory();
@@ -10,110 +11,193 @@
 })(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
-    // Desligado enquanto data/qcn_estoques.pmtiles não existir (os arquivos por
-    // estado do INPE ainda não foram obtidos). Com false, a interface não mostra
-    // a seção "Localização do desmatamento" e usa a tabela do item 1.6.
+    // Interruptor. Só vira true com DADOS_BASE_URL preenchida e os blocos
+    // publicados (ver MISSAO-publicar-dados-damnum.md). Com false, a interface não
+    // oferece polígono nem coordenada e o estoque vem da tabela.
     var MAPA_QCN_ATIVO = false;
-    var URL_PMTILES = 'data/qcn_estoques.pmtiles';
+    // Endereço dos blocos. É outro serviço, separado do contador de valorações.
+    var DADOS_BASE_URL = '';
+    var VERSAO_DADOS = 'v1';
+    var CAMPO_ESTOQUE = 'ctotal4inv'; // carbono total da vegetação pretérita, tC/ha (docs/fase0_dados.md)
+
+    var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     var URL_LIBS = 'vendor/damnum-geo.js';
-    var CAMADA = 'qcn';
-    var CAMPO_ESTOQUE = 'c_v_4i'; // estoque total da vegetação, tC/ha (sem carbono do solo)
-    var LIMITE_TILES = 4000;
+    var LIMITE_BLOCOS = 400;
+    var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
     var TOLERANCIA_AREA = 0.01; // 1%
 
-    var AVISO_COORDENADA = 'Estimativa aproximada: o estoque foi obtido a partir de uma coordenada, e não do polígono da área desmatada. Classes vizinhas podem ter estoques diferentes. Sempre que possível, informe o polígono.';
+    var AVISO_COORDENADA = 'Valor aproximado: o estoque foi obtido para um ponto, não para a área do dano. Envie o polígono para um cálculo mais preciso.';
 
-    // ---------- tiles ----------
-
-    function tileDeLonLat(lon, lat, z) {
-        var n = Math.pow(2, z);
-        var x = Math.floor((lon + 180) / 360 * n);
-        var rad = lat * Math.PI / 180;
-        var y = Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n);
-        return { x: Math.min(Math.max(x, 0), n - 1), y: Math.min(Math.max(y, 0), n - 1) };
-    }
-
-    function bboxDoTile(x, y, z) {
-        var n = Math.pow(2, z);
-        function lat(yy) { return Math.atan(Math.sinh(Math.PI * (1 - 2 * yy / n))) * 180 / Math.PI; }
-        return [x / n * 360 - 180, lat(y + 1), (x + 1) / n * 360 - 180, lat(y)];
+    function configurar(c) {
+        Object.keys(c).forEach(function (k) { CONFIG[k] = c[k]; });
+        return CONFIG;
     }
 
     function ehPoligono(f) {
         return f && f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon');
     }
 
-    // ---------- fontes de feições ----------
-
-    // Fonte PMTiles: lê os tiles do zoom máximo que cobrem o bbox, converte em
-    // GeoJSON e recorta cada feição no limite exato do tile, para que a faixa de
-    // sobreposição (buffer) entre tiles vizinhos não seja contada duas vezes.
-    function criarFontePMTiles(libs, origem) {
-        var arquivo = new libs.PMTiles(origem);
-        var cabecalho = null;
-
-        async function obterCabecalho() {
-            if (!cabecalho) cabecalho = await arquivo.getHeader();
-            return cabecalho;
-        }
-
-        async function feicoesNoBBox(bbox) {
-            var h = await obterCabecalho();
-            var z = h.maxZoom;
-            var a = tileDeLonLat(bbox[0], bbox[3], z);
-            var b = tileDeLonLat(bbox[2], bbox[1], z);
-            var total = (b.x - a.x + 1) * (b.y - a.y + 1);
-            if (total > LIMITE_TILES) {
-                throw new Error('A área informada cobre ' + total + ' quadros do mapa; o limite é ' + LIMITE_TILES + '. Divida o polígono.');
-            }
-            var tarefas = [];
-            for (var x = a.x; x <= b.x; x++) {
-                for (var y = a.y; y <= b.y; y++) tarefas.push(lerTile(z, x, y));
-            }
-            var blocos = await Promise.all(tarefas);
-            return [].concat.apply([], blocos);
-        }
-
-        async function lerTile(z, x, y) {
-            var resposta = await arquivo.getZxy(z, x, y);
-            if (!resposta || !resposta.data) return [];
-            var vt = new libs.VectorTile(new libs.Pbf(new Uint8Array(resposta.data)));
-            var camada = vt.layers[CAMADA] || vt.layers[Object.keys(vt.layers)[0]];
-            if (!camada) return [];
-            var limite = bboxDoTile(x, y, z);
-            var saida = [];
-            for (var i = 0; i < camada.length; i++) {
-                var f = camada.feature(i).toGeoJSON(x, y, z);
-                if (!ehPoligono(f)) continue;
-                var recorte = libs.bboxClip(f, limite);
-                if (!ehPoligono(recorte) || recorte.geometry.coordinates.length === 0) continue;
-                recorte.properties = f.properties;
-                saida.push(recorte);
-            }
-            return saida;
-        }
-
-        async function metadados() {
-            var h = await obterCabecalho();
-            var m = await arquivo.getMetadata();
-            return { maxZoom: h.maxZoom, descricao: m };
-        }
-
-        return { feicoesNoBBox: feicoesNoBBox, metadados: metadados };
+    function caixasSeTocam(a, b) {
+        return !(a[0] > b[2] || a[2] < b[0] || a[1] > b[3] || a[3] < b[1]);
     }
 
-    // Fonte em memória (testes): feições GeoJSON já prontas.
-    function criarFonteGeoJSON(libs, feicoes) {
-        return {
-            feicoesNoBBox: async function (bbox) {
-                return feicoes.filter(function (f) {
-                    var b = libs.bbox(f);
-                    return !(b[0] > bbox[2] || b[2] < bbox[0] || b[1] > bbox[3] || b[3] < bbox[1]);
+    // Zero, vazio ou "sem dado" não é estoque: é ausência de dado (Fase 0, item e).
+    function temDado(d) {
+        return typeof d === 'number' && !isNaN(d) && d > 0;
+    }
+
+    // ---------- blocos ----------
+
+    function decodificarAnel(anel, escala) {
+        var x = anel[0], y = anel[1];
+        var saida = [[x / escala, y / escala]];
+        for (var i = 2; i < anel.length; i += 2) {
+            x += anel[i];
+            y += anel[i + 1];
+            saida.push([x / escala, y / escala]);
+        }
+        return saida;
+    }
+
+    // Prepara um bloco lido (objeto JSON) para consulta.
+    function decodificarBloco(libs, bloco) {
+        if (bloco.formato === 'vetor') {
+            bloco.feicoesGeo = bloco.feicoes.map(function (f) {
+                var poligonos = f.pol.map(function (p) { return p.map(function (a) { return decodificarAnel(a, bloco.escala); }); });
+                var geo = {
+                    type: 'Feature',
+                    properties: { id: f.id, c_pret: f.c_pret, categ: f.categ, d: f.d, bioma: bloco.bioma },
+                    geometry: poligonos.length === 1 ? { type: 'Polygon', coordinates: poligonos[0] } : { type: 'MultiPolygon', coordinates: poligonos }
+                };
+                geo.caixa = libs.bbox(geo);
+                return geo;
+            });
+        } else if (bloco.formato !== 'raster') {
+            throw new Error('Formato de bloco desconhecido: ' + bloco.formato);
+        }
+        return bloco;
+    }
+
+    function hex(buffer) {
+        return Array.prototype.map.call(new Uint8Array(buffer), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    }
+
+    // Fonte de blocos publicada em <baseUrl>/<versao>/. `opcoes.buscar` substitui
+    // o fetch (testes); `opcoes.cache` é um armazenamento com get(url) e put(url, bytes).
+    function criarFonteBlocos(libs, opcoes) {
+        opcoes = opcoes || {};
+        var base = String(opcoes.baseUrl || CONFIG.baseUrl).replace(/\/+$/, '');
+        var versao = opcoes.versao || CONFIG.versao;
+        var buscar = opcoes.buscar || function (url) { return fetch(url); };
+        var cache = opcoes.cache || cacheDoNavegador(versao);
+        var raiz = base + '/' + versao + '/';
+        var promessaVersao = null, promessaIndice = null;
+        var decodificados = {};
+
+        async function json(nome) {
+            var r = await buscar(raiz + nome);
+            if (!r.ok) throw new Error('O servidor de dados respondeu ' + r.status + ' para ' + nome + '.');
+            return r.json();
+        }
+
+        function info() {
+            if (!promessaVersao) {
+                promessaVersao = json('versao.json').then(function (v) {
+                    if (v.versao !== versao) throw new Error('O servidor de dados está na versão ' + v.versao + ', e o DAMNUM espera a ' + versao + '.');
+                    return v;
                 });
+                promessaVersao.catch(function () { promessaVersao = null; });
+            }
+            return promessaVersao;
+        }
+
+        function indice() {
+            if (!promessaIndice) {
+                promessaIndice = json('indice.json').then(function (i) {
+                    if (i.versao !== versao) throw new Error('Índice de blocos de outra versão (' + i.versao + ').');
+                    return i.blocos;
+                });
+                promessaIndice.catch(function () { promessaIndice = null; });
+            }
+            return promessaIndice;
+        }
+
+        async function bytesDoBloco(meta) {
+            var url = raiz + 'blocos/' + meta.chave + '.gz';
+            var guardado = cache ? await cache.get(url) : null;
+            if (guardado) return guardado;
+            var r = await buscar(url);
+            if (!r.ok) throw new Error('O servidor de dados respondeu ' + r.status + ' para o bloco ' + meta.chave + '.');
+            var bytes = await r.arrayBuffer();
+            var resumo = hex(await crypto.subtle.digest('SHA-256', bytes));
+            if (resumo !== meta.sha256) throw new Error('O bloco ' + meta.chave + ' não confere com o índice (SHA-256).');
+            if (cache) await cache.put(url, bytes);
+            return bytes;
+        }
+
+        function bloco(meta) {
+            if (!decodificados[meta.chave]) {
+                decodificados[meta.chave] = bytesDoBloco(meta).then(function (bytes) {
+                    var texto = new TextDecoder().decode(libs.gunzipSync(new Uint8Array(bytes)));
+                    return decodificarBloco(libs, JSON.parse(texto));
+                });
+                decodificados[meta.chave].catch(function () { delete decodificados[meta.chave]; });
+            }
+            return decodificados[meta.chave];
+        }
+
+        async function blocosNaCaixa(caixa) {
+            var metas = (await indice()).filter(function (m) { return caixasSeTocam(m.bbox, caixa); });
+            if (metas.length > LIMITE_BLOCOS) {
+                throw new Error('A área informada cobre ' + metas.length + ' blocos do mapa; o limite é ' + LIMITE_BLOCOS + '. Divida o polígono.');
+            }
+            return Promise.all(metas.map(bloco));
+        }
+
+        return { blocosNaCaixa: blocosNaCaixa, info: info, indice: indice };
+    }
+
+    // Blocos já baixados e conferidos ficam no navegador (Cache API), com a versão
+    // dos dados no nome: um polígono repetido não refaz a rede.
+    function cacheDoNavegador(versao) {
+        if (typeof caches === 'undefined') return null;
+        var nome = 'damnum-dados-' + versao;
+        return {
+            get: async function (url) {
+                try {
+                    var r = await (await caches.open(nome)).match(url);
+                    return r ? r.arrayBuffer() : null;
+                } catch (e) { return null; }
             },
-            metadados: async function () { return { maxZoom: null, descricao: { name: 'memória' } }; }
+            put: async function (url, bytes) {
+                try { await (await caches.open(nome)).put(url, new Response(bytes)); } catch (e) { /* sem cache */ }
+            }
         };
+    }
+
+    // Fonte em memória (testes): blocos já em objeto, no formato publicado.
+    function criarFonteMemoria(libs, blocos, descricao) {
+        var prontos = blocos.map(function (b) { return decodificarBloco(libs, JSON.parse(JSON.stringify(b))); });
+        return {
+            blocosNaCaixa: async function (caixa) {
+                return prontos.filter(function (b) { return caixasSeTocam(b.bbox, caixa); });
+            },
+            info: async function () { return descricao || { versao: 'memória', campo: CAMPO_ESTOQUE, fontes: [] }; }
+        };
+    }
+
+    // O mapa pode ser usado? Exige o interruptor, o endereço e a versão esperada.
+    async function verificarDisponibilidade(libs, opcoes) {
+        if (!CONFIG.ativo) return { disponivel: false, motivo: 'A consulta ao mapa do Quarto Inventário está desligada nesta versão.' };
+        if (!CONFIG.baseUrl) return { disponivel: false, motivo: 'O endereço dos dados do mapa não está configurado.' };
+        try {
+            var fonte = criarFonteBlocos(libs, opcoes);
+            var v = await fonte.info();
+            return { disponivel: true, fonte: fonte, info: v };
+        } catch (erro) {
+            return { disponivel: false, motivo: 'Consulta ao mapa indisponível (' + erro.message + ').' };
+        }
     }
 
     // ---------- consultas ----------
@@ -122,76 +206,171 @@
         return libs.area(geo) / 10000;
     }
 
-    function resumoPropriedades(p) {
-        return {
-            id: p.id, uf: p.uf, mun_nome: p.mun_nome, c_pret: p.c_pret, cagrpret: p.cagrpret,
-            c_v_4i: typeof p[CAMPO_ESTOQUE] === 'number' ? p[CAMPO_ESTOQUE] : parseFloat(p[CAMPO_ESTOQUE])
-        };
+    function retanguloDoPixel(b, linha, coluna) {
+        return [b.x0 + coluna * b.passo, b.y0 - (linha + 1) * b.passo, b.x0 + (coluna + 1) * b.passo, b.y0 - linha * b.passo];
     }
 
-    // Polígono: média do estoque ponderada pela área de cada classe cruzada.
-    async function consultarPoligono(libs, fonte, geo, mediaPonderadaPorArea) {
+    // Polígono: média do estoque ponderada pela área de cada classe cruzada. Nos
+    // blocos raster, a área é a fração de cada pixel dentro do polígono.
+    async function consultarPoligono(libs, fonte, geo) {
         var poligonos = libs.flatten(geo).features.filter(ehPoligono);
         if (poligonos.length === 0) throw new Error('O arquivo não contém polígono.');
-        var areaTotal = 0;
-        var porId = {};
+        var areaTotal = 0, semDado = 0;
+        var porChave = {};
+        var chaves = {};
+
+        function acumular(chave, descricao, area, d) {
+            if (!porChave[chave]) porChave[chave] = Object.assign({ area_ha: 0, soma: 0 }, descricao);
+            porChave[chave].area_ha += area;
+            porChave[chave].soma += area * d;
+        }
+
         for (var i = 0; i < poligonos.length; i++) {
             var alvo = poligonos[i];
+            var caixa = libs.bbox(alvo);
             areaTotal += areaHa(libs, alvo);
-            var feicoes = await fonte.feicoesNoBBox(libs.bbox(alvo));
-            feicoes.forEach(function (f) {
-                var corte = libs.intersect(libs.featureCollection([alvo, f]));
-                if (!corte) return;
-                var a = areaHa(libs, corte);
-                if (!(a > 0)) return;
-                var chave = String(f.properties.id);
-                if (!porId[chave]) porId[chave] = Object.assign(resumoPropriedades(f.properties), { area_ha: 0 });
-                porId[chave].area_ha += a;
+            var blocos = await fonte.blocosNaCaixa(caixa);
+            // Os blocos vetoriais vêm primeiro: na faixa em que o raster da Amazônia
+            // se sobrepõe ao vetor de outro bioma, vale o vetor, e a área do pixel já
+            // coberta por ele é descontada, para não contar a mesma área duas vezes.
+            blocos = blocos.filter(function (b) { return b.formato === 'vetor'; }).concat(blocos.filter(function (b) { return b.formato !== 'vetor'; }));
+            var cortesVetor = [];
+            blocos.forEach(function (b) {
+                chaves[b.chave] = true;
+                if (b.formato === 'vetor') {
+                    b.feicoesGeo.forEach(function (f) {
+                        if (!caixasSeTocam(f.caixa, caixa)) return;
+                        var corte = libs.intersect(libs.featureCollection([alvo, f]));
+                        if (!corte) return;
+                        var a = areaHa(libs, corte);
+                        if (!(a > 0)) return;
+                        corte.caixa = libs.bbox(corte);
+                        cortesVetor.push(corte);
+                        if (!temDado(f.properties.d)) { semDado += a; return; }
+                        acumular('v|' + b.bioma + '|' + f.properties.id,
+                            { formato: 'vetor', bioma: b.bioma, id: f.properties.id, c_pret: f.properties.c_pret, categ: f.properties.categ },
+                            a, f.properties.d);
+                    });
+                    return;
+                }
+                var c0 = Math.max(0, Math.floor((caixa[0] - b.x0) / b.passo));
+                var c1 = Math.min(b.colunas - 1, Math.floor((caixa[2] - b.x0) / b.passo));
+                var l0 = Math.max(0, Math.floor((b.y0 - caixa[3]) / b.passo));
+                var l1 = Math.min(b.linhas - 1, Math.floor((b.y0 - caixa[1]) / b.passo));
+                if (c1 < c0 || l1 < l0) return;
+                if ((c1 - c0 + 1) * (l1 - l0 + 1) > LIMITE_PIXELS) {
+                    throw new Error('A área informada cobre pixels demais do mapa. Divida o polígono.');
+                }
+                for (var l = l0; l <= l1; l++) {
+                    for (var c = c0; c <= c1; c++) {
+                        var v = b.valores[l * b.colunas + c];
+                        if (v === b.sem_dado) continue; // fora da cobertura
+                        var pixel = retanguloDoPixel(b, l, c);
+                        var corte = libs.bboxClip(alvo, pixel);
+                        if (!ehPoligono(corte) || corte.geometry.coordinates.length === 0) continue;
+                        var a = areaHa(libs, corte);
+                        for (var k2 = 0; k2 < cortesVetor.length && a > 0; k2++) {
+                            if (!caixasSeTocam(cortesVetor[k2].caixa, pixel)) continue;
+                            var comum = libs.bboxClip(cortesVetor[k2], pixel);
+                            if (ehPoligono(comum) && comum.geometry.coordinates.length) a -= areaHa(libs, comum);
+                        }
+                        if (!(a > 1e-9)) continue;
+                        if (v === 0) { semDado += a; continue; }
+                        var k = b.legenda[b.classes[l * b.colunas + c]] || ['', ''];
+                        acumular('r|' + b.bioma + '|' + k[0], { formato: 'raster', bioma: b.bioma, c_pret: k[0], categ: k[1] }, a, v / b.escala);
+                    }
+                }
             });
         }
-        var partes = Object.keys(porId).map(function (k) { return porId[k]; })
-            .sort(function (p, q) { return q.area_ha - p.area_ha; });
-        var media = mediaPonderadaPorArea(partes);
-        var coberta = media ? media.area_ha : 0;
+        var partes = Object.keys(porChave).map(function (k) {
+            var p = porChave[k];
+            p.d = p.soma / p.area_ha;
+            delete p.soma;
+            return p;
+        }).sort(function (p, q) { return q.area_ha - p.area_ha; });
+        var coberta = 0, soma = 0;
+        partes.forEach(function (p) { coberta += p.area_ha; soma += p.area_ha * p.d; });
         return {
             tipo: 'poligono',
             area_ha: areaTotal,
             partes: partes,
             area_coberta_ha: coberta,
+            area_sem_dado_ha: semDado,
             pct_descoberto: areaTotal > 0 ? Math.max(0, (1 - coberta / areaTotal) * 100) : 100,
-            estoque_tC_ha: media ? media.estoque : null
+            pct_sem_dado: areaTotal > 0 ? semDado / areaTotal * 100 : 0,
+            estoque_tC_ha: coberta > 0 ? soma / coberta : null,
+            campo: CAMPO_ESTOQUE,
+            blocos: Object.keys(chaves).sort()
         };
     }
 
-    // Coordenada: estoque do polígono que contém o ponto, com as classes vizinhas
-    // a menos de 100 m.
+    function metrosEntre(lon, lat, lon2, lat2) {
+        var dy = (lat2 - lat) * 110574;
+        var dx = (lon2 - lon) * 111320 * Math.cos(lat * Math.PI / 180);
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Coordenada: estoque da classe do mapa no ponto, com as classes vizinhas a
+    // menos de 100 m.
     async function consultarPonto(libs, fonte, lon, lat) {
-        var grau = 0.002; // cerca de 220 m, o bastante para alcançar vizinhos a 100 m
-        var feicoes = await fonte.feicoesNoBBox([lon - grau, lat - grau, lon + grau, lat + grau]);
+        var grau = 0.004; // cerca de 440 m: alcança vizinhos a 100 m e o pixel de 250 m
+        var blocos = await fonte.blocosNaCaixa([lon - grau, lat - grau, lon + grau, lat + grau]);
         var ponto = libs.point([lon, lat]);
-        var achado = null;
-        var vizinhas = {};
-        feicoes.forEach(function (f) {
-            if (!achado && libs.booleanPointInPolygon(ponto, f)) { achado = f; }
-        });
-        feicoes.forEach(function (f) {
-            if (achado && String(f.properties.id) === String(achado.properties.id)) return;
-            var d = distanciaAteBorda(libs, ponto, f);
-            if (d === null || d > RAIO_VIZINHANCA_M) return;
-            var chave = String(f.properties.id);
-            if (!vizinhas[chave] || d < vizinhas[chave].distancia_m) {
-                vizinhas[chave] = Object.assign(resumoPropriedades(f.properties), { distancia_m: d });
+        var candidatos = [];
+        var chaves = {};
+        blocos.forEach(function (b) {
+            if (b.formato === 'vetor') {
+                b.feicoesGeo.forEach(function (f) {
+                    var contem = libs.booleanPointInPolygon(ponto, f);
+                    var d = contem ? 0 : distanciaAteBorda(libs, ponto, f);
+                    if (d === null || d > RAIO_VIZINHANCA_M) return;
+                    chaves[b.chave] = true;
+                    candidatos.push({ formato: 'vetor', bioma: b.bioma, id: f.properties.id, c_pret: f.properties.c_pret, categ: f.properties.categ, d: f.properties.d, contem: contem, distancia_m: d });
+                });
+                return;
+            }
+            var folga = b.passo;
+            var c0 = Math.max(0, Math.floor((lon - folga - b.x0) / b.passo)), c1 = Math.min(b.colunas - 1, Math.floor((lon + folga - b.x0) / b.passo));
+            var l0 = Math.max(0, Math.floor((b.y0 - lat - folga) / b.passo)), l1 = Math.min(b.linhas - 1, Math.floor((b.y0 - lat + folga) / b.passo));
+            for (var l = l0; l <= l1; l++) {
+                for (var c = c0; c <= c1; c++) {
+                    var v = b.valores[l * b.colunas + c];
+                    if (v === b.sem_dado) continue;
+                    var r = retanguloDoPixel(b, l, c);
+                    var contem = lon >= r[0] && lon < r[2] && lat > r[1] && lat <= r[3];
+                    var d = contem ? 0 : metrosEntre(lon, lat, Math.min(Math.max(lon, r[0]), r[2]), Math.min(Math.max(lat, r[1]), r[3]));
+                    if (d > RAIO_VIZINHANCA_M) continue;
+                    chaves[b.chave] = true;
+                    var k = b.legenda[b.classes[l * b.colunas + c]] || ['', ''];
+                    candidatos.push({ formato: 'raster', bioma: b.bioma, c_pret: k[0], categ: k[1], d: v / b.escala, contem: contem, distancia_m: d });
+                }
             }
         });
-        var listaVizinhas = Object.keys(vizinhas).map(function (k) { return vizinhas[k]; })
+        var contidos = candidatos.filter(function (c) { return c.contem; });
+        // Em faixa de sobreposição entre biomas, vale o vetor; depois, a fonte que tem dado.
+        contidos.sort(function (p, q) { return (p.formato === 'vetor' ? 0 : 1) - (q.formato === 'vetor' ? 0 : 1); });
+        var achado = contidos.filter(function (c) { return temDado(c.d); })[0] || contidos[0] || null;
+        var vizinhas = {};
+        candidatos.forEach(function (c) {
+            if (c.contem || !achado) return;
+            // No raster, cada pixel tem o seu valor: só interessa a troca de classe.
+            var outra = c.c_pret !== achado.c_pret || (c.formato === 'vetor' && Math.abs((c.d || 0) - (achado.d || 0)) > 0.005);
+            if (!outra) return;
+            var chave = c.formato === 'vetor' ? c.c_pret + '|' + c.d : c.c_pret;
+            if (!vizinhas[chave] || c.distancia_m < vizinhas[chave].distancia_m) vizinhas[chave] = c;
+        });
+        var lista = Object.keys(vizinhas).map(function (k) { return vizinhas[k]; })
             .sort(function (p, q) { return p.distancia_m - q.distancia_m; });
         return {
             tipo: 'coordenada',
             lon: lon, lat: lat,
-            poligono: achado ? resumoPropriedades(achado.properties) : null,
-            estoque_tC_ha: achado ? resumoPropriedades(achado.properties).c_v_4i : null,
-            vizinhas: listaVizinhas,
-            aviso: AVISO_COORDENADA
+            classe: achado,
+            sem_dado: !!achado && !temDado(achado.d),
+            estoque_tC_ha: achado && temDado(achado.d) ? achado.d : null,
+            vizinhas: lista,
+            aviso: AVISO_COORDENADA,
+            campo: CAMPO_ESTOQUE,
+            blocos: Object.keys(chaves).sort()
         };
     }
 
@@ -270,13 +449,17 @@
 
     return {
         MAPA_QCN_ATIVO: MAPA_QCN_ATIVO,
-        URL_PMTILES: URL_PMTILES,
-        CAMADA: CAMADA,
+        DADOS_BASE_URL: DADOS_BASE_URL,
+        VERSAO_DADOS: VERSAO_DADOS,
+        CAMPO_ESTOQUE: CAMPO_ESTOQUE,
+        CONFIG: CONFIG,
+        configurar: configurar,
         AVISO_COORDENADA: AVISO_COORDENADA,
-        tileDeLonLat: tileDeLonLat,
-        bboxDoTile: bboxDoTile,
-        criarFontePMTiles: criarFontePMTiles,
-        criarFonteGeoJSON: criarFonteGeoJSON,
+        temDado: temDado,
+        decodificarBloco: decodificarBloco,
+        criarFonteBlocos: criarFonteBlocos,
+        criarFonteMemoria: criarFonteMemoria,
+        verificarDisponibilidade: verificarDisponibilidade,
         areaHa: areaHa,
         consultarPoligono: consultarPoligono,
         consultarPonto: consultarPonto,

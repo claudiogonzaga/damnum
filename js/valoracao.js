@@ -339,29 +339,90 @@
         return { origem: 'usuario', tC: tC, descricaoOrigem: 'estoque informado pelo usuário', fonte: fonte, regra: '' };
     }
 
-    // Estoque pelo mapa por estado. A parte do polígono fora da cobertura recebe o
-    // estoque de reserva (tabela).
-    function estoqueDoMapa(consulta, reserva) {
+    // Estoque pela tabela por município × c_pret, gerada com os blocos do mapa
+    // (reserva para quem não tem polígono nem coordenada). Devolve null se o par
+    // não existir na tabela.
+    function estoqueDoMunicipio(tabelaMunicipios, geocodigo, bioma, sigla) {
+        if (!tabelaMunicipios || !geocodigo || !sigla) return null;
+        var nome = BIOMA_QCN[bioma];
+        var linha = tabelaMunicipios.linhas.filter(function (l) { return l[0] === geocodigo && l[2] === nome && l[3] === sigla; })[0];
+        if (!linha) return null;
+        return {
+            origem: 'municipio', entrada: 'reserva', tC: linha[5], sigla: sigla,
+            descricaoOrigem: 'tabela por município e fitofisionomia do mapa do Quarto Inventário Nacional (' + linha[1] + ', ' + sigla + ', bioma ' + nome + ')',
+            fonte: 'Quarto Inventário Nacional de Emissões (MCTI/INPE), Carbono da Vegetação Pretérita, campo ' + tabelaMunicipios.campo + '; dados na versão ' + tabelaMunicipios.versao,
+            regra: 'média do estoque (' + tabelaMunicipios.campo + ') ponderada pela área, em ' + C.arredondar(linha[4], 0) + ' ha dessa fitofisionomia no município'
+        };
+    }
+
+    // Estoque pelo mapa do Quarto Inventário (polígono ou coordenada). No polígono,
+    // a parte fora da cobertura ou sem dado recebe o estoque de reserva. `dados` é
+    // o versao.json do servidor de blocos (versão, campo e fontes).
+    function estoqueDoMapa(consulta, reserva, dados) {
+        var campo = consulta.campo || (dados && dados.campo) || 'ctotal4inv';
         var e;
         if (consulta.tipo === 'coordenada') {
             e = {
-                origem: 'mapa-coordenada', tC: consulta.estoque_tC_ha,
-                descricaoOrigem: 'mapa do Quarto Inventário Nacional por estado, consulta por coordenada (estimativa aproximada)',
-                regra: 'estoque (c_v_4i) do polígono do Inventário que contém a coordenada'
+                origem: 'mapa-coordenada', entrada: 'coordenada', tC: consulta.estoque_tC_ha,
+                descricaoOrigem: 'mapa do Quarto Inventário Nacional, consulta por coordenada (valor aproximado)',
+                regra: 'estoque (' + campo + ') da classe do mapa no ponto informado'
             };
         } else {
             var descoberta = consulta.pct_descoberto / 100;
             e = {
-                origem: 'mapa-poligono',
+                origem: 'mapa-poligono', entrada: 'polígono',
                 tC: consulta.estoque_tC_ha * (1 - descoberta) + reserva.tC * descoberta,
-                descricaoOrigem: 'mapa do Quarto Inventário Nacional por estado, interseção com o polígono da área desmatada',
-                regra: 'média do estoque (c_v_4i) ponderada pela área de interseção de cada polígono do Inventário',
+                descricaoOrigem: 'mapa do Quarto Inventário Nacional, interseção com o polígono da área do dano',
+                regra: 'média do estoque (' + campo + ') ponderada pela área de interseção de cada classe do mapa',
                 reservaDescoberta: reserva.descricaoOrigem + ' (' + reserva.tC + ' tC/ha)'
             };
         }
-        e.fonte = 'Quarto Inventário Nacional de Emissões (MCTI, 2020), dados espaciais por UF; ' + (consulta.versaoMapa || 'versão do arquivo não informada');
+        e.fonte = 'Quarto Inventário Nacional de Emissões (MCTI/INPE), Carbono da Vegetação Pretérita, campo ' + campo +
+            (dados ? '; dados na versão ' + dados.versao + ', gerados em ' + dados.gerado_em : '');
         e.mapa = consulta;
+        e.dados = dados || null;
         return e;
+    }
+
+    // Decide o estoque do caso. O estoque informado pelo usuário prevalece sobre
+    // tudo. Depois, pela ordem: (1) mapa do Quarto Inventário, por polígono ou, na
+    // falta dele, por coordenada; (2) tabela por município e fitofisionomia;
+    // (3) tabela por fitofisionomia; (4) média do bioma. Quando o mapa não é
+    // usado, `avisoMapa` diz por quê, para a tela e para o relatório.
+    //   caso.usuario:  { tC, fonte } ou null
+    //   caso.tabela:   estoqueDaTabela(...)
+    //   caso.municipio: estoqueDoMunicipio(...) ou null
+    //   caso.consulta: resultado de consultarPoligono/consultarPonto, ou null
+    //   caso.mapa:     { disponivel, motivo, falha, info }
+    function resolverEstoque(caso) {
+        if (caso.usuario) {
+            var u = estoqueDoUsuario(caso.usuario.tC, caso.usuario.fonte);
+            u.entrada = 'estoque informado pelo usuário';
+            return u;
+        }
+        var mapa = caso.mapa || { disponivel: false };
+        var reserva = (mapa.disponivel && caso.municipio) || caso.tabela;
+        reserva.entrada = 'reserva';
+        var consulta = caso.consulta;
+        if (mapa.disponivel && consulta && typeof consulta.estoque_tC_ha === 'number') {
+            return estoqueDoMapa(consulta, reserva, mapa.info);
+        }
+        var motivo;
+        if (!mapa.disponivel) {
+            motivo = (mapa.motivo || 'A consulta ao mapa do Quarto Inventário não está disponível.') + ' Não há entrada por polígono nem por coordenada';
+        } else if (mapa.falha) {
+            motivo = 'Consulta ao mapa indisponível (' + mapa.falha + ')';
+        } else if (consulta && consulta.tipo === 'coordenada') {
+            motivo = consulta.sem_dado ? 'A coordenada cai em classe sem dado no mapa' : 'A coordenada está fora da cobertura do mapa';
+            reserva.consultaSemResultado = consulta;
+        } else if (consulta) {
+            motivo = consulta.pct_sem_dado > 0 ? 'O polígono cai em área sem dado no mapa' : 'O polígono está fora da cobertura do mapa';
+            reserva.consultaSemResultado = consulta;
+        } else {
+            motivo = 'Não foram informados polígono nem coordenada';
+        }
+        reserva.avisoMapa = motivo + '; usada a reserva: ' + reserva.descricaoOrigem + '.';
+        return reserva;
     }
 
     function parcelaPatrimonial(valor, area, ctx) {
@@ -589,6 +650,8 @@
         estoqueDaTabela: estoqueDaTabela,
         estoqueDoUsuario: estoqueDoUsuario,
         estoqueDoMapa: estoqueDoMapa,
+        estoqueDoMunicipio: estoqueDoMunicipio,
+        resolverEstoque: resolverEstoque,
         calcular: calcular,
         avisoPiso: avisoPiso,
         textoCanonico: textoCanonico

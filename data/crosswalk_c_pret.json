@@ -1,0 +1,1053 @@
+{
+ "versao_dos_dados": "v1",
+ "uf": "MT",
+ "gerado_em": "2026-10-11",
+ "nota": "Média do mapa: ctotal4inv ponderado pela área, na janela dos blocos gerados (inclui faixas de estados vizinhos). Na Amazônia o mapa varia pixel a pixel; a tabela traz um valor por fitofisionomia.",
+ "tolerancia_tC_ha": 0.5,
+ "classes": [
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Aa",
+   "area_ha": 106674.2,
+   "d_medio_mapa_tC_ha": 116.16,
+   "tabela": {
+    "indice": 0,
+    "sigla": "Aa",
+    "nome": "Floresta Ombrófila Aberta Aluvial",
+    "total_tC_ha": 145.3
+   },
+   "diferenca_tC_ha": -29.14
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Ab",
+   "area_ha": 103038.6,
+   "d_medio_mapa_tC_ha": 98.23,
+   "tabela": {
+    "indice": 1,
+    "sigla": "Ab",
+    "nome": "Floresta Ombrófila Aberta Terras Baixas",
+    "total_tC_ha": 165.9
+   },
+   "diferenca_tC_ha": -67.67
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "As",
+   "area_ha": 31719460.5,
+   "d_medio_mapa_tC_ha": 107.37,
+   "tabela": {
+    "indice": 2,
+    "sigla": "As",
+    "nome": "Floresta Ombrófila Aberta Submontana",
+    "total_tC_ha": 132.0
+   },
+   "diferenca_tC_ha": -24.63
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Ca",
+   "area_ha": 1259.7,
+   "d_medio_mapa_tC_ha": 102.83,
+   "tabela": {
+    "indice": 30,
+    "sigla": "Ca",
+    "nome": "Floresta Estacional Decidual Aluvial",
+    "total_tC_ha": 107.7
+   },
+   "diferenca_tC_ha": -4.87
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Cb",
+   "area_ha": 90143.0,
+   "d_medio_mapa_tC_ha": 71.03,
+   "tabela": {
+    "indice": 3,
+    "sigla": "Cb",
+    "nome": "Floresta Estacional Decidual Terras Baixas",
+    "total_tC_ha": 59.1
+   },
+   "diferenca_tC_ha": 11.93
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Cs",
+   "area_ha": 770493.0,
+   "d_medio_mapa_tC_ha": 106.26,
+   "tabela": {
+    "indice": 4,
+    "sigla": "Cs",
+    "nome": "Floresta Estacional Decidual Submontana",
+    "total_tC_ha": 129.8
+   },
+   "diferenca_tC_ha": -23.54
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Da",
+   "area_ha": 840402.2,
+   "d_medio_mapa_tC_ha": 103.6,
+   "tabela": {
+    "indice": 5,
+    "sigla": "Da",
+    "nome": "Floresta Ombrófila Densa Aluvial",
+    "total_tC_ha": 130.7
+   },
+   "diferenca_tC_ha": -27.1
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Db",
+   "area_ha": 377503.4,
+   "d_medio_mapa_tC_ha": 177.51,
+   "tabela": {
+    "indice": 6,
+    "sigla": "Db",
+    "nome": "Floresta Ombrófila Densa de Terras Baixas",
+    "total_tC_ha": 185.3
+   },
+   "diferenca_tC_ha": -7.79
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Ds",
+   "area_ha": 9687319.0,
+   "d_medio_mapa_tC_ha": 151.55,
+   "tabela": {
+    "indice": 8,
+    "sigla": "Ds",
+    "nome": "Floresta Ombrófila Densa Submontana",
+    "total_tC_ha": 201.1
+   },
+   "diferenca_tC_ha": -49.55
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Fa",
+   "area_ha": 574633.4,
+   "d_medio_mapa_tC_ha": 60.09,
+   "tabela": {
+    "indice": 9,
+    "sigla": "Fa",
+    "nome": "Floresta Estacional Semidecidual aluvial",
+    "total_tC_ha": 65.6
+   },
+   "diferenca_tC_ha": -5.51
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Fb",
+   "area_ha": 2124649.8,
+   "d_medio_mapa_tC_ha": 74.36,
+   "tabela": {
+    "indice": 10,
+    "sigla": "Fb",
+    "nome": "Floresta Estacional Semidecidual de terras baixas",
+    "total_tC_ha": 81.7
+   },
+   "diferenca_tC_ha": -7.34
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Fm",
+   "area_ha": 455.3,
+   "d_medio_mapa_tC_ha": 90.34,
+   "tabela": {
+    "indice": 11,
+    "sigla": "Fm",
+    "nome": "Floresta Estacional Semidecidual montana",
+    "total_tC_ha": 125.8
+   },
+   "diferenca_tC_ha": -35.46
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Fs",
+   "area_ha": 18435953.7,
+   "d_medio_mapa_tC_ha": 79.63,
+   "tabela": {
+    "indice": 12,
+    "sigla": "Fs",
+    "nome": "Floresta Estacional Semidecidual Submontana",
+    "total_tC_ha": 88.9
+   },
+   "diferenca_tC_ha": -9.27
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "LO",
+   "area_ha": 5402.3,
+   "d_medio_mapa_tC_ha": 129.89,
+   "tabela": {
+    "indice": 38,
+    "sigla": "LO",
+    "nome": "Contato Campinarana/Floresta Ombrófila",
+    "total_tC_ha": 130.0
+   },
+   "diferenca_tC_ha": -0.11
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "La",
+   "area_ha": 68083.0,
+   "d_medio_mapa_tC_ha": 91.77,
+   "tabela": {
+    "indice": 13,
+    "sigla": "La",
+    "nome": "Campinarana Arborizada",
+    "total_tC_ha": 302.7
+   },
+   "diferenca_tC_ha": -210.93
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Ld",
+   "area_ha": 158526.7,
+   "d_medio_mapa_tC_ha": 64.13,
+   "tabela": {
+    "indice": 15,
+    "sigla": "Ld",
+    "nome": "Campinarana Florestada",
+    "total_tC_ha": 131.6
+   },
+   "diferenca_tC_ha": -67.47
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Lg",
+   "area_ha": 55496.9,
+   "d_medio_mapa_tC_ha": 75.92,
+   "tabela": {
+    "indice": 16,
+    "sigla": "Lg",
+    "nome": "Campinarana gramíneo lenhosa",
+    "total_tC_ha": 121.0
+   },
+   "diferenca_tC_ha": -45.08
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "ON",
+   "area_ha": 2542575.8,
+   "d_medio_mapa_tC_ha": 58.56,
+   "tabela": {
+    "indice": 39,
+    "sigla": "ON",
+    "nome": "Contato Floresta Ombrófila/Floresta Estacional",
+    "total_tC_ha": 58.4
+   },
+   "diferenca_tC_ha": 0.16
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Pa",
+   "area_ha": 980993.7,
+   "d_medio_mapa_tC_ha": 45.64,
+   "tabela": {
+    "indice": 17,
+    "sigla": "Pa",
+    "nome": "Vegetação com influência fluvial e/ou lacustre",
+    "total_tC_ha": 58.2
+   },
+   "diferenca_tC_ha": -12.56
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Rm",
+   "area_ha": 234655.3,
+   "d_medio_mapa_tC_ha": 169.44,
+   "tabela": {
+    "indice": 20,
+    "sigla": "Rm",
+    "nome": "Refúgio montano",
+    "total_tC_ha": 90.2
+   },
+   "diferenca_tC_ha": 79.24
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "S",
+   "area_ha": 40339.1,
+   "d_medio_mapa_tC_ha": 127.1,
+   "tabela": {
+    "indice": 41,
+    "sigla": "S",
+    "nome": "Savana",
+    "total_tC_ha": 139.5
+   },
+   "diferenca_tC_ha": -12.4
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "SN",
+   "area_ha": 1438293.2,
+   "d_medio_mapa_tC_ha": 59.63,
+   "tabela": {
+    "indice": 34,
+    "sigla": "SN",
+    "nome": "Contato Savana/Floresta Estacional",
+    "total_tC_ha": 57.6
+   },
+   "diferenca_tC_ha": 2.03
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "SO",
+   "area_ha": 984320.6,
+   "d_medio_mapa_tC_ha": 115.44,
+   "tabela": {
+    "indice": 35,
+    "sigla": "SO",
+    "nome": "Contato Savana/Floresta Ombrófila",
+    "total_tC_ha": 131.2
+   },
+   "diferenca_tC_ha": -15.76
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "ST",
+   "area_ha": 283502.3,
+   "d_medio_mapa_tC_ha": 38.67,
+   "tabela": {
+    "indice": 36,
+    "sigla": "ST",
+    "nome": "Contato Savana/Savana-Estépica",
+    "total_tC_ha": 49.7
+   },
+   "diferenca_tC_ha": -11.03
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Sa",
+   "area_ha": 2233561.0,
+   "d_medio_mapa_tC_ha": 140.28,
+   "tabela": {
+    "indice": 21,
+    "sigla": "Sa",
+    "nome": "Savana Arborizada",
+    "total_tC_ha": 173.1
+   },
+   "diferenca_tC_ha": -32.82
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Sd",
+   "area_ha": 3984113.1,
+   "d_medio_mapa_tC_ha": 118.64,
+   "tabela": {
+    "indice": 22,
+    "sigla": "Sd",
+    "nome": "Savana Florestada",
+    "total_tC_ha": 150.0
+   },
+   "diferenca_tC_ha": -31.36
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Sg",
+   "area_ha": 144545.1,
+   "d_medio_mapa_tC_ha": 63.63,
+   "tabela": {
+    "indice": 23,
+    "sigla": "Sg",
+    "nome": "Savana Gramíneo-Lenhosa",
+    "total_tC_ha": 49.8
+   },
+   "diferenca_tC_ha": 13.83
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Sp",
+   "area_ha": 1123959.8,
+   "d_medio_mapa_tC_ha": 82.0,
+   "tabela": {
+    "indice": 24,
+    "sigla": "Sp",
+    "nome": "Savana Parque",
+    "total_tC_ha": 114.0
+   },
+   "diferenca_tC_ha": -32.0
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "TN",
+   "area_ha": 54839.7,
+   "d_medio_mapa_tC_ha": 51.65,
+   "tabela": {
+    "indice": 37,
+    "sigla": "TN",
+    "nome": "Contato Savana-Estépica/Floresta Estacional",
+    "total_tC_ha": 51.6
+   },
+   "diferenca_tC_ha": 0.05
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Td",
+   "area_ha": 37246.9,
+   "d_medio_mapa_tC_ha": 51.26,
+   "tabela": {
+    "indice": 26,
+    "sigla": "Td",
+    "nome": "Savana Estépica Florestada",
+    "total_tC_ha": 25.2
+   },
+   "diferenca_tC_ha": 26.06
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Aa",
+   "area_ha": 414.5,
+   "d_medio_mapa_tC_ha": 145.3,
+   "tabela": {
+    "indice": 0,
+    "sigla": "Aa",
+    "nome": "Floresta Ombrófila Aberta Aluvial",
+    "total_tC_ha": 145.3
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "As",
+   "area_ha": 78302.4,
+   "d_medio_mapa_tC_ha": 88.08,
+   "tabela": {
+    "indice": 2,
+    "sigla": "As",
+    "nome": "Floresta Ombrófila Aberta Submontana",
+    "total_tC_ha": 88.08
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Cs",
+   "area_ha": 544326.9,
+   "d_medio_mapa_tC_ha": 127.54,
+   "tabela": {
+    "indice": 6,
+    "sigla": "Cs",
+    "nome": "Floresta Estacional Decidual Submontana",
+    "total_tC_ha": 98.28
+   },
+   "diferenca_tC_ha": 29.26
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Da",
+   "area_ha": 59405.9,
+   "d_medio_mapa_tC_ha": 130.71,
+   "tabela": {
+    "indice": 7,
+    "sigla": "Da",
+    "nome": "Floresta Ombrófila Densa Aluvial",
+    "total_tC_ha": 130.71
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Ds",
+   "area_ha": 426.4,
+   "d_medio_mapa_tC_ha": 118.41,
+   "tabela": {
+    "indice": 9,
+    "sigla": "Ds",
+    "nome": "Floresta Ombrófila Densa Submontana",
+    "total_tC_ha": 118.41
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Fa",
+   "area_ha": 1263040.1,
+   "d_medio_mapa_tC_ha": 145.66,
+   "tabela": {
+    "indice": 11,
+    "sigla": "Fa",
+    "nome": "Floresta Estacional Semidecidual Aluvial",
+    "total_tC_ha": 97.22
+   },
+   "diferenca_tC_ha": 48.44
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Fb",
+   "area_ha": 61099.8,
+   "d_medio_mapa_tC_ha": 82.22,
+   "tabela": {
+    "indice": 12,
+    "sigla": "Fb",
+    "nome": "Floresta Estacional Semidecidual das Terras Baixas",
+    "total_tC_ha": 89.38
+   },
+   "diferenca_tC_ha": -7.16
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Fs",
+   "area_ha": 2820305.9,
+   "d_medio_mapa_tC_ha": 83.48,
+   "tabela": {
+    "indice": 14,
+    "sigla": "Fs",
+    "nome": "Floresta Estacional Semidecidual Submontana",
+    "total_tC_ha": 69.2
+   },
+   "diferenca_tC_ha": 14.28
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "ONs",
+   "area_ha": 233363.7,
+   "d_medio_mapa_tC_ha": 102.15,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "ONts",
+   "area_ha": 2783.4,
+   "d_medio_mapa_tC_ha": 105.51,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Pa",
+   "area_ha": 30902.3,
+   "d_medio_mapa_tC_ha": 36.21,
+   "tabela": {
+    "indice": 20,
+    "sigla": "Pa",
+    "nome": "Formação Pioneira com influência fluvial e/ou lacustre",
+    "total_tC_ha": 36.21
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "S",
+   "area_ha": 105068.2,
+   "d_medio_mapa_tC_ha": 71.09,
+   "tabela": {
+    "indice": 24,
+    "sigla": "S",
+    "nome": "Savana",
+    "total_tC_ha": 51.63
+   },
+   "diferenca_tC_ha": 19.46
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "SNm",
+   "area_ha": 18502.8,
+   "d_medio_mapa_tC_ha": 70.53,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "SNs",
+   "area_ha": 1154445.9,
+   "d_medio_mapa_tC_ha": 83.38,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "SNts",
+   "area_ha": 302910.4,
+   "d_medio_mapa_tC_ha": 88.02,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "SOs",
+   "area_ha": 28655.8,
+   "d_medio_mapa_tC_ha": 76.21,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "SOts",
+   "area_ha": 6.8,
+   "d_medio_mapa_tC_ha": 80.05,
+   "tabela": null
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Sa",
+   "area_ha": 17903138.5,
+   "d_medio_mapa_tC_ha": 40.54,
+   "tabela": {
+    "indice": 25,
+    "sigla": "Sa",
+    "nome": "Savana Arborizada",
+    "total_tC_ha": 41.31
+   },
+   "diferenca_tC_ha": -0.77
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Sd",
+   "area_ha": 3096102.7,
+   "d_medio_mapa_tC_ha": 101.31,
+   "tabela": {
+    "indice": 26,
+    "sigla": "Sd",
+    "nome": "Savana Florestada",
+    "total_tC_ha": 68.49
+   },
+   "diferenca_tC_ha": 32.82
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Sg",
+   "area_ha": 759410.7,
+   "d_medio_mapa_tC_ha": 18.49,
+   "tabela": {
+    "indice": 27,
+    "sigla": "Sg",
+    "nome": "Savana Gramíneo-lenhosa",
+    "total_tC_ha": 18.49
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Sp",
+   "area_ha": 10138407.5,
+   "d_medio_mapa_tC_ha": 26.79,
+   "tabela": {
+    "indice": 31,
+    "sigla": "Sp",
+    "nome": "Savana Parque",
+    "total_tC_ha": 26.79
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Cb",
+   "area_ha": 19118.0,
+   "d_medio_mapa_tC_ha": 104.87,
+   "tabela": {
+    "indice": 1,
+    "sigla": "Cb",
+    "nome": "Floresta Estacional Decidual – Terras baixas",
+    "total_tC_ha": 104.87
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Cs",
+   "area_ha": 27412.9,
+   "d_medio_mapa_tC_ha": 127.54,
+   "tabela": {
+    "indice": 2,
+    "sigla": "Cs",
+    "nome": "Floresta Estacional Decidual – Submontana",
+    "total_tC_ha": 127.54
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Fa",
+   "area_ha": 773390.8,
+   "d_medio_mapa_tC_ha": 167.46,
+   "tabela": {
+    "indice": 3,
+    "sigla": "Fa",
+    "nome": "Floresta Estacional Semidecidual – Aluvial",
+    "total_tC_ha": 167.46
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Fb",
+   "area_ha": 245419.2,
+   "d_medio_mapa_tC_ha": 81.73,
+   "tabela": {
+    "indice": 4,
+    "sigla": "Fb",
+    "nome": "Floresta Estacional Semidecidual – Terras baixas",
+    "total_tC_ha": 81.73
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Fs",
+   "area_ha": 2576.3,
+   "d_medio_mapa_tC_ha": 83.48,
+   "tabela": {
+    "indice": 5,
+    "sigla": "Fs",
+    "nome": "Floresta Estacional Semidecidual – Submontana",
+    "total_tC_ha": 83.48
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "S",
+   "area_ha": 10563.5,
+   "d_medio_mapa_tC_ha": 103.21,
+   "tabela": {
+    "indice": 8,
+    "sigla": "S",
+    "nome": "Savana",
+    "total_tC_ha": 103.21
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "SN",
+   "area_ha": 13808.0,
+   "d_medio_mapa_tC_ha": 41.31,
+   "tabela": {
+    "indice": 6,
+    "sigla": "SN",
+    "nome": "Contato Savana/Floresta Estacional",
+    "total_tC_ha": 41.31
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "ST",
+   "area_ha": 23259.1,
+   "d_medio_mapa_tC_ha": 81.56,
+   "tabela": {
+    "indice": 11,
+    "sigla": "ST",
+    "nome": "Contato Savana/Savana-Estépica",
+    "total_tC_ha": 81.56
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Sa",
+   "area_ha": 2505799.3,
+   "d_medio_mapa_tC_ha": 41.31,
+   "tabela": {
+    "indice": 9,
+    "sigla": "Sa",
+    "nome": "Savana – arborizada",
+    "total_tC_ha": 41.31
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Sd",
+   "area_ha": 615846.5,
+   "d_medio_mapa_tC_ha": 103.21,
+   "tabela": {
+    "indice": 10,
+    "sigla": "Sd",
+    "nome": "Savana – florestada",
+    "total_tC_ha": 103.21
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Sg",
+   "area_ha": 658985.3,
+   "d_medio_mapa_tC_ha": 18.49,
+   "tabela": {
+    "indice": 15,
+    "sigla": "Sg",
+    "nome": "Savana – Gramíneo-Lenhosa",
+    "total_tC_ha": 18.49
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Sp",
+   "area_ha": 1017719.1,
+   "d_medio_mapa_tC_ha": 26.79,
+   "tabela": {
+    "indice": 17,
+    "sigla": "Sp",
+    "nome": "Savana – parque",
+    "total_tC_ha": 26.79
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "TN",
+   "area_ha": 997.7,
+   "d_medio_mapa_tC_ha": 167.46,
+   "tabela": {
+    "indice": 7,
+    "sigla": "TN",
+    "nome": "Contato Savana-Estépica/Floresta Estacional",
+    "total_tC_ha": 167.46
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Ta",
+   "area_ha": 170403.6,
+   "d_medio_mapa_tC_ha": 11.96,
+   "tabela": {
+    "indice": 13,
+    "sigla": "Ta",
+    "nome": "Savana-Estépica – arborizada",
+    "total_tC_ha": 11.96
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Td",
+   "area_ha": 204046.9,
+   "d_medio_mapa_tC_ha": 99.09,
+   "tabela": {
+    "indice": 14,
+    "sigla": "Td",
+    "nome": "Savana-Estépica – florestada",
+    "total_tC_ha": 99.09
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Tg",
+   "area_ha": 402223.0,
+   "d_medio_mapa_tC_ha": 17.49,
+   "tabela": {
+    "indice": 16,
+    "sigla": "Tg",
+    "nome": "Savana Estépica – Gramíneo-Lenhosa",
+    "total_tC_ha": 17.49
+   },
+   "diferenca_tC_ha": 0.0
+  },
+  {
+   "bioma": "Pantanal",
+   "c_pret": "Tp",
+   "area_ha": 22351.1,
+   "d_medio_mapa_tC_ha": 26.51,
+   "tabela": {
+    "indice": 18,
+    "sigla": "Tp",
+    "nome": "Savana-Estépica – parque",
+    "total_tC_ha": 26.51
+   },
+   "diferenca_tC_ha": 0.0
+  }
+ ],
+ "sem_correspondencia": [
+  [
+   "Cerrado",
+   "ONs"
+  ],
+  [
+   "Cerrado",
+   "ONts"
+  ],
+  [
+   "Cerrado",
+   "SNm"
+  ],
+  [
+   "Cerrado",
+   "SNs"
+  ],
+  [
+   "Cerrado",
+   "SNts"
+  ],
+  [
+   "Cerrado",
+   "SOs"
+  ],
+  [
+   "Cerrado",
+   "SOts"
+  ]
+ ],
+ "acima_da_tolerancia": [
+  [
+   "Amazônia",
+   "Aa",
+   -29.14
+  ],
+  [
+   "Amazônia",
+   "Ab",
+   -67.67
+  ],
+  [
+   "Amazônia",
+   "As",
+   -24.63
+  ],
+  [
+   "Amazônia",
+   "Ca",
+   -4.87
+  ],
+  [
+   "Amazônia",
+   "Cb",
+   11.93
+  ],
+  [
+   "Amazônia",
+   "Cs",
+   -23.54
+  ],
+  [
+   "Amazônia",
+   "Da",
+   -27.1
+  ],
+  [
+   "Amazônia",
+   "Db",
+   -7.79
+  ],
+  [
+   "Amazônia",
+   "Ds",
+   -49.55
+  ],
+  [
+   "Amazônia",
+   "Fa",
+   -5.51
+  ],
+  [
+   "Amazônia",
+   "Fb",
+   -7.34
+  ],
+  [
+   "Amazônia",
+   "Fm",
+   -35.46
+  ],
+  [
+   "Amazônia",
+   "Fs",
+   -9.27
+  ],
+  [
+   "Amazônia",
+   "La",
+   -210.93
+  ],
+  [
+   "Amazônia",
+   "Ld",
+   -67.47
+  ],
+  [
+   "Amazônia",
+   "Lg",
+   -45.08
+  ],
+  [
+   "Amazônia",
+   "Pa",
+   -12.56
+  ],
+  [
+   "Amazônia",
+   "Rm",
+   79.24
+  ],
+  [
+   "Amazônia",
+   "S",
+   -12.4
+  ],
+  [
+   "Amazônia",
+   "SN",
+   2.03
+  ],
+  [
+   "Amazônia",
+   "SO",
+   -15.76
+  ],
+  [
+   "Amazônia",
+   "ST",
+   -11.03
+  ],
+  [
+   "Amazônia",
+   "Sa",
+   -32.82
+  ],
+  [
+   "Amazônia",
+   "Sd",
+   -31.36
+  ],
+  [
+   "Amazônia",
+   "Sg",
+   13.83
+  ],
+  [
+   "Amazônia",
+   "Sp",
+   -32.0
+  ],
+  [
+   "Amazônia",
+   "Td",
+   26.06
+  ],
+  [
+   "Cerrado",
+   "Cs",
+   29.26
+  ],
+  [
+   "Cerrado",
+   "Fa",
+   48.44
+  ],
+  [
+   "Cerrado",
+   "Fb",
+   -7.16
+  ],
+  [
+   "Cerrado",
+   "Fs",
+   14.28
+  ],
+  [
+   "Cerrado",
+   "S",
+   19.46
+  ],
+  [
+   "Cerrado",
+   "Sa",
+   -0.77
+  ],
+  [
+   "Cerrado",
+   "Sd",
+   32.82
+  ]
+ ]
+}

@@ -37,7 +37,7 @@
         <header>
             <h1>DAMNUM</h1>
             <h2>Valoração de Danos Ambientais Decorrentes de Desmatamento Ilegal</h2>
-            <p class="version">v. 7.0</p>
+            <p class="version">v. 7.1</p>
         </header>
 
         <main>
@@ -65,17 +65,7 @@
                     <label for="fitofisionomia">Fitofisionomia da vegetação suprimida: <a href="manual.html#estoque-de-carbono" target="_blank" title="Saiba mais sobre os estoques de carbono" style="text-decoration:none; font-size:1.1em; vertical-align:middle; color:#2c5530;">&#9432;</a></label>
                     <select id="fitofisionomia" name="fitofisionomia"></select>
                     <p class="ajuda-campo">Estoques de carbono da vegetação original, em tC/ha, conforme o Quarto Inventário Nacional (MCTI, 2020).</p>
-                </div>
-
-                <div class="input-group" id="grupoIBGE" style="display:none;">
-                    <label for="ibgeLatitude">Não sabe a fitofisionomia? Consulte o mapa de vegetação do IBGE por uma coordenada do desmatamento (graus decimais):</label>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <input type="number" id="ibgeLatitude" step="0.000001" min="-34" max="6" placeholder="Latitude, ex.: -12.500000" style="flex:1; min-width:150px;">
-                        <input type="number" id="ibgeLongitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000" style="flex:1; min-width:150px;">
-                        <button type="button" id="btnConsultarIBGE" class="btn-download">Consultar o IBGE</button>
-                    </div>
-                    <p class="ajuda-campo">A coordenada é enviada ao serviço de mapas do IBGE. O IBGE só indica a fitofisionomia; o estoque vem da tabela do Quarto Inventário. É uma solução provisória, até o mapa do próprio Inventário ficar disponível.</p>
-                    <p id="resultadoIBGE" class="aviso-campo" style="display:none;"></p>
+                    <p class="ajuda-campo">O Quarto Inventário não tem a classe "Floresta Estacional Sempre-Verde". No norte de Mato Grosso, prefira consultar o mapa pelo polígono. Se escolher à mão, a classe aplicável é a que o Inventário atribuiu à área, não a do IBGE.</p>
                 </div>
 
                 <div class="input-group" id="grupoEstoqueUsuario" style="display:none;">
@@ -99,7 +89,8 @@
 
                 <div class="input-group" id="grupoLocalizacao" style="display:none;">
                     <h4 class="titulo-secao-form">Localização do desmatamento</h4>
-                    <p class="ajuda-campo">O polígono e a coordenada são processados só neste navegador. Não são enviados a servidor algum.</p>
+                    <p class="ajuda-campo">O estoque de carbono é obtido do mapa do Quarto Inventário para o polígono da área do dano (média ponderada pela área) ou, na falta dele, para a coordenada informada, com aviso de aproximação.</p>
+                    <p id="textoPrivacidadeMapa" class="ajuda-campo">O polígono e a coordenada ficam no seu navegador. O site só baixa os blocos do mapa que cobrem a área.</p>
                     <label for="arquivoPoligono">Polígono da área desmatada (KML, KMZ, GeoJSON ou shapefile zipado):</label>
                     <input type="file" id="arquivoPoligono" accept=".kml,.kmz,.geojson,.json,.zip">
                     <p id="infoPoligono" class="ajuda-campo" style="display:none;"></p>
@@ -114,6 +105,12 @@
                         <input type="number" id="longitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000">
                     </div>
                     <p id="avisoCoordenada" class="aviso-campo" style="display:none;"></p>
+                </div>
+
+                <div class="input-group" id="grupoMunicipio" style="display:none;">
+                    <label for="municipio">Sem polígono e sem coordenada: município do desmatamento (opcional):</label>
+                    <select id="municipio"><option value="">Não informar</option></select>
+                    <p class="ajuda-campo">Com o município e a fitofisionomia escolhidos, vale o estoque médio dessa fitofisionomia no município, pelo mapa do Quarto Inventário.</p>
                 </div>
 
                 <div class="input-group">
@@ -454,7 +451,6 @@
     <script src="js/calculo.js"></script>
     <script src="js/series.js"></script>
     <script src="js/mapa-qcn.js"></script>
-    <script src="js/ibge-vegetacao.js"></script>
     <script src="js/valoracao.js"></script>
     <script src="js/relatorio.js"></script>
     <script src="script.js"></script>

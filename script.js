@@ -67,7 +67,7 @@ async function obterTotalGlobal() {
     return contadorExibido;
 }
 
-const VERSAO_DAMNUM = '7.0';
+const VERSAO_DAMNUM = '7.1';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -237,10 +237,12 @@ function valorCampo(id) {
 // ============================================================
 
 let tabelaQCN = null;      // data/estoques_qcn_fitofisionomias.json
-let consultaMapa = null;   // resultado da consulta ao mapa por estado (polígono ou coordenada)
+let consultaMapa = null;   // resultado da consulta ao mapa do Quarto Inventário (polígono ou coordenada)
 let poligonoUsuario = null;
-let consultaIBGE = null;
-  // indicação da fitofisionomia pelo mapa de vegetação do IBGE
+// Estado do mapa: disponível só com o interruptor ligado e o servidor de blocos
+// respondendo na versão esperada. `falha` guarda o erro da última consulta.
+let mapa = { disponivel: false, motivo: '', fonte: null, info: null, falha: '' };
+let tabelaMunicipios = null; // município × c_pret, do servidor de blocos
 
 async function carregarTabelaQCN() {
     try {
@@ -401,17 +403,13 @@ function lerInterino() {
     };
 }
 
-function preencherFitofisionomias(bioma, manterIBGE) {
+function preencherFitofisionomias(bioma) {
     const select = document.getElementById('fitofisionomia');
-    if (!manterIBGE) {
-        consultaIBGE = null;
-        document.getElementById('resultadoIBGE').style.display = 'none';
-    }
-    document.getElementById('grupoIBGE').style.display = bioma && tabelaQCN ? '' : 'none';
     const mostrar = !!(bioma && tabelaQCN);
     document.getElementById('grupoFitofisionomia').style.display = mostrar ? '' : 'none';
     document.getElementById('grupoEstoqueUsuario').style.display = bioma ? '' : 'none';
-    document.getElementById('grupoLocalizacao').style.display = bioma && DamnumMapa.MAPA_QCN_ATIVO ? '' : 'none';
+    document.getElementById('grupoLocalizacao').style.display = bioma && mapa.disponivel ? '' : 'none';
+    document.getElementById('grupoMunicipio').style.display = bioma && mapa.disponivel && tabelaMunicipios ? '' : 'none';
     select.innerHTML = '';
     if (mostrar) {
         const dados = tabelaQCN.biomas[DamnumValoracao.BIOMA_QCN[bioma]];
@@ -419,60 +417,40 @@ function preencherFitofisionomias(bioma, manterIBGE) {
         padrao.value = '';
         padrao.textContent = 'Não sei / média do bioma (QCN): ' + numeroBR(dados.media_ponderada_tC_ha, 2) + ' tC/ha';
         select.appendChild(padrao);
-        const criarOpcao = (f, i) => {
+        dados.fitofisionomias.forEach((f, i) => {
+            if (typeof f.total_tC_ha !== 'number') return;
             const opcao = document.createElement('option');
             opcao.value = String(i);
             opcao.textContent = f.sigla + ' — ' + f.nome + ' (' + numeroBR(f.total_tC_ha, 2) + ' tC/ha)';
-            return opcao;
-        };
-        // Linhas indicadas pelo IBGE para a coordenada, no topo da lista.
-        const indicadas = consultaIBGE ? consultaIBGE.candidatas.map(c => c.indice) : [];
-        let destino = select;
-        if (indicadas.length) {
-            const grupo = document.createElement('optgroup');
-            grupo.label = 'Indicadas pelo IBGE para a coordenada';
-            indicadas.forEach(i => grupo.appendChild(criarOpcao(dados.fitofisionomias[i], i)));
-            select.appendChild(grupo);
-            destino = document.createElement('optgroup');
-            destino.label = 'Demais fitofisionomias do bioma';
-            select.appendChild(destino);
-        }
-        dados.fitofisionomias.forEach((f, i) => {
-            if (typeof f.total_tC_ha !== 'number' || indicadas.indexOf(i) !== -1) return;
-            destino.appendChild(criarOpcao(f, i));
+            select.appendChild(opcao);
         });
     }
     atualizarPainelEstoque();
     atualizarPadroesInterino(false);
 }
 
-// Decide o estoque do caso pela ordem de reserva: (4) informado pelo usuário,
-// que prevalece; (1) mapa por estado; (2) fitofisionomia; (3) média do bioma.
+// Reúne o que está na tela e deixa a decisão do estoque com
+// DamnumValoracao.resolverEstoque (ordem: usuário; mapa por polígono ou
+// coordenada; município e fitofisionomia; fitofisionomia; média do bioma).
 // Lança Error com mensagem para o usuário se faltar dado obrigatório.
 function resolverEstoque(bioma) {
-    const secundaria = document.getElementById('vegetacaoSecundaria').checked;
-    let estoque;
+    let usuario = null;
     if (document.getElementById('usarEstoqueUsuario').checked) {
-        const tC = parseFloat(valorCampo('estoqueUsuario'));
-        const fonte = valorCampo('fonteEstoqueUsuario');
-        if (!(tC > 0)) throw new Error('Informe o estoque de carbono do caso, em tC/ha, ou desmarque a opção.');
-        if (!fonte) throw new Error('Informe a fonte do estoque de carbono informado.');
-        estoque = DamnumValoracao.estoqueDoUsuario(tC, fonte);
-    } else {
-        if (!tabelaQCN) throw new Error('A tabela de estoques de carbono não foi carregada. Recarregue a página ou informe o estoque do caso.');
-        const tabela = DamnumValoracao.estoqueDaTabela(tabelaQCN, bioma, valorCampo('fitofisionomia'));
-        if (consultaMapa && typeof consultaMapa.estoque_tC_ha === 'number') {
-            estoque = DamnumValoracao.estoqueDoMapa(consultaMapa, tabela);
-        } else {
-            estoque = tabela;
-            if (consultaIBGE) {
-                estoque.indicacaoIBGE = Object.assign({}, consultaIBGE, {
-                    escolhaEntreIndicadas: consultaIBGE.candidatas.some(c => String(c.indice) === valorCampo('fitofisionomia'))
-                });
-            }
-        }
+        usuario = { tC: parseFloat(valorCampo('estoqueUsuario')), fonte: valorCampo('fonteEstoqueUsuario') };
+        if (!(usuario.tC > 0)) throw new Error('Informe o estoque de carbono do caso, em tC/ha, ou desmarque a opção.');
+        if (!usuario.fonte) throw new Error('Informe a fonte do estoque de carbono informado.');
+    } else if (!tabelaQCN) {
+        throw new Error('A tabela de estoques de carbono não foi carregada. Recarregue a página ou informe o estoque do caso.');
     }
-    estoque.secundaria = secundaria;
+    let tabela = null, municipio = null;
+    if (!usuario) {
+        const indice = valorCampo('fitofisionomia');
+        tabela = DamnumValoracao.estoqueDaTabela(tabelaQCN, bioma, indice);
+        const sigla = indice === '' ? '' : tabelaQCN.biomas[DamnumValoracao.BIOMA_QCN[bioma]].fitofisionomias[indice].sigla;
+        municipio = DamnumValoracao.estoqueDoMunicipio(tabelaMunicipios, valorCampo('municipio'), bioma, sigla);
+    }
+    const estoque = DamnumValoracao.resolverEstoque({ usuario, tabela, municipio, consulta: consultaMapa, mapa });
+    estoque.secundaria = document.getElementById('vegetacaoSecundaria').checked;
     return estoque;
 }
 
@@ -499,70 +477,59 @@ function atualizarPainelEstoque() {
 }
 
 // ============================================================
-// INDICAÇÃO DA FITOFISIONOMIA PELO MAPA DE VEGETAÇÃO DO IBGE
-// Solução provisória enquanto o mapa do Quarto Inventário não está disponível.
+// MAPA DO QUARTO INVENTÁRIO (versão 7.1)
+// Só é oferecido com o interruptor ligado e o servidor de blocos respondendo.
+// O polígono e a coordenada ficam no navegador; do servidor só vêm os blocos.
 // ============================================================
 
-async function consultarVegetacaoIBGE() {
-    const bioma = document.getElementById('bioma').value;
-    const saida = document.getElementById('resultadoIBGE');
-    const lat = parseFloat(valorCampo('ibgeLatitude'));
-    const lon = parseFloat(valorCampo('ibgeLongitude'));
-    saida.style.display = '';
-    if (isNaN(lat) || isNaN(lon) || lat < -34 || lat > 6 || lon < -74 || lon > -34) {
-        saida.textContent = 'Informe latitude e longitude em graus decimais, dentro do Brasil (ex.: -12.5 e -55.5).';
-        return;
-    }
-    const botao = document.getElementById('btnConsultarIBGE');
-    botao.disabled = true;
-    saida.textContent = 'Consultando o IBGE...';
-    try {
-        const props = await DamnumIBGE.consultarPonto(lon, lat);
-        const fitofisionomias = tabelaQCN.biomas[DamnumValoracao.BIOMA_QCN[bioma]].fitofisionomias;
-        const r = DamnumIBGE.interpretar(props, fitofisionomias);
-        r.lat = lat;
-        r.lon = lon;
-        r.quando = new Date().toLocaleString('pt-BR');
-        r.fonte = DamnumIBGE.FONTE;
-        consultaIBGE = r;
-        preencherFitofisionomias(bioma, true);
-        let texto = r.descricao;
-        if (r.tipo === 'formacao') {
-            document.getElementById('fitofisionomia').value = String(r.candidatas[0].indice);
-            texto += ' A fitofisionomia foi selecionada na lista; confira.';
-        } else if (r.tipo === 'regiao') {
-            texto += ' Formações dessa região na tabela: ' + r.candidatas.map(c => c.sigla + ' (' + numeroBR(c.tC, 2) + ' tC/ha)').join('; ') + '. Faixa: de ' + numeroBR(r.minimo, 2) + ' a ' + numeroBR(r.maximo, 2) + ' tC/ha. Escolha a formação na lista acima; sem escolha, vale a média do bioma.';
+async function iniciarMapa() {
+    mapa = { disponivel: false, motivo: 'A consulta ao mapa do Quarto Inventário está desligada nesta versão.', fonte: null, info: null, falha: '' };
+    tabelaMunicipios = null;
+    if (DamnumMapa.CONFIG.ativo && DamnumMapa.CONFIG.baseUrl) {
+        try {
+            const libs = await DamnumMapa.carregarLibs();
+            const d = await DamnumMapa.verificarDisponibilidade(libs);
+            mapa = { disponivel: d.disponivel, motivo: d.motivo || '', fonte: d.fonte || null, info: d.info || null, falha: '' };
+        } catch (erro) {
+            mapa.motivo = 'Consulta ao mapa indisponível (' + erro.message + ').';
         }
-        saida.textContent = texto;
-    } catch (erro) {
-        consultaIBGE = null;
-        saida.textContent = 'Não foi possível consultar o IBGE (' + erro.message + '). Escolha a fitofisionomia na lista ou use a média do bioma.';
-    } finally {
-        botao.disabled = false;
     }
-    atualizarPainelEstoque();
+    if (mapa.disponivel) {
+        const celula = mapa.info.celula_graus || {};
+        document.getElementById('textoPrivacidadeMapa').textContent = 'O polígono e a coordenada ficam no seu navegador. O site só baixa os blocos do mapa (células de cerca de ' +
+            numeroBR((celula.vetor || 0.25) * 111, 0) + ' a ' + numeroBR((celula.raster || 1) * 111, 0) + ' km) que cobrem a área. Cobertura atual: ' + (mapa.info.ufs || []).join(', ') + '.';
+        carregarTabelaMunicipios();
+    }
+    preencherFitofisionomias(document.getElementById('bioma').value);
 }
 
-// ============================================================
-// MAPA DO QUARTO INVENTÁRIO POR ESTADO (item 1.6-A)
-// Só é usado com DamnumMapa.MAPA_QCN_ATIVO = true.
-// ============================================================
+async function carregarTabelaMunicipios() {
+    try {
+        const c = DamnumMapa.CONFIG;
+        const resposta = await fetch(c.baseUrl.replace(/\/+$/, '') + '/' + c.versao + '/municipio_cpret.json');
+        if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+        tabelaMunicipios = await resposta.json();
+        const select = document.getElementById('municipio');
+        select.innerHTML = '<option value="">Não informar</option>';
+        const vistos = {};
+        tabelaMunicipios.linhas.forEach(l => { vistos[l[0]] = l[1]; });
+        Object.keys(vistos).sort((a, b) => vistos[a].localeCompare(vistos[b], 'pt-BR')).forEach(cod => {
+            const opcao = document.createElement('option');
+            opcao.value = cod;
+            opcao.textContent = vistos[cod] + ' (' + tabelaMunicipios.uf + ')';
+            select.appendChild(opcao);
+        });
+    } catch (erro) {
+        console.error('Erro ao carregar a tabela por município:', erro);
+        tabelaMunicipios = null;
+    }
+    preencherFitofisionomias(document.getElementById('bioma').value);
+}
 
-let fonteMapa = null;
 async function obterFonteMapa() {
     const libs = await DamnumMapa.carregarLibs();
-    if (!fonteMapa) fonteMapa = DamnumMapa.criarFontePMTiles(libs, new URL(DamnumMapa.URL_PMTILES, location.href).href);
-    return { libs, fonte: fonteMapa };
-}
-
-async function versaoDoMapa(fonte) {
-    try {
-        const m = await fonte.metadados();
-        const d = m.descricao || {};
-        return [d.name, d.description, d.version].filter(Boolean).join('; ');
-    } catch (erro) {
-        return '';
-    }
+    if (!mapa.disponivel || !mapa.fonte) throw new Error('consulta ao mapa indisponível');
+    return { libs, fonte: mapa.fonte };
 }
 
 function areaDigitada() {
@@ -581,31 +548,48 @@ function atualizarDivergenciaArea() {
     }
 }
 
+function descreverParte(p) {
+    return (p.c_pret || 'classe não identificada') + ' (' + numeroBR(p.d, 2) + ' tC/ha)';
+}
+
 async function aoEscolherPoligono(evento) {
     const info = document.getElementById('infoPoligono');
     const arquivo = evento.target.files[0];
     poligonoUsuario = null;
     consultaMapa = null;
-    if (!arquivo) { info.style.display = 'none'; atualizarDivergenciaArea(); atualizarPainelEstoque(); return; }
+    mapa.falha = '';
+    if (!arquivo) { info.style.display = 'none'; atualizarDivergenciaArea(); aoInformarCoordenada(); return; }
     info.style.display = '';
     info.textContent = 'Lendo o polígono...';
+    let geo = null;
     try {
-        const { libs, fonte } = await obterFonteMapa();
-        const geo = await DamnumMapa.lerArquivoGeometria(libs, arquivo);
-        const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo, DamnumCalc.mediaPonderadaPorArea);
-        consulta.versaoMapa = await versaoDoMapa(fonte);
-        poligonoUsuario = { area_ha: consulta.area_ha };
-        let texto = 'Área calculada do polígono: ' + numeroBR(consulta.area_ha, 4) + ' ha (método geodésico). ';
-        if (typeof consulta.estoque_tC_ha === 'number') {
-            consultaMapa = consulta;
-            texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' polígono(s) do Inventário.';
-            if (consulta.pct_descoberto > 0.005) texto += ' ' + numeroBR(consulta.pct_descoberto, 2) + '% do polígono está fora da cobertura do mapa; nessa parte vale a tabela.';
-        } else {
-            texto += 'O polígono está fora da cobertura do mapa; vale a tabela por fitofisionomia ou a média do bioma.';
-        }
-        info.textContent = texto;
+        const libs = await DamnumMapa.carregarLibs();
+        geo = await DamnumMapa.lerArquivoGeometria(libs, arquivo);
+        poligonoUsuario = { area_ha: DamnumMapa.areaHa(libs, geo) };
     } catch (erro) {
         info.textContent = 'Não foi possível usar o polígono: ' + erro.message;
+    }
+    if (geo) {
+        let texto = 'Área calculada do polígono: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico). ';
+        try {
+            const { libs, fonte } = await obterFonteMapa();
+            const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo);
+            consultaMapa = consulta;
+            if (typeof consulta.estoque_tC_ha === 'number') {
+                texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' classe(s): ' +
+                    consulta.partes.slice(0, 6).map(descreverParte).join('; ') + (consulta.partes.length > 6 ? '; ...' : '') + '.';
+                if (consulta.pct_descoberto > 0.005) {
+                    texto += ' ' + numeroBR(consulta.pct_descoberto, 2) + '% do polígono está fora da cobertura do mapa ou em classe sem dado; nessa parte vale a tabela.';
+                }
+            } else {
+                texto += 'O polígono está fora da cobertura do mapa ou em classe sem dado; vale a tabela por fitofisionomia ou a média do bioma.';
+            }
+        } catch (erro) {
+            // Falha de rede ou do servidor de dados: o cálculo segue pela reserva.
+            mapa.falha = erro.message;
+            texto += 'Consulta ao mapa indisponível (' + erro.message + '); vale a tabela por fitofisionomia ou a média do bioma.';
+        }
+        info.textContent = texto;
     }
     atualizarDivergenciaArea();
     atualizarPainelEstoque();
@@ -617,25 +601,31 @@ async function aoInformarCoordenada() {
     const lat = parseFloat(valorCampo('latitude'));
     const lon = parseFloat(valorCampo('longitude'));
     consultaMapa = null;
+    mapa.falha = '';
     if (isNaN(lat) || isNaN(lon)) { aviso.style.display = 'none'; atualizarPainelEstoque(); return; }
     aviso.style.display = '';
+    if (lat < -34 || lat > 6 || lon < -74 || lon > -34) {
+        aviso.textContent = 'Informe latitude e longitude em graus decimais, dentro do Brasil (ex.: -12.5 e -55.5).';
+        atualizarPainelEstoque();
+        return;
+    }
     aviso.textContent = 'Consultando o mapa...';
     try {
         const { libs, fonte } = await obterFonteMapa();
         const consulta = await DamnumMapa.consultarPonto(libs, fonte, lon, lat);
-        consulta.versaoMapa = await versaoDoMapa(fonte);
-        if (consulta.poligono) {
-            consultaMapa = consulta;
-            let texto = consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + consulta.poligono.c_pret + ').';
+        consultaMapa = consulta;
+        if (typeof consulta.estoque_tC_ha === 'number') {
+            let texto = consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + (consulta.classe.c_pret || 'classe não identificada') + ').';
             if (consulta.vizinhas.length) {
-                texto += ' Classes a menos de 100 m: ' + consulta.vizinhas.map(v => v.c_pret + ' (' + numeroBR(v.c_v_4i, 2) + ' tC/ha)').join('; ') + '.';
+                texto += ' Classes a menos de 100 m: ' + consulta.vizinhas.map(descreverParte).join('; ') + '.';
             }
             aviso.textContent = texto;
         } else {
-            aviso.textContent = 'A coordenada está fora da cobertura do mapa; vale a tabela por fitofisionomia ou a média do bioma.';
+            aviso.textContent = (consulta.sem_dado ? 'A coordenada cai em classe sem dado no mapa' : 'A coordenada está fora da cobertura do mapa') + '; vale a tabela por fitofisionomia ou a média do bioma.';
         }
     } catch (erro) {
-        aviso.textContent = 'Não foi possível consultar o mapa: ' + erro.message;
+        mapa.falha = erro.message;
+        aviso.textContent = 'Consulta ao mapa indisponível (' + erro.message + '); vale a tabela por fitofisionomia ou a média do bioma.';
     }
     atualizarPainelEstoque();
 }
@@ -1051,6 +1041,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     iniciarSlideshow();
     buscarCotacaoDolar();
     carregarTabelaQCN();
+    iniciarMapa();
     atualizarPadroesInterino(true);
     atualizarPadroesResidual(true);
     atualizarPadroesLIA();
@@ -1082,16 +1073,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         atualizarPadroesLIA();
     });
 
-    // Indicação da fitofisionomia pelo IBGE
-    document.getElementById('btnConsultarIBGE').addEventListener('click', consultarVegetacaoIBGE);
-
-    // Mapa por estado
-    if (DamnumMapa.MAPA_QCN_ATIVO) {
-        document.getElementById('arquivoPoligono').addEventListener('change', aoEscolherPoligono);
-        document.getElementById('latitude').addEventListener('change', aoInformarCoordenada);
-        document.getElementById('longitude').addEventListener('change', aoInformarCoordenada);
-        ['areaForaAPP', 'areaEmAPP'].forEach(id => document.getElementById(id).addEventListener('input', atualizarDivergenciaArea));
-    }
+    // Mapa do Quarto Inventário (os campos só aparecem com o mapa disponível)
+    document.getElementById('arquivoPoligono').addEventListener('change', aoEscolherPoligono);
+    document.getElementById('latitude').addEventListener('change', aoInformarCoordenada);
+    document.getElementById('longitude').addEventListener('change', aoInformarCoordenada);
+    document.getElementById('municipio').addEventListener('change', atualizarPainelEstoque);
+    ['areaForaAPP', 'areaEmAPP'].forEach(id => document.getElementById(id).addEventListener('input', atualizarDivergenciaArea));
 
     // Parâmetros
     ['precoSocialCO2USD', 'precoMercadoCO2USD', 'cotacaoDolar'].forEach(id => {

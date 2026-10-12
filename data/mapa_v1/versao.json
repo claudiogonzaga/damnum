@@ -1,0 +1,57 @@
+{
+ "versao": "v1",
+ "gerado_em": "2026-10-11",
+ "ufs": [
+  "MT"
+ ],
+ "biomas": [
+  "Amazônia",
+  "Cerrado",
+  "Pantanal"
+ ],
+ "data_download": "2026-10-11",
+ "campo": "ctotal4inv",
+ "unidade": "tC/ha",
+ "celula_graus": {
+  "raster": 1.0,
+  "vetor": 0.25
+ },
+ "blocos": 803,
+ "bytes": 18667447,
+ "fonte": "Quarto Inventário Nacional de Emissões (MCTI/INPE), Carbono da Vegetação Pretérita; dados públicos, sem licença nomeada; citar a fonte",
+ "fontes": [
+  {
+   "bioma": "Amazônia",
+   "uso": "estoque (ctotal4inv)",
+   "arquivo": "CarbonoVeg_Amazonia_total_tiff_4inventario.tif",
+   "bytes": 530312142,
+   "url": "https://dataserver-coids.inpe.br/ccst/p4cn/4%20Inventario-CN/Carbono%20da%20Vegeta%C3%A7%C3%A3o%20Pret%C3%A9rita/Amazonia/CarbonoVeg_Amazonia_total_tiff_4inventario.tif",
+   "modificado_no_servidor": "2021-06-25",
+   "data_do_arquivo_local": "2026-10-11"
+  },
+  {
+   "bioma": "Amazônia",
+   "uso": "banda de classe (c_pretvizi)",
+   "url": "https://dataserver-coids.inpe.br/ccst/p4cn/4%20Inventario-CN/Carbono%20da%20Vegeta%C3%A7%C3%A3o%20Pret%C3%A9rita/Amazonia/CarbonoVeg_Amazonia_comp_shp_4inventario.zip",
+   "modificado_no_servidor": "2021-06-25"
+  },
+  {
+   "bioma": "Cerrado",
+   "uso": "estoque (ctotal4inv)",
+   "arquivo": "cerrado_carbono_vegetacao_preterita.shp",
+   "bytes": 134621496,
+   "url": "https://dataserver-coids.inpe.br/ccst/p4cn/4%20Inventario-CN/Carbono%20da%20Vegeta%C3%A7%C3%A3o%20Pret%C3%A9rita/Cerrado/CarbonoVeg_Cerrado_4inventario.rar",
+   "modificado_no_servidor": "2021-06-25",
+   "data_do_arquivo_local": "2020-05-21"
+  },
+  {
+   "bioma": "Pantanal",
+   "uso": "estoque (ctotal4inv)",
+   "arquivo": "pantanal_carbono_vegetacao_preterita.shp",
+   "bytes": 14047664,
+   "url": "https://dataserver-coids.inpe.br/ccst/p4cn/4%20Inventario-CN/Carbono%20da%20Vegeta%C3%A7%C3%A3o%20Pret%C3%A9rita/Pantanal/CarbonoVeg_Pantanal_4inventario.rar",
+   "modificado_no_servidor": "2021-06-25",
+   "data_do_arquivo_local": "2020-05-20"
+  }
+ ]
+}
