@@ -970,7 +970,7 @@ async function calcularValoracao() {
                 const escala = poligonoUsuario.area_ha / (areaForaAPP + areaEmAPP);
                 areaForaAPP *= escala;
                 areaEmAPP *= escala;
-                observacaoArea += 'Por escolha do usuário, prevaleceu a área calculada; as áreas em excedentes e em áreas especialmente protegidas foram ajustadas na mesma proporção.';
+                observacaoArea += 'Por escolha do usuário, prevaleceu a área calculada; as áreas em excedentes e em áreas territorialmente protegidas foram ajustadas na mesma proporção.';
             } else {
                 observacaoArea += 'Por escolha do usuário, prevaleceu a área digitada.';
             }
@@ -1054,7 +1054,7 @@ function mostrarResultado(r) {
 
     // Reparação em espécie, antes dos valores em dinheiro.
     const c = r.compensacao;
-    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em áreas especialmente protegidas. ' : '') +
+    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em áreas territorialmente protegidas. ' : '') +
         'Compensação ecológica: proteção perpétua de <strong>' + numeroBR(c.totalHa, 2) + ' ha</strong> de vegetação nativa, assim compostos:';
     document.getElementById('listaEspecie').innerHTML = c.itens.filter(i => i.ha > 0)
         .map(i => '<li>' + i.nome + ': ' + numeroBR(i.ha, 2) + ' ha</li>').join('') +
@@ -1074,8 +1074,8 @@ function mostrarResultado(r) {
     if (r.areas.em > 0) {
         notaDanoMaterial.style.display = '';
         notaDanoMaterial.innerHTML = r.reparacaoInSitu
-            ? '<strong>Nota:</strong> Se o dano é em área especialmente protegida (APP, ARL, UC ou TI) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.'
-            : '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área especialmente protegida (' + numeroBR(r.areas.em, 4) + ' ha).';
+            ? '<strong>Nota:</strong> Se o dano é em área territorialmente protegida (APP, ARL, UC ou TI) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.'
+            : '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área territorialmente protegida (' + numeroBR(r.areas.em, 4) + ' ha).';
     } else {
         notaDanoMaterial.style.display = 'none';
     }

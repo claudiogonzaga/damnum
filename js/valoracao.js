@@ -210,7 +210,7 @@
     }
 
     // Calcula o LIA pela árvore de decisão do trabalho:
-    //   área não autorizável (áreas especialmente protegidas: APP, reserva legal, UC e TI): Gf + Σ(L + R) + GR, com atividade; Gf + ΔVT + GR, sem ela;
+    //   área não autorizável (áreas territorialmente protegidas: APP, reserva legal, UC e TI): Gf + Σ(L + R) + GR, com atividade; Gf + ΔVT + GR, sem ela;
     //   área autorizável (demais áreas):            CL + Σ(L + R) + GR, com atividade; CL + ΔVT + GR, sem ela.
     // As parcelas saem em valores nominais das fontes; a atualização (correção e
     // juros, pelo Manual da Justiça Federal) é feita depois, em atualizarLIA.

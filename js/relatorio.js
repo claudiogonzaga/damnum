@@ -56,9 +56,9 @@
         linhas.push(linha('Data do dano', r.dataInformada ? data(r.dataDano) : 'não informada (valores na data do cálculo)'));
         linhas.push(linha('Data do cálculo', data(r.dataCalculo)));
         linhas.push(linha('Área desmatada em excedentes de vegetação nativa (A<sub>1</sub>)', num(r.areas.fora, 4) + ' ha'));
-        linhas.push(linha('Área desmatada em áreas especialmente protegidas: APP, ARL, UC e TI (A<sub>2</sub>)', num(r.areas.em, 4) + ' ha'));
+        linhas.push(linha('Área desmatada em áreas territorialmente protegidas: APP, ARL, UC e TI (A<sub>2</sub>)', num(r.areas.em, 4) + ' ha'));
         linhas.push(linha('Área total (A<sub>1</sub> + A<sub>2</sub>)', num(r.areas.total, 4) + ' ha'));
-        if (r.areas.em > 0) linhas.push(linha('Reparação <em>in situ</em> da área especialmente protegida', r.reparacaoInSitu ? 'sim, será promovida' : 'não será promovida'));
+        if (r.areas.em > 0) linhas.push(linha('Reparação <em>in situ</em> da área territorialmente protegida', r.reparacaoInSitu ? 'sim, será promovida' : 'não será promovida'));
         var html = titulo('1. IDENTIFICAÇÃO') + tabela(linhas);
         if (!(id.credorNome || id.credorDoc || id.devedorNome || id.devedorDoc)) {
             html += '<p style="font-size:10pt; color:#666;">Nome e CPF/CNPJ do credor e do devedor (art. 524, I, do CPC): não informados. O preenchimento é opcional e só é exigido no requerimento de cumprimento de sentença.</p>';
@@ -132,8 +132,8 @@
         html += tabela(linhas);
         if (r.areas.em > 0) {
             html += nota(r.reparacaoInSitu
-                ? '<b>Nota:</b> havendo reparação <em>in situ</em> da área especialmente protegida (APP, ARL, UC ou TI), o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b>.'
-                : '<b>Nota:</b> como a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área especialmente protegida (' + num(r.areas.em, 4) + ' ha).');
+                ? '<b>Nota:</b> havendo reparação <em>in situ</em> da área territorialmente protegida (APP, ARL, UC ou TI), o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b>.'
+                : '<b>Nota:</b> como a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área territorialmente protegida (' + num(r.areas.em, 4) + ' ha).');
         }
         return html;
     }
@@ -157,8 +157,8 @@
         var html = subtitulo('2.2 Dano interino');
         var temProtegida = r.areas.em > 0 && r.reparacaoInSitu;
         if (!temProtegida && !(it.valorAreaFora > 0)) {
-            if (!(r.areas.em > 0)) return html + '<p>Não há área especialmente protegida informada. Dano interino = ' + moeda(0) + '.</p>';
-            return html + '<p style="text-align:justify;">Como a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área especialmente protegida). Dano interino = ' + moeda(0) + '.</p>';
+            if (!(r.areas.em > 0)) return html + '<p>Não há área territorialmente protegida informada. Dano interino = ' + moeda(0) + '.</p>';
+            return html + '<p style="text-align:justify;">Como a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área territorialmente protegida). Dano interino = ' + moeda(0) + '.</p>';
         }
         var caex = it.metodo === 'caex';
         var forma = it.forma ? ROTULO_FORMA[it.forma] : '';
@@ -176,7 +176,7 @@
         }
         if (it.valorAreaFora > 0) {
             linhas.push(linha('Excedentes de vegetação nativa (área passível de autorização), até a regularização', num(r.areas.fora, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.jurosAnoUm, 6) + ' (juros do ano 1, i ÷ (1 + i)) × ' + num(it.anosAteRegularizacao, 0) + ' anos entre o desmatamento e o pedido de regularização = ' + moeda(it.valorAreaFora) + ' (Nota Técnica, item 1.7). A própria Nota registra que há duas posições sobre a existência de dano indenizável nessa área.' + (r.parcelas.material.valor > 0 ? ' Atenção: neste cálculo a mesma área também recebe dano material; confira se as duas parcelas devem ser cumuladas.' : '')));
-            if (temProtegida) linhas.push(linha('Áreas especialmente protegidas, até a recuperação', moeda(it.valorAreaProtegida)));
+            if (temProtegida) linhas.push(linha('Áreas territorialmente protegidas, até a recuperação', moeda(it.valorAreaProtegida)));
         }
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
         linhas = linhas.concat(textoAtualizacaoPatrimonial(r, p));
