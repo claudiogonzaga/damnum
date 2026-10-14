@@ -5,7 +5,7 @@ Ferramenta de valoração de danos ambientais decorrentes de desmatamento ilegal
 Autoria: Claudio Angelo Correa Gonzaga e José Guilherme Roquette.
 Metodologia: Gonzaga et al., Anais do V SICAM/USP (2025), disponível em `metodologia.pdf`.
 
-Site estático, publicado em https://damnum.consciencia.eco.br. Não há etapa de build: o que está no repositório é o que vai ao ar.
+Site estático, publicado em https://damnum.consciencia.eco.br. Não há etapa de build: o que está no repositório é o que vai ao ar. A hospedagem guarda os scripts no navegador por quatro horas; por isso, a cada publicação, troque o sufixo `?v=` dos scripts e do estilo nas páginas, o `URL_LIBS` de `js/mapa-qcn.js` e a versão do `package.json` (um teste confere se estão iguais).
 
 ## Organização
 

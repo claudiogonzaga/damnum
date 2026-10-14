@@ -33,3 +33,14 @@ test('taxa do dano interino: rótulo em percentual e padrão 6', () => {
     assert.match(html, /id="taxaJurosAnual" value="6" step="0.01" min="0" max="30"/);
     assert.match(html, /Taxa de juros anual do dano interino \(%\)/);
 });
+
+test('arquivos próprios levam o sufixo da versão, para o navegador não misturar página nova com script antigo', () => {
+    const versao = require('../package.json').version;
+    for (const pagina of ['index.html', 'manual.html', 'contato.html']) {
+        const html = fs.readFileSync(path.join(raiz, pagina), 'utf8');
+        const locais = html.match(/<script src="[^"]+"|<link rel="stylesheet" href="style[^"]+"/g) || [];
+        assert.ok(locais.length > 0, pagina);
+        for (const tag of locais) assert.ok(tag.endsWith('?v=' + versao + '"'), pagina + ': ' + tag);
+    }
+    assert.ok(fs.readFileSync(path.join(raiz, 'js', 'mapa-qcn.js'), 'utf8').includes("vendor/damnum-geo.js?v=" + versao));
+});
