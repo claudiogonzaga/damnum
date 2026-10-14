@@ -289,13 +289,14 @@ function atualizarPadroesResidual(forcar) {
     const campoPfe = document.getElementById('pfeResidual');
     if (forcar || !campoPfe.dataset.editado) { campoPfe.value = padrao.pfePct; delete campoPfe.dataset.editado; }
     document.getElementById('itemTaxaResidual').style.display = metodo === 'caex' ? '' : 'none';
+    document.getElementById('itemKResidual').style.display = metodo === 'caex' ? 'none' : '';
     document.getElementById('notaMetodoResidual').textContent = metodo === 'caex'
         ? 'Área × (custo de reposição × percentual) ÷ taxa de juros.'
         : 'Área × custo de recuperação × percentual. Método padrão.';
     const f = DamnumCalc.faixaDeValores(DamnumValoracao.RESIDUAL_PONTOS.map(p => p.pct));
     document.getElementById('notaPfeResidual').textContent = metodo === 'caex'
         ? 'Relatório Técnico 963/2026: 1,99%, com pesos iguais para os doze atributos de Poorter et al. (2021).'
-        : 'Estimativas publicadas: de ' + numeroBR(f.minimo, 2) + '% a ' + numeroBR(f.maximo, 0) + '% (' + f.quantidade + ' estimativas). Padrão: a mediana, ' + numeroBR(f.mediana, 0) + '%. O relatório mostra toda a faixa.';
+        : 'Estimativas publicadas: de ' + numeroBR(f.minimo, 2) + '% a ' + numeroBR(f.maximo, 0) + '% (' + f.quantidade + ' estimativas). Padrão: a mediana, ' + numeroBR(f.mediana, 0) + '%. A faixa é exploratória, e não um intervalo estatístico; o relatório a mostra inteira.';
 }
 
 function lerResidual() {
@@ -303,6 +304,7 @@ function lerResidual() {
     const padrao = DamnumValoracao.residualPadrao(metodo);
     padrao.pfePct = parseFloat(valorCampo('pfeResidual'));
     if (metodo === 'caex') padrao.taxaPct = parseFloat(valorCampo('taxaResidual'));
+    else padrao.k = parseFloat(valorCampo('kResidual')) > 0 ? parseFloat(valorCampo('kResidual')) : 1;
     return padrao;
 }
 
@@ -937,6 +939,13 @@ async function calcularValoracao() {
 function mostrarResultado(r) {
     ultimoResultado = r;
     const p = r.parcelas;
+    // Reparação em espécie, antes dos valores em dinheiro.
+    const c = r.compensacao;
+    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em APP e reserva legal. ' : '') +
+        'Compensação ecológica: proteção perpétua de <strong>' + numeroBR(c.totalHa, 2) + ' ha</strong> de vegetação nativa, assim compostos:';
+    document.getElementById('listaEspecie').innerHTML = c.itens.filter(i => i.ha > 0)
+        .map(i => '<li>' + i.nome + ': ' + numeroBR(i.ha, 2) + ' ha</li>').join('') +
+        '<li>Dano climático' + (r.lia ? ' e lucro do ilícito ambiental' : '') + ': sem equivalente em área; em dinheiro.</li>';
     document.getElementById('danoMaterialMedia').textContent = formatarMoeda(p.material.valor);
     document.getElementById('danoInterinoMedia').textContent = formatarMoeda(p.interino.valor);
     document.getElementById('danoResidual').textContent = formatarMoeda(p.residual.valor);

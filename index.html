@@ -316,6 +316,11 @@
                         <input type="number" id="pfeResidual" value="14" step="0.01" min="0" max="100">
                         <span id="notaPfeResidual" class="nota-parametro"></span>
                     </div>
+                    <div class="parametro-item" id="itemKResidual">
+                        <label for="kResidual">Fator de equivalência da compensação do dano residual (k):</label>
+                        <input type="number" id="kResidual" value="1" step="0.1" min="0.1" max="10">
+                        <span class="nota-parametro">Multiplica a área a proteger e o valor em dinheiro. Padrão: 1 (área de mesma qualidade ecológica).</span>
+                    </div>
                     <div class="parametro-item" id="itemTaxaResidual" style="display:none;">
                         <label for="taxaResidual">Taxa de juros do dano residual (% ao ano):</label>
                         <input type="number" id="taxaResidual" value="6.82" step="0.01" min="0.01" max="30">
@@ -358,6 +363,15 @@
 
             <div id="resultado" class="resultado-container" style="display: none;">
                 <h3>Resultado da Valoração</h3>
+
+                <div class="resultado-secao" id="secaoEspecie">
+                    <h4>Reparação em espécie (precede a indenização)</h4>
+                    <p id="textoEspecie" style="margin:0 0 6px 0; line-height:1.5;"></p>
+                    <ul id="listaEspecie" style="margin:0 0 6px 18px; line-height:1.6;"></ul>
+                    <p style="font-size:0.85em; color:#555; margin:0;">A ordem é: recuperação no próprio local, compensação ecológica e, só na impossibilidade das duas, indenização (CNJ, Protocolo para Julgamento de Ações Ambientais, 2024, p. 38). O relatório traz as regras.</p>
+                </div>
+
+                <h4 style="margin:18px 0 8px 0; color:#2c5530;">Indenização em dinheiro, para o que não for reparado em espécie</h4>
 
                 <div class="resultado-secao">
                     <h4>Dano Material (área fora de APP e ARL)</h4>

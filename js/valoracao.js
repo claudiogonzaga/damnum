@@ -425,6 +425,40 @@
         return reserva;
     }
 
+    // Preços de referência do carbono, em US$ por tCO₂ (editáveis na tela).
+    var PRECOS_PADRAO = { precoSocialCO2USD: 24.20, precoMercadoCO2USD: 5.00 };
+
+    // Reparação em espécie, que precede a indenização (CNJ, Protocolo, segundo
+    // escopo, 2024, p. 38). Regras de Gonzaga et al. (2025):
+    //   - dano material: proteção perpétua de área igual à ilegalmente desmatada,
+    //     arredondada para cima;
+    //   - dano residual, no método padrão: área × percentual não recuperado × k;
+    //   - dano interino, dano extrapatrimonial e residual pelo método do CAEx: cada
+    //     hectare adicional protegido abate o custo médio de recuperação de um hectare.
+    // O dano climático e o lucro do ilícito não têm equivalente em área no método.
+    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual) {
+        function porCusto(valor) { return custoHa > 0 ? valor / custoHa : 0; }
+        var REGRA_CUSTO = 'valor da parcela ÷ custo de recuperação por hectare';
+        var itens = [
+            { chave: 'material', nome: 'Dano material', valor: parcelas.material.valor,
+              ha: parcelas.material.valor > 0 ? Math.ceil(areaMaterial) : 0,
+              regra: 'área igual à ilegalmente desmatada, arredondada para cima' },
+            { chave: 'interino', nome: 'Dano interino', valor: parcelas.interino.valor,
+              ha: porCusto(parcelas.interino.valor), regra: REGRA_CUSTO },
+            { chave: 'residual', nome: 'Dano residual', valor: parcelas.residual.valor,
+              ha: residual.metodo === 'caex' ? porCusto(parcelas.residual.valor) : (residual.areaEmEspecie || 0),
+              regra: residual.metodo === 'caex' ? REGRA_CUSTO : 'área com reparação no local × percentual que não se recupera × k' },
+            { chave: 'mercado', nome: 'Dano extrapatrimonial (mercado voluntário)', valor: parcelas.mercado.valor,
+              ha: porCusto(parcelas.mercado.valor), regra: REGRA_CUSTO + ', a critério do Ministério Público ou do juízo' }
+        ];
+        return {
+            custoHa: custoHa,
+            inSituHa: areaInSitu,
+            itens: itens,
+            totalHa: itens.reduce(function (s, i) { return s + i.ha; }, 0)
+        };
+    }
+
     function parcelaPatrimonial(valor, area, ctx) {
         valor = C.arredondar(valor, 2);
         var p = { valor: valor, area: area, correcao: 0, juros: 0, total: valor, atualizacao: null };
@@ -574,6 +608,14 @@
             interino: interino,
             residual: residual,
             timotheo: { custos: CUSTOS_TIMOTHEO },
+            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual),
+            // Valores padrão, para o relatório dizer o que o usuário alterou.
+            padroes: {
+                precos: PRECOS_PADRAO,
+                interino: interinoPadrao(configInterino.metodo, configInterino.forma || formaDaVegetacao(null, entrada.bioma, null)),
+                residual: residualPadrao(configResidual.metodo),
+                lia: entrada.lia ? liaPadrao(entrada.bioma, fora, entrada.lia.atividade, entrada.lia.anos, configInterino.forma) : null
+            },
             lia: lia,
             liaAnoRegularizacao: entrada.lia ? entrada.lia.anoRegularizacao : null,
             parametros: parametros,
@@ -651,6 +693,8 @@
         estoqueDoUsuario: estoqueDoUsuario,
         estoqueDoMapa: estoqueDoMapa,
         estoqueDoMunicipio: estoqueDoMunicipio,
+        compensacaoEcologica: compensacaoEcologica,
+        PRECOS_PADRAO: PRECOS_PADRAO,
         resolverEstoque: resolverEstoque,
         calcular: calcular,
         avisoPiso: avisoPiso,
