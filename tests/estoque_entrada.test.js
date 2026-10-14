@@ -155,7 +155,8 @@ test('localização obrigatória e bioma identificado pelo polígono ou pela coo
     const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
     // Só vale o resultado da última consulta de localização.
     assert.ok((script.match(/if \(minha !== ordemConsulta\) return;/g) || []).length >= 5);
-    assert.match(script, /if \(mapa\.disponivel && !temLocalizacao && !document\.getElementById\('usarEstoqueUsuario'\)\.checked\)/);
+    assert.match(script, /if \(!temLocalizacao\) \{/);
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'), /id="grupoBioma" style="display:none;"/);
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     // A localização vem antes do bioma, e o bioma deixa de ser obrigatório na mão.
     assert.ok(html.indexOf('id="grupoLocalizacao"') < html.indexOf('id="bioma"'));
@@ -174,4 +175,25 @@ test('localização obrigatória e bioma identificado pelo polígono ou pela coo
     assert.strictEqual(await Mapa.identificarBioma(libs, f, [-46.6, -23.5]), 'Mata Atlântica');
     assert.strictEqual(await Mapa.identificarBioma(libs, f, S.poligono(-40.5, -9.5, -40, -9)), 'Caatinga');
     assert.strictEqual(await Mapa.identificarBioma(libs, f, [-60, -3]), null);
+});
+
+test('coordenada aceita graus decimais e graus, minutos e segundos', () => {
+    const L = Mapa.lerCoordenada;
+    assert.strictEqual(L('-12.5', 'lat'), -12.5);
+    assert.strictEqual(L('-12,5', 'lat'), -12.5);
+    assert.strictEqual(L('−55.5', 'lon'), -55.5);
+    assert.strictEqual(L('12.5 S', 'lat'), -12.5);
+    assert.strictEqual(L(`12°30'00"S`, 'lat'), -12.5);
+    assert.strictEqual(L(`12° 30' 36" S`, 'lat'), -12.51);
+    assert.strictEqual(L('12 30 36 S', 'lat'), -12.51);
+    assert.strictEqual(L(`55°30'W`, 'lon'), -55.5);
+    assert.strictEqual(L(`55°30'00" O`, 'lon'), -55.5);
+    assert.strictEqual(L(`12°30,5'S`, 'lat'), -12.5083333);
+    assert.strictEqual(L(`-12°30′00″`, 'lat'), -12.5);
+    assert.strictEqual(L('2° 49\' 05" N', 'lat'), 2.8180556);
+    assert.strictEqual(L('12°75\'S', 'lat'), null);
+    assert.strictEqual(L('12.5 W', 'lat'), null);
+    assert.strictEqual(L('95', 'lat'), null);
+    assert.strictEqual(L('abc', 'lat'), null);
+    assert.strictEqual(L('', 'lat'), null);
 });

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.6">
+    <link rel="stylesheet" href="style.css?v=7.1.7">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -50,7 +50,7 @@
             <form id="calculoForm" class="form-container">
                 <div class="input-group" id="grupoLocalizacao" style="display:none;">
                     <h4 class="titulo-secao-form">Localização do desmatamento (obrigatória)</h4>
-                    <p class="ajuda-campo">Envie o polígono da área desmatada ou, ao menos, uma coordenada. Por eles a calculadora identifica o bioma e busca, no mapa do Quarto Inventário, o estoque de carbono da vegetação original: no polígono, a média ponderada pela área; na coordenada, o estoque daquele ponto, aplicado a toda a área desmatada informada.</p>
+                    <p class="ajuda-campo">Envie o polígono da área desmatada ou, ao menos, uma coordenada; sem localização não há cálculo. Por eles a calculadora identifica o bioma e busca, no mapa do Quarto Inventário, o estoque de carbono da vegetação original: no polígono, a média ponderada pela área; na coordenada, o estoque daquele ponto, aplicado a toda a área desmatada informada.</p>
                     <p id="textoPrivacidadeMapa" class="ajuda-campo">O polígono e a coordenada ficam no seu navegador. O site só baixa os blocos do mapa que cobrem a área.</p>
                     <label for="arquivoPoligono">Polígono da área desmatada (KML, KMZ, GeoJSON ou shapefile zipado):</label>
                     <input type="file" id="arquivoPoligono" accept=".kml,.kmz,.geojson,.json,.zip">
@@ -60,16 +60,16 @@
                         <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="digitada" checked> Prevalece a área digitada</label>
                         <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="calculada"> Prevalece a área calculada do polígono</label>
                     </div>
-                    <p class="ajuda-campo" style="margin-top:10px;">Sem polígono, informe uma coordenada de um ponto da área desmatada (graus decimais, SIRGAS 2000 ou WGS 84):</p>
+                    <p class="ajuda-campo" style="margin-top:10px;">Sem polígono, informe uma coordenada de um ponto da área desmatada, em graus decimais (-12.5 ou -12,5) ou em graus, minutos e segundos (12°30'15" S; o hemisfério pode ser N, S, L, E, O ou W). SIRGAS 2000 ou WGS 84.</p>
                     <div style="display:flex; gap:10px;">
-                        <input type="number" id="latitude" step="0.000001" min="-34" max="6" placeholder="Latitude, ex.: -12.500000">
-                        <input type="number" id="longitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000">
+                        <input type="text" id="latitude" inputmode="text" autocomplete="off" placeholder="Latitude: -12.5 ou 12°30'00&quot;S">
+                        <input type="text" id="longitude" inputmode="text" autocomplete="off" placeholder="Longitude: -55.5 ou 55°30'00&quot;W">
                     </div>
                     <p id="avisoCoordenada" class="aviso-campo" style="display:none;"></p>
                 </div>
 
-                <div class="input-group">
-                    <label for="bioma">Bioma (identificado pela localização; escolha à mão só se ela não o indicar):</label>
+                <div class="input-group" id="grupoBioma" style="display:none;">
+                    <label for="bioma">Bioma (a consulta ao mapa está indisponível; escolha o bioma):</label>
                     <select id="bioma" name="bioma">
                         <option value="">-- Selecione um bioma --</option>
                         <option value="CERRADO">CERRADO</option>
@@ -500,12 +500,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.6"></script>
-    <script src="js/series.js?v=7.1.6"></script>
-    <script src="js/mapa-qcn.js?v=7.1.6"></script>
-    <script src="js/valoracao.js?v=7.1.6"></script>
-    <script src="js/relatorio.js?v=7.1.6"></script>
-    <script src="script.js?v=7.1.6"></script>
+    <script src="js/calculo.js?v=7.1.7"></script>
+    <script src="js/series.js?v=7.1.7"></script>
+    <script src="js/mapa-qcn.js?v=7.1.7"></script>
+    <script src="js/valoracao.js?v=7.1.7"></script>
+    <script src="js/relatorio.js?v=7.1.7"></script>
+    <script src="script.js?v=7.1.7"></script>
 </body>
 </html>
 

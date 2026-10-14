@@ -469,6 +469,8 @@ function preencherFitofisionomias(bioma) {
     document.getElementById('grupoFitofisionomia').style.display = mostrar ? '' : 'none';
     document.getElementById('grupoEstoqueUsuario').style.display = bioma ? '' : 'none';
     document.getElementById('grupoLocalizacao').style.display = mapa.disponivel ? '' : 'none';
+    // O bioma vem da localização; a escolha à mão só aparece sem o mapa.
+    document.getElementById('grupoBioma').style.display = mapa.disponivel ? 'none' : '';
     document.getElementById('grupoMunicipio').style.display = bioma && mapa.disponivel && tabelaMunicipios ? '' : 'none';
     select.innerHTML = '';
     if (mostrar) {
@@ -666,7 +668,7 @@ async function aoEscolherPoligono(evento) {
             if (minha !== ordemConsulta) return;
             consultaMapa = consulta;
             aplicarBioma(nomeBioma);
-            texto += nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O bioma não foi identificado; escolha-o abaixo. ';
+            texto += nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O polígono parece estar fora do Brasil; confira o arquivo. ';
             if (typeof consulta.estoque_tC_ha === 'number') {
                 texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' classe(s): ' +
                     consulta.partes.slice(0, 6).map(descreverParte).join('; ') + (consulta.partes.length > 6 ? '; ...' : '') + '.';
@@ -690,12 +692,18 @@ async function aoEscolherPoligono(evento) {
 async function aoInformarCoordenada() {
     const aviso = document.getElementById('avisoCoordenada');
     if (poligonoUsuario) return; // o polígono prevalece sobre a coordenada
-    const lat = parseFloat(valorCampo('latitude'));
-    const lon = parseFloat(valorCampo('longitude'));
+    const lat = DamnumMapa.lerCoordenada(valorCampo('latitude'), 'lat');
+    const lon = DamnumMapa.lerCoordenada(valorCampo('longitude'), 'lon');
     const minha = ++ordemConsulta;
     consultaMapa = null;
     mapa.falha = '';
-    if (isNaN(lat) || isNaN(lon)) { aviso.style.display = 'none'; atualizarPainelEstoque(); return; }
+    if (!valorCampo('latitude') || !valorCampo('longitude')) { aviso.style.display = 'none'; atualizarPainelEstoque(); return; }
+    if (lat === null || lon === null) {
+        aviso.style.display = '';
+        aviso.textContent = 'Coordenada não reconhecida. Use graus decimais (-12.5 e -55.5) ou graus, minutos e segundos (12°30\'00" S e 55°30\'00" W).';
+        atualizarPainelEstoque();
+        return;
+    }
     aviso.style.display = '';
     if (lat < -34 || lat > 6 || lon < -74 || lon > -34) {
         aviso.textContent = 'Informe latitude e longitude em graus decimais, dentro do Brasil (ex.: -12.5 e -55.5).';
@@ -711,7 +719,7 @@ async function aoInformarCoordenada() {
         if (minha !== ordemConsulta) return;
         consultaMapa = consulta;
         aplicarBioma(nomeBioma);
-        const textoBioma = nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O bioma não foi identificado; escolha-o abaixo. ';
+        const textoBioma = nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'A coordenada parece estar fora do Brasil; confira o sinal e o hemisfério. ';
         if (typeof consulta.estoque_tC_ha === 'number') {
             let texto = textoBioma + consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + (consulta.classe.c_pret || 'classe não identificada') + '), aplicado a toda a área desmatada informada.';
             if (consulta.vizinhas.length) {
@@ -906,14 +914,14 @@ async function calcularValoracao() {
 
     // A localização é obrigatória quando o mapa está disponível: dela vêm o
     // bioma e o estoque de carbono. Dispensa-se só com o estoque informado.
-    const latitude = parseFloat(valorCampo('latitude')), longitude = parseFloat(valorCampo('longitude'));
-    const temLocalizacao = !!poligonoUsuario || (!isNaN(latitude) && !isNaN(longitude));
-    if (mapa.disponivel && !temLocalizacao && !document.getElementById('usarEstoqueUsuario').checked) {
+    const latitude = DamnumMapa.lerCoordenada(valorCampo('latitude'), 'lat'), longitude = DamnumMapa.lerCoordenada(valorCampo('longitude'), 'lon');
+    const temLocalizacao = !!poligonoUsuario || (latitude !== null && longitude !== null);
+    if (!temLocalizacao) {
         alert('Informe o polígono da área desmatada ou, ao menos, uma coordenada. Por eles a calculadora identifica o bioma e busca o estoque de carbono no mapa do Quarto Inventário.');
         return;
     }
     if (!bioma) {
-        alert('O bioma não foi identificado pela localização. Escolha-o na lista.');
+        alert(mapa.disponivel ? 'A localização informada está fora do Brasil ou não foi reconhecida. Confira o polígono ou a coordenada.' : 'A consulta ao mapa está indisponível. Escolha o bioma na lista.');
         return;
     }
     if (areaForaAPP <= 0 && areaEmAPP <= 0) {

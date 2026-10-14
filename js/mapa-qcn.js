@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.6';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.7';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -473,6 +473,34 @@
         return { relativa: relativa, diverge: relativa > TOLERANCIA_AREA };
     }
 
+    // ---------- coordenada em vários formatos ----------
+
+    // Aceita graus decimais (-12.5, -12,5, 12.5 S) e graus, minutos e segundos
+    // (12°30'15"S, 12 30 15 S, 12°30,25' S), com hemisfério N, S, L, E, O ou W ou
+    // com sinal. `eixo` é 'lat' ou 'lon'. Devolve o número em graus decimais, ou
+    // null se o texto não for uma coordenada válida para o eixo.
+    function lerCoordenada(texto, eixo) {
+        if (texto === null || texto === undefined) return null;
+        var t = String(texto).trim().toUpperCase().replace(/[−–—]/g, '-').replace(/[′’´`]/g, "'").replace(/[″”“]|''/g, '"');
+        if (!t) return null;
+        var negativo = /^-/.test(t);
+        var hemisferio = (t.match(/[NSLEOW]/) || [''])[0];
+        if (/[SOW]/.test(hemisferio)) negativo = true;
+        if (/[NLE]/.test(hemisferio) && negativo) return null;
+        if (eixo === 'lat' && /[LEOW]/.test(hemisferio)) return null;
+        if (eixo === 'lon' && /[NS]/.test(hemisferio)) return null;
+        var numeros = (t.replace(/^-/, '').match(/\d+(?:[.,]\d+)?/g) || []).map(function (n) { return parseFloat(n.replace(',', '.')); });
+        if (numeros.length === 0 || numeros.length > 3) return null;
+        // "-12,5" e "12.5" têm um número só; vírgula decimal sem símbolos de minuto.
+        var graus = numeros[0], minutos = numeros[1] || 0, segundos = numeros[2] || 0;
+        if (numeros.length > 1 && (minutos >= 60 || segundos >= 60 || graus % 1 !== 0)) return null;
+        var valor = graus + minutos / 60 + segundos / 3600;
+        if (negativo) valor = -valor;
+        var limite = eixo === 'lat' ? 90 : 180;
+        if (!(Math.abs(valor) <= limite)) return null;
+        return Math.round(valor * 1e7) / 1e7;
+    }
+
     // ---------- leitura do arquivo do usuário (navegador) ----------
 
     // Aceita GeoJSON, KML, KMZ e shapefile zipado. Devolve FeatureCollection só
@@ -540,6 +568,7 @@
         criarFonteMemoria: criarFonteMemoria,
         verificarDisponibilidade: verificarDisponibilidade,
         identificarBioma: identificarBioma,
+        lerCoordenada: lerCoordenada,
         biomaDaConsulta: biomaDaConsulta,
         areaHa: areaHa,
         consultarPoligono: consultarPoligono,
