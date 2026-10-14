@@ -1,10 +1,10 @@
 {
 "descricao": "Séries de referência embutidas no DAMNUM. Servem de reserva quando as APIs oficiais não respondem e de base para os testes automatizados.",
-"gerado_em": "2026-10-04",
+"gerado_em": "2026-10-13",
 "fontes": {
-"selic": "Taxa Selic acumulada no mês, % a.m. (Banco Central, SGS 4390), obtida em 04/10/2026 pelo Ipeadata (série BM12_TJOVER12), porque api.bcb.gov.br não resolvia nessa data. Conferida mês a mês com a cópia da SGS 4390 arquivada em 11/05/2026 (web.archive.org): idêntica de 01/1995 a 04/2026.",
+"selic": "Taxa Selic acumulada no mês, % a.m. (Banco Central, SGS 4390), obtida em 04/10/2026 pelo Ipeadata (série BM12_TJOVER12), porque api.bcb.gov.br não resolvia nessa data. Conferida mês a mês com a cópia da SGS 4390 arquivada em 11/05/2026 (web.archive.org): idêntica de 01/1995 a 04/2026. Conferida de novo em 13/10/2026 na API do Banco Central: idêntica de 01/2024 a 09/2026.",
 "ipca15": "IPCA-15, número-índice (dez./1993 = 100) e variação mensal (IBGE, SIDRA, tabela 3065, variáveis 1117 e 355), consulta em 04/10/2026.",
-"taxa_legal": "Taxa legal mensal, % a.m. (Banco Central, SGS 29543), por mês de referência. Obtida em 04/10/2026 de cópia não oficial (github.com/FernandoOdnanref/taxa-legal-bcb), porque api.bcb.gov.br não resolvia nessa data. Conferida em 04/10/2026, mês a mês (ago./2024 a set./2026), com a Calculadora do Cidadão do Banco Central (correção pela taxa legal): todos os 26 valores iguais até a 6ª casa. Conferida também com o Manual de Cálculos da Justiça Federal (CJF, 2026): taxa de set./2025 = 1,305984% (item 4.2.2) e soma de 14,57% no exemplo da p. 52."
+"taxa_legal": "Taxa legal mensal, % a.m. (Banco Central, SGS 29543), por mês de referência. Obtida em 04/10/2026 de cópia não oficial (github.com/FernandoOdnanref/taxa-legal-bcb), porque api.bcb.gov.br não resolvia nessa data. Conferida em 04/10/2026, mês a mês (ago./2024 a set./2026), com a Calculadora do Cidadão do Banco Central (correção pela taxa legal): todos os 26 valores iguais até a 6ª casa. Conferida também com o Manual de Cálculos da Justiça Federal (CJF, 2026): taxa de set./2025 = 1,305984% (item 4.2.2) e soma de 14,57% no exemplo da p. 52. Conferida de novo em 13/10/2026, direto na API do Banco Central, que voltou a responder: idêntica de 08/2024 a 09/2026; acrescentado o mês de referência 10/2026."
 },
 "selic": {
 "199501": 3.37,
@@ -1053,6 +1053,7 @@
 "202606": 0.450641,
 "202607": 0.706607,
 "202608": 1.154527,
-"202609": 1.499119
+"202609": 1.499119,
+"202610": 0.37902
 }
 }
