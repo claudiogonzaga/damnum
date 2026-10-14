@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.4';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.5';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -90,14 +90,16 @@
         opcoes = opcoes || {};
         var base = String(opcoes.baseUrl || CONFIG.baseUrl).replace(/\/+$/, '');
         var versao = opcoes.versao || CONFIG.versao;
-        var buscar = opcoes.buscar || function (url) { return fetch(url); };
+        var buscar = opcoes.buscar || function (url, init) { return init ? fetch(url, init) : fetch(url); };
         var cache = opcoes.cache || cacheDoNavegador(versao);
         var raiz = base + '/' + versao + '/';
         var promessaVersao = null, promessaIndice = null;
         var decodificados = {};
 
+        // Os JSON de metadados são pequenos e mudam a cada versão dos dados: no
+        // navegador, sempre se revalida a cópia guardada.
         async function json(nome) {
-            var r = await buscar(raiz + nome);
+            var r = typeof document !== 'undefined' ? await buscar(raiz + nome, { cache: 'no-cache' }) : await buscar(raiz + nome);
             if (!r.ok) throw new Error('O servidor de dados respondeu ' + r.status + ' para ' + nome + '.');
             return r.json();
         }

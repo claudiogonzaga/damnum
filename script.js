@@ -566,7 +566,7 @@ async function iniciarMapa() {
 async function carregarTabelaMunicipios() {
     try {
         const c = DamnumMapa.CONFIG;
-        const resposta = await fetch(c.baseUrl.replace(/\/+$/, '') + '/' + c.versao + '/municipio_cpret.json');
+        const resposta = await fetch(c.baseUrl.replace(/\/+$/, '') + '/' + c.versao + '/municipio_cpret.json', { cache: 'no-cache' });
         if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
         tabelaMunicipios = await resposta.json();
         const select = document.getElementById('municipio');
