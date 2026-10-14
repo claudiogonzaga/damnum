@@ -1,9 +1,18 @@
 {
  "versao": "v1",
- "gerado_em": "2026-10-11",
+ "gerado_em": "2026-10-13",
  "ufs": [
-  "MT"
+  "AC",
+  "AM",
+  "AP",
+  "MA",
+  "MT",
+  "PA",
+  "RO",
+  "RR",
+  "TO"
  ],
+ "cobertura": "Amazônia Legal",
  "biomas": [
   "Amazônia",
   "Cerrado",
@@ -16,8 +25,8 @@
   "raster": 1.0,
   "vetor": 0.25
  },
- "blocos": 803,
- "bytes": 18667447,
+ "blocos": 1862,
+ "bytes": 100014120,
  "fonte": "Quarto Inventário Nacional de Emissões (MCTI/INPE), Carbono da Vegetação Pretérita; dados públicos, sem licença nomeada; citar a fonte",
  "fontes": [
   {

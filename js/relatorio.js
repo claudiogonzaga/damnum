@@ -354,7 +354,7 @@
         if (d) {
             linhas.push(linha('Versão dos dados', esc(d.versao) + ', gerada em ' + esc(d.gerado_em) + (d.data_download ? '; arquivos do INPE baixados em ' + esc(d.data_download) : '')));
             (d.fontes || []).forEach(function (f) {
-                linhas.push(linha('Fonte (' + esc(f.bioma) + ', ' + esc(f.uso) + ')', (f.arquivo ? esc(f.arquivo) + '; ' : '') + 'modificado no servidor do INPE em ' + esc(f.modificado_no_servidor) + '. ' + esc(f.url)));
+                linhas.push(linha('Fonte (' + esc(f.bioma) + ', ' + esc(f.uso) + ')', (f.arquivo ? esc(f.arquivo) + '; ' : '') + 'modificado no servidor do INPE em ' + esc(f.modificado_no_servidor) + '. <span style="word-break:break-all; font-size:9pt;">' + esc(f.url) + '</span>'));
             });
         }
         linhas.push(linha('Blocos do mapa usados', esc(m.blocos.join(', '))));

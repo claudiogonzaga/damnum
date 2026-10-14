@@ -90,7 +90,7 @@ test('interruptor: desligado não consulta a rede; ligado exige o endereço e a 
     let chamadas = 0;
     const buscar = u => { chamadas++; return fetch(u); };
     try {
-        assert.strictEqual(Mapa.CONFIG.ativo, false);
+        Mapa.configurar({ ativo: false });
         let d = await Mapa.verificarDisponibilidade(libs, { buscar });
         assert.strictEqual(d.disponivel, false);
         assert.strictEqual(chamadas, 0);

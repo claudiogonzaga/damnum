@@ -2,7 +2,7 @@
 // Aceite da versão 7.1 com dados reais de Mato Grosso: roda o cliente do DAMNUM
 // (js/mapa-qcn.js) contra o servidor local de blocos e compara com o cálculo
 // independente de tools/aceite_mt.py. Tolerância: 0,5% no estoque (D).
-// Uso: node tools/aceite_mt.js <pasta dos blocos> tools/aceite_mt_casos.json esperado.json
+// Uso: node tools/aceite_mt.js <pasta dos blocos ou endereço publicado> tools/aceite_mt_casos.json esperado.json
 const fs = require('node:fs');
 const Mapa = require('../js/mapa-qcn.js');
 const libs = require('../vendor/damnum-geo.js');
@@ -12,9 +12,12 @@ const { criarServidor } = require('./servidor_local_dados.js');
     const [pasta, arqCasos, arqEsperado] = process.argv.slice(2);
     const casos = JSON.parse(fs.readFileSync(arqCasos, 'utf8'));
     const esperado = JSON.parse(fs.readFileSync(arqEsperado, 'utf8'));
-    const servidor = criarServidor(pasta, '*');
-    await new Promise(r => servidor.listen(0, '127.0.0.1', r));
-    const fonte = Mapa.criarFonteBlocos(libs, { baseUrl: 'http://127.0.0.1:' + servidor.address().port, versao: 'v1', cache: null });
+    // O primeiro argumento é a pasta dos blocos (servida aqui mesmo) ou o
+    // endereço em que eles já estão publicados.
+    const remoto = /^https?:/.test(pasta);
+    const servidor = remoto ? null : criarServidor(pasta, '*');
+    if (servidor) await new Promise(r => servidor.listen(0, '127.0.0.1', r));
+    const fonte = Mapa.criarFonteBlocos(libs, { baseUrl: remoto ? pasta : 'http://127.0.0.1:' + servidor.address().port, versao: 'v1', cache: null });
     let falhas = 0;
     console.log('| Polígono | Área (ha) | D do DAMNUM | D independente | Diferença | Classes |');
     console.log('|---|---|---|---|---|---|');
@@ -37,7 +40,7 @@ const { criarServidor } = require('./servidor_local_dados.js');
         console.log('| ' + [c.nome + ' (' + c.lat + ', ' + c.lon + ')', r.estoque_tC_ha + ' tC/ha, ' + r.classe.c_pret + ' (' + r.classe.formato + ')',
             alvo ? alvo.d.toFixed(4) + ' tC/ha' + (alvo.c_pret ? ', ' + alvo.c_pret : '') + (ok ? '' : ' FALHOU') : 'sem dado'].join(' | ') + ' |');
     }
-    servidor.close();
+    if (servidor) servidor.close();
     console.log('\n' + (falhas ? falhas + ' caso(s) fora da tolerância' : 'Todos os casos dentro da tolerância.'));
     process.exit(falhas ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

@@ -12,9 +12,11 @@ const S = require('./blocos_sinteticos.js');
 const fonte = () => Mapa.criarFonteMemoria(libs, S.mapaSintetico());
 const perto = (a, b, tol) => assert.ok(Math.abs(a - b) <= tol, a + ' ≠ ' + b);
 
-test('mapa desligado por constante até a publicação dos blocos', () => {
-    assert.strictEqual(Mapa.MAPA_QCN_ATIVO, false);
-    assert.strictEqual(Mapa.DADOS_BASE_URL, '');
+test('interruptor ligado, com o endereço dos blocos separado do contador', () => {
+    assert.strictEqual(Mapa.MAPA_QCN_ATIVO, true);
+    assert.strictEqual(Mapa.DADOS_BASE_URL, 'https://damnum-dados.pages.dev');
+    assert.ok(!/script\.google\.com/.test(Mapa.DADOS_BASE_URL));
+    assert.strictEqual(Mapa.VERSAO_DADOS, 'v1');
     assert.strictEqual(Mapa.CAMPO_ESTOQUE, 'ctotal4inv');
 });
 

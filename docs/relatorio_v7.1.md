@@ -1,4 +1,6 @@
-# DAMNUM 7.1 — relatório de entrega (11/10/2026)
+# DAMNUM 7.1 — relatório de entrega (11/10/2026, atualizado em 13/10/2026)
+
+**Atualização de 13/10/2026.** Com o "GO" dos autores, a cobertura passou de Mato Grosso para a Amazônia Legal (1.862 blocos, 100 MB), os blocos foram publicados em `https://damnum-dados.pages.dev`, com cópia de origem no Drive, o mapa foi ligado e a versão 7.1 foi publicada. Entraram também: a reparação em espécie antes dos valores em dinheiro (tela e relatório), o campo do fator k do dano residual, a ressalva de que a faixa do residual é exploratória e o quadro de parâmetros com fonte, data e indicação do que o usuário alterou. O aceite foi refeito com 8 polígonos e 10 coordenadas, em sete estados (diferença máxima de 0,044%). O texto abaixo é o da entrega de 11/10.
 
 Ramo `v7`, commits locais, sem push. Nada foi publicado: nem o site, nem os blocos no Drive ou na Cloudflare. O mapa está desligado (`MAPA_QCN_ATIVO = false`), e a versão no ar continua a 7.0.
 

@@ -499,7 +499,7 @@ async function iniciarMapa() {
     if (mapa.disponivel) {
         const celula = mapa.info.celula_graus || {};
         document.getElementById('textoPrivacidadeMapa').textContent = 'O polígono e a coordenada ficam no seu navegador. O site só baixa os blocos do mapa (células de cerca de ' +
-            numeroBR((celula.vetor || 0.25) * 111, 0) + ' a ' + numeroBR((celula.raster || 1) * 111, 0) + ' km) que cobrem a área. Cobertura atual: ' + (mapa.info.ufs || []).join(', ') + '.';
+            numeroBR((celula.vetor || 0.25) * 111, 0) + ' a ' + numeroBR((celula.raster || 1) * 111, 0) + ' km) que cobrem a área. Cobertura atual: ' + (mapa.info.cobertura || (mapa.info.ufs || []).join(', ')) + '; fora dela, vale a tabela.';
         carregarTabelaMunicipios();
     }
     preencherFitofisionomias(document.getElementById('bioma').value);
@@ -518,7 +518,8 @@ async function carregarTabelaMunicipios() {
         Object.keys(vistos).sort((a, b) => vistos[a].localeCompare(vistos[b], 'pt-BR')).forEach(cod => {
             const opcao = document.createElement('option');
             opcao.value = cod;
-            opcao.textContent = vistos[cod] + ' (' + tabelaMunicipios.uf + ')';
+            const uf = (tabelaMunicipios.ufs || {})[cod.slice(0, 2)] || '';
+            opcao.textContent = vistos[cod] + (uf ? ' (' + uf + ')' : '');
             select.appendChild(opcao);
         });
     } catch (erro) {

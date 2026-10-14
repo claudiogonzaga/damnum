@@ -1,8 +1,19 @@
 # Missão: publicar os dados do mapa do Quarto Inventário (DAMNUM 7.1)
 
-Só executar depois do "GO" dos autores. O GO cobre esta publicação de dados; o push e a publicação do site dependem de pedido expresso. Qualquer tela de login, código de verificação, 2FA, cartão ou aceite de termos é dos autores: parar e avisar.
+**Executada em 13/10/2026, com o "GO" dos autores.** Os blocos da Amazônia Legal (1.862 blocos, 100 MB; maior bloco: 362 KB) estão em `https://damnum-dados.pages.dev/v1/`, projeto `damnum-dados` do Cloudflare Pages, na conta que hospeda o DAMNUM. A cópia de origem está no Google Drive, em `_CIÊNCIA/ENVIRONMENTAL SCIENCES/ENV_TECH/DAMNUM Dados/`. O site está com `MAPA_QCN_ATIVO = true`.
 
-Estado em 11/10/2026: os blocos de Mato Grosso estão gerados e testados no Mac, em `_insumos_v7/blocos/v1/` (803 blocos, 18,7 MB; maior bloco: 309 KB). O site está com `MAPA_QCN_ATIVO = false`.
+O roteiro abaixo fica como registro e serve para publicar uma nova versão dos dados (por exemplo, outros estados): nova versão, nova pasta (`v2`), sem alterar a `v1`.
+
+Tempos medidos em 13/10/2026, a partir do Mac dos autores: bloco vetorial pequeno, 0,19 s; bloco raster típico (96 KB), 0,26 s; maior bloco (362 KB), 0,69 s na primeira leitura e 0,33 s na segunda.
+
+Comandos usados:
+
+```bash
+python3 tools/preprocessar_blocos.py --uf AMAZONIA_LEGAL --versao v1 --amazonia <pasta> --cerrado <shp> --pantanal <shp> --municipios <pasta> --saida <saida> --data-download 2026-10-11
+npx wrangler pages project create damnum-dados --production-branch main --force
+npx wrangler pages deploy <pasta com v1/, _headers, index.html e 404.html> --project-name damnum-dados --branch main
+node tools/aceite_mt.js https://damnum-dados.pages.dev tools/aceite_mt_casos.json <esperado.json>
+```
 
 ## 1. Conferir os blocos
 
@@ -10,7 +21,7 @@ Estado em 11/10/2026: os blocos de Mato Grosso estão gerados e testados no Mac,
 node tools/aceite_mt.js _insumos_v7/blocos tools/aceite_mt_casos.json _insumos_v7/fase0/aceite_esperado.json
 ```
 
-Deve terminar com "Todos os casos dentro da tolerância."
+Deve terminar com "Todos os casos dentro da tolerância." O primeiro argumento também pode ser o endereço publicado.
 
 ## 2. Copiar a origem para o Google Drive
 

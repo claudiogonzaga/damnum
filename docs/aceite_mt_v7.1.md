@@ -5,6 +5,9 @@
 | Cerrado, com um buraco, Primavera do Leste | 856.62 | 47.539 | 47.541 | 0.005% | Sa 806.9 ha; Fa 49.7 ha |
 | Pantanal, Poconé | 2177.18 | 14.562 | 14.561 | 0.005% | Ta 1147.0 ha; Tg 1002.3 ha; Tg 22.1 ha; Ta 5.8 ha |
 | Transição Amazônia/Cerrado, Sinop/Sorriso | 4348.76 | 71.872 | 71.884 | 0.016% | Fs 2945.6 ha; ON 1243.9 ha; ONs 96.0 ha; Fs 43.9 ha; Sd 10.3 ha |
+| Amazônia, Altamira/PA | 1481.09 | 133.030 | 132.972 | 0.044% | Ds 1481.1 ha |
+| Cerrado, Porto Nacional/TO | 2233.86 | 44.915 | 44.915 | 0.000% | Sa 2233.9 ha |
+| Amazônia, Lábrea/AM | 1790.66 | 158.321 | 158.330 | 0.006% | Ab 1790.7 ha |
 
 | Coordenada | DAMNUM | Dado original |
 |---|---|---|
@@ -13,5 +16,10 @@
 | Cerrado, Primavera do Leste (-15.51, -54.31) | 40.1481 tC/ha, Sa (vetor) | 40.1481 tC/ha, Sa |
 | Cerrado, Barra do Garças (-15.7, -52.4) | 26.79 tC/ha, Sp (vetor) | 26.7900 tC/ha, Sp |
 | Pantanal, Poconé (-16.61, -56.71) | 11.96 tC/ha, Ta (vetor) | 11.9600 tC/ha, Ta |
+| Amazônia, Santarém/PA (-3.1, -54.9) | 92.31 tC/ha, Db (raster) | 92.3086 tC/ha |
+| Amazônia, Rio Branco/AC (-9.6, -67.9) | 165.89 tC/ha, Ab (raster) | 165.8918 tC/ha |
+| Cerrado, Balsas/MA (-7.6, -46) | 26.79 tC/ha, Sp (vetor) | 26.7900 tC/ha, Sp |
+| Amazônia, Açailândia/MA (-4.6, -47.3) | 201.12 tC/ha, Ds (raster) | 201.1212 tC/ha |
+| Amazônia, Macapá/AP (0.6, -51.6) | 238.92 tC/ha, Db (raster) | 238.9165 tC/ha |
 
 Todos os casos dentro da tolerância.

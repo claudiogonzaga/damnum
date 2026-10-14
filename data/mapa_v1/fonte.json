@@ -1,8 +1,19 @@
 {
  "versao": "v1",
- "gerado_em": "2026-10-11",
+ "gerado_em": "2026-10-13",
  "data_download": "2026-10-11",
- "uf": "MT",
+ "uf": "Amazônia Legal",
+ "ufs": [
+  "AC",
+  "AM",
+  "AP",
+  "MA",
+  "MT",
+  "PA",
+  "RO",
+  "RR",
+  "TO"
+ ],
  "parametros": {
   "celula_raster_graus": 1.0,
   "celula_vetor_graus": 0.25,
@@ -11,7 +22,7 @@
   "escala_vetor": 1000000
  },
  "geometrias_corrigidas": {
-  "Cerrado": 270,
+  "Cerrado": 382,
   "Pantanal": 232
  },
  "fontes": [
@@ -49,35 +60,41 @@
    "data_do_arquivo_local": "2020-05-20"
   }
  ],
- "blocos": 803,
+ "blocos": 1862,
  "maior_bloco": {
-  "chave": "amr_121_81",
-  "bytes": 308743
+  "chave": "amr_116_90",
+  "bytes": 362113
  },
  "estatistica_por_classe": [
   {
    "bioma": "Amazônia",
    "c_pret": "Aa",
-   "area_ha": 106674.2,
-   "d_medio_tC_ha": 116.16
+   "area_ha": 9628181.8,
+   "d_medio_tC_ha": 112.22
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Ab",
-   "area_ha": 103038.6,
-   "d_medio_tC_ha": 98.23
+   "area_ha": 42039250.0,
+   "d_medio_tC_ha": 142.92
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Am",
+   "area_ha": 971.1,
+   "d_medio_tC_ha": 201.12
   },
   {
    "bioma": "Amazônia",
    "c_pret": "As",
-   "area_ha": 31719460.5,
-   "d_medio_tC_ha": 107.37
+   "area_ha": 66828854.9,
+   "d_medio_tC_ha": 113.21
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Ca",
-   "area_ha": 1259.7,
-   "d_medio_tC_ha": 102.83
+   "area_ha": 1545.1,
+   "d_medio_tC_ha": 107.54
   },
   {
    "bioma": "Amazônia",
@@ -88,110 +105,158 @@
   {
    "bioma": "Amazônia",
    "c_pret": "Cs",
-   "area_ha": 770493.0,
-   "d_medio_tC_ha": 106.26
+   "area_ha": 809209.3,
+   "d_medio_tC_ha": 106.37
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Da",
-   "area_ha": 840402.2,
-   "d_medio_tC_ha": 103.6
+   "area_ha": 19296479.5,
+   "d_medio_tC_ha": 102.95
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Db",
-   "area_ha": 377503.4,
-   "d_medio_tC_ha": 177.51
+   "area_ha": 98474144.9,
+   "d_medio_tC_ha": 163.03
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Dm",
+   "area_ha": 3933186.8,
+   "d_medio_tC_ha": 139.98
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Ds",
-   "area_ha": 9687319.0,
-   "d_medio_tC_ha": 151.55
+   "area_ha": 96590994.6,
+   "d_medio_tC_ha": 172.37
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Fa",
-   "area_ha": 574633.4,
-   "d_medio_tC_ha": 60.09
+   "area_ha": 714030.9,
+   "d_medio_tC_ha": 58.92
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Fb",
-   "area_ha": 2124649.8,
-   "d_medio_tC_ha": 74.36
+   "area_ha": 2127074.8,
+   "d_medio_tC_ha": 74.32
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Fm",
-   "area_ha": 455.3,
-   "d_medio_tC_ha": 90.34
+   "area_ha": 91263.4,
+   "d_medio_tC_ha": 113.27
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Fs",
-   "area_ha": 18435953.7,
-   "d_medio_tC_ha": 79.63
+   "area_ha": 20133413.6,
+   "d_medio_tC_ha": 79.07
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "L",
+   "area_ha": 1949.4,
+   "d_medio_tC_ha": 134.62
   },
   {
    "bioma": "Amazônia",
    "c_pret": "LO",
-   "area_ha": 5402.3,
-   "d_medio_tC_ha": 129.89
+   "area_ha": 1841258.4,
+   "d_medio_tC_ha": 113.45
   },
   {
    "bioma": "Amazônia",
    "c_pret": "La",
-   "area_ha": 68083.0,
-   "d_medio_tC_ha": 91.77
+   "area_ha": 2174240.9,
+   "d_medio_tC_ha": 209.36
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Lb",
+   "area_ha": 1114651.6,
+   "d_medio_tC_ha": 115.66
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Ld",
-   "area_ha": 158526.7,
-   "d_medio_tC_ha": 64.13
+   "area_ha": 11551137.9,
+   "d_medio_tC_ha": 106.03
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Lg",
-   "area_ha": 55496.9,
-   "d_medio_tC_ha": 75.92
+   "area_ha": 1370622.7,
+   "d_medio_tC_ha": 83.11
   },
   {
    "bioma": "Amazônia",
    "c_pret": "ON",
-   "area_ha": 2542575.8,
-   "d_medio_tC_ha": 58.56
+   "area_ha": 2618546.8,
+   "d_medio_tC_ha": 58.63
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "P",
+   "area_ha": 1076.8,
+   "d_medio_tC_ha": 44.5
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Pa",
-   "area_ha": 980993.7,
-   "d_medio_tC_ha": 45.64
+   "area_ha": 6625584.4,
+   "d_medio_tC_ha": 36.86
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Pf",
+   "area_ha": 1335302.3,
+   "d_medio_tC_ha": 34.45
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Pm",
+   "area_ha": 2211.4,
+   "d_medio_tC_ha": 37.22
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Rl",
+   "area_ha": 1102.9,
+   "d_medio_tC_ha": 229.49
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Rm",
-   "area_ha": 234655.3,
-   "d_medio_tC_ha": 169.44
+   "area_ha": 317774.4,
+   "d_medio_tC_ha": 192.38
   },
   {
    "bioma": "Amazônia",
    "c_pret": "S",
-   "area_ha": 40339.1,
-   "d_medio_tC_ha": 127.1
+   "area_ha": 54460.7,
+   "d_medio_tC_ha": 128.99
   },
   {
    "bioma": "Amazônia",
    "c_pret": "SN",
-   "area_ha": 1438293.2,
-   "d_medio_tC_ha": 59.63
+   "area_ha": 1484111.6,
+   "d_medio_tC_ha": 59.38
   },
   {
    "bioma": "Amazônia",
    "c_pret": "SO",
-   "area_ha": 984320.6,
-   "d_medio_tC_ha": 115.44
+   "area_ha": 1594270.5,
+   "d_medio_tC_ha": 115.43
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "SP",
+   "area_ha": 5470.5,
+   "d_medio_tC_ha": 67.05
   },
   {
    "bioma": "Amazônia",
@@ -202,26 +267,26 @@
   {
    "bioma": "Amazônia",
    "c_pret": "Sa",
-   "area_ha": 2233561.0,
-   "d_medio_tC_ha": 140.28
+   "area_ha": 4107902.9,
+   "d_medio_tC_ha": 134.71
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Sd",
-   "area_ha": 3984113.1,
-   "d_medio_tC_ha": 118.64
+   "area_ha": 5396864.4,
+   "d_medio_tC_ha": 117.66
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Sg",
-   "area_ha": 144545.1,
-   "d_medio_tC_ha": 63.63
+   "area_ha": 1224972.7,
+   "d_medio_tC_ha": 30.43
   },
   {
    "bioma": "Amazônia",
    "c_pret": "Sp",
-   "area_ha": 1123959.8,
-   "d_medio_tC_ha": 82.0
+   "area_ha": 5714586.0,
+   "d_medio_tC_ha": 76.47
   },
   {
    "bioma": "Amazônia",
@@ -232,56 +297,104 @@
   {
    "bioma": "Amazônia",
    "c_pret": "Td",
-   "area_ha": 37246.9,
-   "d_medio_tC_ha": 51.26
+   "area_ha": 502112.0,
+   "d_medio_tC_ha": 29.02
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Tg",
+   "area_ha": 91325.3,
+   "d_medio_tC_ha": 13.97
+  },
+  {
+   "bioma": "Amazônia",
+   "c_pret": "Tp",
+   "area_ha": 291804.1,
+   "d_medio_tC_ha": 26.88
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Aa",
-   "area_ha": 414.5,
+   "area_ha": 104084.9,
    "d_medio_tC_ha": 145.3
   },
   {
    "bioma": "Cerrado",
+   "c_pret": "Ab",
+   "area_ha": 104179.9,
+   "d_medio_tC_ha": 165.89
+  },
+  {
+   "bioma": "Cerrado",
    "c_pret": "As",
-   "area_ha": 78302.4,
+   "area_ha": 436495.7,
    "d_medio_tC_ha": 88.08
   },
   {
    "bioma": "Cerrado",
+   "c_pret": "Ca",
+   "area_ha": 39791.1,
+   "d_medio_tC_ha": 121.46
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Cb",
+   "area_ha": 54778.6,
+   "d_medio_tC_ha": 104.87
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Cm",
+   "area_ha": 24360.7,
+   "d_medio_tC_ha": 126.34
+  },
+  {
+   "bioma": "Cerrado",
    "c_pret": "Cs",
-   "area_ha": 544326.9,
-   "d_medio_tC_ha": 127.54
+   "area_ha": 3187967.9,
+   "d_medio_tC_ha": 79.0
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Da",
-   "area_ha": 59405.9,
+   "area_ha": 81205.8,
    "d_medio_tC_ha": 130.71
   },
   {
    "bioma": "Cerrado",
+   "c_pret": "Db",
+   "area_ha": 7585.1,
+   "d_medio_tC_ha": 138.2
+  },
+  {
+   "bioma": "Cerrado",
    "c_pret": "Ds",
-   "area_ha": 426.4,
+   "area_ha": 116249.3,
    "d_medio_tC_ha": 118.41
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Fa",
-   "area_ha": 1263040.1,
-   "d_medio_tC_ha": 145.66
+   "area_ha": 2317629.1,
+   "d_medio_tC_ha": 109.39
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Fb",
-   "area_ha": 61099.8,
-   "d_medio_tC_ha": 82.22
+   "area_ha": 82994.6,
+   "d_medio_tC_ha": 82.21
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Fm",
+   "area_ha": 15081.2,
+   "d_medio_tC_ha": 68.83
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Fs",
-   "area_ha": 2820305.9,
-   "d_medio_tC_ha": 83.48
+   "area_ha": 4336263.0,
+   "d_medio_tC_ha": 74.34
   },
   {
    "bioma": "Cerrado",
@@ -297,27 +410,51 @@
   },
   {
    "bioma": "Cerrado",
+   "c_pret": "P",
+   "area_ha": 444.6,
+   "d_medio_tC_ha": 36.51
+  },
+  {
+   "bioma": "Cerrado",
    "c_pret": "Pa",
-   "area_ha": 30902.3,
+   "area_ha": 102350.2,
    "d_medio_tC_ha": 36.21
   },
   {
    "bioma": "Cerrado",
+   "c_pret": "Pf",
+   "area_ha": 129371.3,
+   "d_medio_tC_ha": 38.26
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Pm",
+   "area_ha": 59566.7,
+   "d_medio_tC_ha": 34.76
+  },
+  {
+   "bioma": "Cerrado",
    "c_pret": "S",
-   "area_ha": 105068.2,
-   "d_medio_tC_ha": 71.09
+   "area_ha": 125094.7,
+   "d_medio_tC_ha": 67.61
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "SNb",
+   "area_ha": 44870.5,
+   "d_medio_tC_ha": 80.27
   },
   {
    "bioma": "Cerrado",
    "c_pret": "SNm",
-   "area_ha": 18502.8,
-   "d_medio_tC_ha": 70.53
+   "area_ha": 23892.8,
+   "d_medio_tC_ha": 68.07
   },
   {
    "bioma": "Cerrado",
    "c_pret": "SNs",
-   "area_ha": 1154445.9,
-   "d_medio_tC_ha": 83.38
+   "area_ha": 1902470.7,
+   "d_medio_tC_ha": 72.92
   },
   {
    "bioma": "Cerrado",
@@ -328,38 +465,80 @@
   {
    "bioma": "Cerrado",
    "c_pret": "SOs",
-   "area_ha": 28655.8,
-   "d_medio_tC_ha": 76.21
+   "area_ha": 65796.5,
+   "d_medio_tC_ha": 66.32
   },
   {
    "bioma": "Cerrado",
    "c_pret": "SOts",
-   "area_ha": 6.8,
+   "area_ha": 29.1,
    "d_medio_tC_ha": 80.05
   },
   {
    "bioma": "Cerrado",
+   "c_pret": "STb",
+   "area_ha": 212.7,
+   "d_medio_tC_ha": 51.36
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "STs",
+   "area_ha": 3240.9,
+   "d_medio_tC_ha": 48.64
+  },
+  {
+   "bioma": "Cerrado",
    "c_pret": "Sa",
-   "area_ha": 17903138.5,
-   "d_medio_tC_ha": 40.54
+   "area_ha": 43671294.0,
+   "d_medio_tC_ha": 42.1
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Sd",
-   "area_ha": 3096102.7,
-   "d_medio_tC_ha": 101.31
+   "area_ha": 7084409.8,
+   "d_medio_tC_ha": 72.24
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Sg",
-   "area_ha": 759410.7,
+   "area_ha": 1919740.3,
    "d_medio_tC_ha": 18.49
   },
   {
    "bioma": "Cerrado",
    "c_pret": "Sp",
-   "area_ha": 10138407.5,
+   "area_ha": 20908810.9,
    "d_medio_tC_ha": 26.79
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "T",
+   "area_ha": 3380.1,
+   "d_medio_tC_ha": 30.8
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Ta",
+   "area_ha": 144334.6,
+   "d_medio_tC_ha": 17.9
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Td",
+   "area_ha": 7313.0,
+   "d_medio_tC_ha": 43.33
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Tg",
+   "area_ha": 2806.9,
+   "d_medio_tC_ha": 17.49
+  },
+  {
+   "bioma": "Cerrado",
+   "c_pret": "Tp",
+   "area_ha": 150978.0,
+   "d_medio_tC_ha": 26.51
   },
   {
    "bioma": "Pantanal",

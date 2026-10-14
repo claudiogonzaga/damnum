@@ -11,12 +11,12 @@
 })(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
-    // Interruptor. Só vira true com DADOS_BASE_URL preenchida e os blocos
-    // publicados (ver MISSAO-publicar-dados-damnum.md). Com false, a interface não
-    // oferece polígono nem coordenada e o estoque vem da tabela.
-    var MAPA_QCN_ATIVO = false;
+    // Interruptor. Com false, a interface não oferece polígono nem coordenada e o
+    // estoque vem da tabela. Ligado em 13/10/2026, com os blocos da Amazônia Legal
+    // publicados (ver MISSAO-publicar-dados-damnum.md).
+    var MAPA_QCN_ATIVO = true;
     // Endereço dos blocos. É outro serviço, separado do contador de valorações.
-    var DADOS_BASE_URL = '';
+    var DADOS_BASE_URL = 'https://damnum-dados.pages.dev';
     var VERSAO_DADOS = 'v1';
     var CAMPO_ESTOQUE = 'ctotal4inv'; // carbono total da vegetação pretérita, tC/ha (docs/fase0_dados.md)
 

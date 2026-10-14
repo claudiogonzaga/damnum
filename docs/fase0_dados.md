@@ -111,4 +111,4 @@ Regras fixas no código:
 
 * Diferença entre `ctotal4inv` e a soma dos compartimentos no Cerrado (item c).
 * Licença: os arquivos não trazem licença nomeada. Registro: "dados públicos do INPE/MCTI, acesso sem cadastro em 11/10/2026, sem licença nomeada nas fontes; citar a fonte".
-* Demais estados: não baixados. A pretérita é por bioma, então o mesmo roteiro serve aos outros estados da Amazônia, do Cerrado e do Pantanal sem novo download; Caatinga, Mata Atlântica e Pampa somam 153 MB compactados.
+* Cobertura publicada em 13/10/2026: Amazônia Legal (os nove estados; no Maranhão, sem a parte na Caatinga). Demais estados: não gerados. A pretérita é por bioma, então o mesmo roteiro serve aos outros estados da Amazônia, do Cerrado e do Pantanal sem novo download; Caatinga, Mata Atlântica e Pampa somam 153 MB compactados.

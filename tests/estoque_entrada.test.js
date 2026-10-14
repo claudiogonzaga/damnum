@@ -96,9 +96,13 @@ test('estoque informado pelo usuário prevalece sobre o do mapa', async () => {
 });
 
 test('com MAPA_QCN_ATIVO = false: sem opção de polígono ou coordenada, cálculo pela reserva e relatório dizendo isso', async () => {
-    assert.strictEqual(Mapa.MAPA_QCN_ATIVO, false);
-    const d = await Mapa.verificarDisponibilidade(libs);
+    const original = Object.assign({}, Mapa.CONFIG);
+    Mapa.configurar({ ativo: false });
+    let chamadas = 0;
+    const d = await Mapa.verificarDisponibilidade(libs, { buscar: () => { chamadas++; throw new Error('não deveria consultar a rede'); } });
+    Mapa.configurar(original);
     assert.strictEqual(d.disponivel, false);
+    assert.strictEqual(chamadas, 0);
     // A seção da localização nasce oculta e só aparece com o mapa disponível.
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     assert.match(html, /id="grupoLocalizacao" style="display:none;"/);

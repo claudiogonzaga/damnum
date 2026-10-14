@@ -10,7 +10,7 @@ Substitui tools/preprocessar_qcn.sh da versão 7.0. Depende de numpy, shapely e
 rasterio (pip), sem GDAL instalado no sistema. Ver docs/fase0_dados.md.
 
 Exemplo:
-  python3 tools/preprocessar_blocos.py --uf MT --versao v1 \
+  python3 tools/preprocessar_blocos.py --uf AMAZONIA_LEGAL --versao v1 \
       --amazonia /caminho/preterita_amazonia --cerrado /caminho/cerrado_carbono_vegetacao_preterita.shp \
       --pantanal /caminho/pantanal_carbono_vegetacao_preterita.shp \
       --municipios /caminho/Municipios --saida /caminho/saida
@@ -33,7 +33,10 @@ import shapely
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shp_leitor as L  # noqa: E402
 
-CODIGO_UF = {'MT': '51'}
+# Amazônia Legal: os nove estados. No Maranhão, a parte na Caatinga fica de fora
+# (não há blocos desse bioma).
+CODIGO_UF = {'AC': '12', 'AM': '13', 'AP': '16', 'MA': '21', 'MT': '51', 'PA': '15', 'RO': '11', 'RR': '14', 'TO': '17'}
+AMAZONIA_LEGAL = ['AC', 'AM', 'AP', 'MA', 'MT', 'PA', 'RO', 'RR', 'TO']
 CELULA_RASTER = 1.0      # graus
 CELULA_VETOR = 0.25      # graus
 ESCALA_RASTER = 100      # tC/ha × 100 em inteiro de 16 bits
@@ -59,17 +62,18 @@ def area_ha_aprox(geom):
 
 # ---------- unidade da federação ----------
 
-def carregar_municipios(pasta, uf):
-    """Devolve [(geocódigo, nome, geometria)] dos municípios da UF, a partir das
+def carregar_municipios(pasta, ufs):
+    """Devolve [(geocódigo, nome, geometria)] dos municípios das UFs, a partir das
     malhas por bioma do Inventário (IBGE, 2016). Um município em dois biomas
     aparece em dois arquivos; as partes são unidas."""
+    prefixos = tuple(CODIGO_UF[u] for u in ufs)
     partes = collections.defaultdict(list)
     nomes = {}
     for dbf in sorted(glob.glob(os.path.join(pasta, '*_municipios_ibge_2016.dbf'))):
         _, linhas = L.ler_dbf(dbf, 'utf-8')
         for i, _cx, aneis in L.iterar_poligonos(dbf[:-4] + '.shp'):
             cod = str(linhas[i]['cd_geocmu'])
-            if not cod.startswith(CODIGO_UF[uf]):
+            if not cod.startswith(prefixos):
                 continue
             nomes[cod] = linhas[i]['nm_municip']
             partes[cod].append(geometria_de_aneis(aneis))
@@ -247,64 +251,82 @@ def gerar_raster_amazonia(pasta, uf_geom, caixa_uf, escrever, estat):
         valores = ds.read(1, window=jan)
         tj = ds.window_transform(jan)
     # Banda de classe: c_pretvizi do vetor da Amazônia, na mesma grade. Um pixel
-    # recebe a classe se o centro cai em número ímpar de anéis dessa classe.
-    por_classe = collections.defaultdict(list)
+    # recebe a classe se o centro cai em número ímpar de anéis dessa classe. Cada
+    # parte do vetor é convertida só na sua janela, para poupar memória.
+    codigo = {}
+    legenda = ['']
     categoria = {}
-    invalidos = 0
+    classes = np.zeros((nl, nc), dtype=np.uint8)
     for dbf in sorted(glob.glob(os.path.join(pasta, 'amazonia_carbono_vegetacao_*.dbf'))):
         shp = dbf[:-4] + '.shp'
         cx = L.caixa_do_arquivo(shp)
         if cx[0] > caixa_uf[2] or cx[2] < caixa_uf[0] or cx[1] > caixa_uf[3] or cx[3] < caixa_uf[1]:
             continue
         _, linhas = L.ler_dbf(dbf)
+        por_classe = collections.defaultdict(list)
         for i, _c, aneis in L.iterar_poligonos(shp, caixa_uf):
             cls = linhas[i]['c_pretvizi']
             categoria[cls] = linhas[i]['categvizi']
             for a in aneis:
                 if len(a) >= 4:
                     por_classe[cls].append(a)
-    legenda = [''] + sorted(por_classe)
-    classes = np.zeros((nl, nc), dtype=np.uint8)
-    for cod, cls in enumerate(legenda):
-        if cod == 0:
+        # janela da parte dentro da janela geral
+        pc0 = max(0, int(math.floor((cx[0] - tj.c) / passo)))
+        pc1 = min(nc, int(math.ceil((cx[2] - tj.c) / passo)) + 1)
+        pl0 = max(0, int(math.floor((tj.f - cx[3]) / passo)))
+        pl1 = min(nl, int(math.ceil((tj.f - cx[1]) / passo)) + 1)
+        if pc1 <= pc0 or pl1 <= pl0:
             continue
-        conta = np.zeros((nl, nc), dtype=np.uint8)
-        lote, pontos = [], 0
-        aneis_cls = por_classe[cls]
-        for n, a in enumerate(aneis_cls):
-            lote.append(({'type': 'Polygon', 'coordinates': [a[:, :2].tolist()]}, 1))
-            pontos += len(a)
-            if pontos > 400000 or n == len(aneis_cls) - 1:
-                conta += features.rasterize(lote, out_shape=(nl, nc), transform=tj, fill=0, dtype='uint8',
-                                            merge_alg=rasterio.enums.MergeAlg.add)
-                lote, pontos = [], 0
-        classes[(conta % 2 == 1) & (classes == 0)] = cod
+        tp = rasterio.Affine(passo, 0, tj.c + pc0 * passo, 0, -passo, tj.f - pl0 * passo)
+        forma = (pl1 - pl0, pc1 - pc0)
+        alvo = classes[pl0:pl1, pc0:pc1]
+        for cls in sorted(por_classe):
+            if cls not in codigo:
+                codigo[cls] = len(legenda)
+                legenda.append(cls)
+            conta = np.zeros(forma, dtype=np.uint8)
+            lote, pontos = [], 0
+            aneis_cls = por_classe[cls]
+            for n, a in enumerate(aneis_cls):
+                lote.append(({'type': 'Polygon', 'coordinates': [a[:, :2].tolist()]}, 1))
+                pontos += len(a)
+                if pontos > 400000 or n == len(aneis_cls) - 1:
+                    conta += features.rasterize(lote, out_shape=forma, transform=tp, fill=0, dtype='uint8',
+                                                merge_alg=rasterio.enums.MergeAlg.add)
+                    lote, pontos = [], 0
+            alvo[(conta % 2 == 1) & (alvo == 0)] = codigo[cls]
+        print('  Amazônia: parte %s convertida (%d classes até aqui)' % (os.path.basename(shp), len(legenda) - 1), file=sys.stderr)
+    if len(legenda) > 255:
+        raise SystemExit('Mais de 255 classes: a banda de classe não cabe em 8 bits.')
     print('  Amazônia: janela de %d × %d pixels; %d classes' % (nc, nl, len(legenda) - 1), file=sys.stderr)
 
     inteiro = np.full(valores.shape, SEM_DADO_RASTER, dtype=np.uint16)
     valido = valores != -9999.0
     inteiro[valido] = np.clip(np.round(valores[valido] * ESCALA_RASTER), 0, SEM_DADO_RASTER - 1).astype(np.uint16)
+    del valido
 
     # estatística por classe (pixels com valor > 0), ponderada pela área do pixel
     lat = tj.f + (np.arange(nl) + 0.5) * tj.e
-    peso = np.cos(np.radians(lat))[:, None] * np.ones((1, nc))
     grau = math.pi / 180 * RAIO_TERRA
-    ha_pixel = passo * passo * grau * grau / 10000
-    usar = valido & (valores > 0) & (classes > 0)
+    ha_linha = np.cos(np.radians(lat)) * passo * passo * grau * grau / 10000
+    area_cls = np.zeros(256)
+    soma_cls = np.zeros(256)
+    for r in range(nl):
+        k, v = classes[r], valores[r]
+        ok = (v > 0) & (k > 0)
+        if ok.any():
+            area_cls += np.bincount(k[ok], minlength=256) * ha_linha[r]
+            soma_cls += np.bincount(k[ok], weights=v[ok], minlength=256) * ha_linha[r]
     for cod, cls in enumerate(legenda):
-        if cod == 0:
-            continue
-        m = usar & (classes == cod)
-        if m.any():
+        if cod and area_cls[cod] > 0:
             e = estat[('Amazônia', cls)]
-            e[0] += float(peso[m].sum() * ha_pixel)
-            e[1] += float((peso[m] * valores[m]).sum() * ha_pixel)
+            e[0] += float(area_cls[cod])
+            e[1] += float(soma_cls[cod])
 
     # células de 1 grau: cada pixel pertence à célula em que está o seu centro
     x_centro = tj.c + (np.arange(nc) + 0.5) * tj.a
-    y_centro = lat
     cel_x = np.floor(x_centro / CELULA_RASTER).astype(int)
-    cel_y = np.floor(y_centro / CELULA_RASTER).astype(int)
+    cel_y = np.floor(lat / CELULA_RASTER).astype(int)
     for cx_ in np.unique(cel_x):
         cols = np.where(cel_x == cx_)[0]
         for cy_ in np.unique(cel_y):
@@ -343,19 +365,26 @@ def tabela_municipios(municipios, raster, vetores, saida):
                                     out_shape=(nl, nc), transform=tj, fill=0, dtype='uint16')
         lat = tj.f + (np.arange(nl) + 0.5) * tj.e
         grau = math.pi / 180 * RAIO_TERRA
-        ha = (np.cos(np.radians(lat)) * raster['passo'] ** 2 * grau * grau / 10000)[:, None] * np.ones((1, nc))
-        usar = (valores > 0) & (classes > 0) & (indice > 0)
-        chave = indice[usar].astype(np.int64) * 1000 + classes[usar]
-        ordem = np.argsort(chave, kind='stable')
-        chave, a, v = chave[ordem], ha[usar][ordem], valores[usar][ordem].astype(np.float64)
-        unicos, inicio = np.unique(chave, return_index=True)
-        soma_a = np.add.reduceat(a, inicio)
-        soma_av = np.add.reduceat(a * v, inicio)
-        for u, sa, sav in zip(unicos, soma_a, soma_av):
-            m = municipios[int(u // 1000) - 1]
-            e = acum[(m[0], m[1], 'Amazônia', legenda[int(u % 1000)])]
-            e[0] += float(sa)
-            e[1] += float(sav)
+        ha_linha = np.cos(np.radians(lat)) * raster['passo'] ** 2 * grau * grau / 10000
+        FAIXA = 400
+        for l0 in range(0, nl, FAIXA):
+            v = valores[l0:l0 + FAIXA]
+            k = classes[l0:l0 + FAIXA]
+            m_ = indice[l0:l0 + FAIXA]
+            usar = (v > 0) & (k > 0) & (m_ > 0)
+            if not usar.any():
+                continue
+            a = (ha_linha[l0:l0 + FAIXA][:, None] * np.ones((1, nc)))[usar]
+            chave = m_[usar].astype(np.int64) * 1000 + k[usar]
+            vv = v[usar].astype(np.float64)
+            ordem = np.argsort(chave, kind='stable')
+            chave, a, vv = chave[ordem], a[ordem], vv[ordem]
+            unicos, inicio = np.unique(chave, return_index=True)
+            for u, sa, sav in zip(unicos, np.add.reduceat(a, inicio), np.add.reduceat(a * vv, inicio)):
+                m = municipios[int(u // 1000) - 1]
+                e = acum[(m[0], m[1], 'Amazônia', legenda[int(u % 1000)])]
+                e[0] += float(sa)
+                e[1] += float(sav)
     for nome_bioma, caminho, caixa in vetores:
         _, linhas = L.ler_dbf(caminho[:-4] + '.dbf')
         arvore = shapely.STRtree([m[2] for m in municipios])
@@ -384,7 +413,7 @@ def tabela_municipios(municipios, raster, vetores, saida):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--uf', required=True, choices=sorted(CODIGO_UF))
+    ap.add_argument('--uf', required=True, help='UFs separadas por vírgula, ou AMAZONIA_LEGAL (%s)' % ', '.join(AMAZONIA_LEGAL))
     ap.add_argument('--versao', default='v1')
     ap.add_argument('--amazonia', help='pasta com o TIFF e o shapefile da vegetação pretérita da Amazônia')
     ap.add_argument('--cerrado', help='cerrado_carbono_vegetacao_preterita.shp')
@@ -394,13 +423,19 @@ def main():
     ap.add_argument('--data-download', default='', help='data do download dos arquivos do INPE (AAAA-MM-DD)')
     args = ap.parse_args()
 
+    ufs = AMAZONIA_LEGAL if args.uf == 'AMAZONIA_LEGAL' else [u.strip().upper() for u in args.uf.split(',')]
+    for u in ufs:
+        if u not in CODIGO_UF:
+            raise SystemExit('UF não prevista: ' + u)
+    cobertura = 'Amazônia Legal' if set(ufs) == set(AMAZONIA_LEGAL) else ', '.join(ufs)
     gerado_em = datetime.date.today().isoformat()
     raiz = os.path.join(args.saida, args.versao)
     os.makedirs(os.path.join(raiz, 'blocos'), exist_ok=True)
 
-    print('Municípios de %s...' % args.uf, file=sys.stderr)
-    municipios = carregar_municipios(args.municipios, args.uf)
+    print('Municípios de %s...' % cobertura, file=sys.stderr)
+    municipios = carregar_municipios(args.municipios, ufs)
     uf_geom = shapely.union_all([m[2] for m in municipios])
+    shapely.prepare(uf_geom)
     caixa_uf = uf_geom.bounds
     print('  %d municípios; caixa %s' % (len(municipios), [round(c, 3) for c in caixa_uf]), file=sys.stderr)
     passo = CELULA_VETOR
@@ -457,7 +492,7 @@ def main():
 
     gravar('indice.json', {'versao': args.versao, 'gerado_em': gerado_em, 'blocos': indice})
     gravar('versao.json', {
-        'versao': args.versao, 'gerado_em': gerado_em, 'ufs': [args.uf], 'biomas': biomas,
+        'versao': args.versao, 'gerado_em': gerado_em, 'ufs': ufs, 'cobertura': cobertura, 'biomas': biomas,
         'data_download': args.data_download,
         'campo': 'ctotal4inv', 'unidade': 'tC/ha',
         'celula_graus': {'raster': CELULA_RASTER, 'vetor': CELULA_VETOR},
@@ -466,7 +501,7 @@ def main():
         'fontes': fontes
     })
     gravar('fonte.json', {
-        'versao': args.versao, 'gerado_em': gerado_em, 'data_download': args.data_download, 'uf': args.uf,
+        'versao': args.versao, 'gerado_em': gerado_em, 'data_download': args.data_download, 'uf': cobertura, 'ufs': ufs,
         'parametros': {'celula_raster_graus': CELULA_RASTER, 'celula_vetor_graus': CELULA_VETOR,
                        'escala_raster': ESCALA_RASTER, 'sem_dado_raster': SEM_DADO_RASTER, 'escala_vetor': ESCALA_VETOR},
         'geometrias_corrigidas': corrigidas, 'fontes': fontes,
@@ -474,7 +509,8 @@ def main():
         'estatistica_por_classe': [{'bioma': k[0], 'c_pret': k[1], 'area_ha': round(v[0], 1), 'd_medio_tC_ha': round(v[1] / v[0], 2)}
                                    for k, v in sorted(estat.items()) if v[0] > 0]
     })
-    gravar('municipio_cpret.json', {'versao': args.versao, 'gerado_em': gerado_em, 'uf': args.uf, 'campo': 'ctotal4inv',
+    gravar('municipio_cpret.json', {'versao': args.versao, 'gerado_em': gerado_em, 'uf': cobertura, 'campo': 'ctotal4inv',
+                                    'ufs': {CODIGO_UF[u]: u for u in ufs},
                                     'colunas': ['geocodigo', 'municipio', 'bioma', 'c_pret', 'area_ha', 'd_tC_ha'],
                                     'linhas': [[l['geocodigo'], l['municipio'], l['bioma'], l['c_pret'], l['area_ha'], l['d_tC_ha']] for l in por_municipio]})
     print('%d blocos, %.1f MB; maior: %s (%d bytes)' % (len(indice), sum(b['bytes'] for b in indice) / 1e6, maior['chave'], maior['bytes']), file=sys.stderr)
