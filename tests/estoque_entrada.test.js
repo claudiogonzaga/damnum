@@ -153,6 +153,8 @@ test('classe sem dado: o relatório diz que a reserva foi usada', async () => {
 
 test('localização obrigatória e bioma identificado pelo polígono ou pela coordenada', async () => {
     const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
+    // Só vale o resultado da última consulta de localização.
+    assert.ok((script.match(/if \(minha !== ordemConsulta\) return;/g) || []).length >= 5);
     assert.match(script, /if \(mapa\.disponivel && !temLocalizacao && !document\.getElementById\('usarEstoqueUsuario'\)\.checked\)/);
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     // A localização vem antes do bioma, e o bioma deixa de ser obrigatório na mão.

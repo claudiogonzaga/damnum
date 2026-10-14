@@ -239,6 +239,9 @@ function valorCampo(id) {
 let tabelaQCN = null;      // data/estoques_qcn_fitofisionomias.json
 let consultaMapa = null;   // resultado da consulta ao mapa do Quarto Inventário (polígono ou coordenada)
 let poligonoUsuario = null;
+// Cada consulta de localização recebe um número; resultado de consulta antiga
+// (por exemplo, a disparada ao digitar só a latitude) é descartado.
+let ordemConsulta = 0;
 // Estado do mapa: disponível só com o interruptor ligado e o servidor de blocos
 // respondendo na versão esperada. `falha` guarda o erro da última consulta.
 let mapa = { disponivel: false, motivo: '', fonte: null, info: null, falha: '' };
@@ -611,11 +614,15 @@ function atualizarDivergenciaArea() {
 const BIOMA_DO_MAPA = { 'Amazônia': 'FLORESTA AMAZÔNICA', 'Cerrado': 'CERRADO', 'Pantanal': 'PANTANAL MATO-GROSSENSE',
     'Caatinga': 'CAATINGA', 'Pampa': 'PAMPAS', 'Mata Atlântica': 'MATA ATLÂNTICA' };
 
-async function aplicarBiomaDaLocalizacao(consulta, alvo) {
+async function biomaDaLocalizacao(consulta, alvo) {
     let nome = DamnumMapa.biomaDaConsulta(consulta);
     if (!nome && mapa.fonte) {
         try { nome = await DamnumMapa.identificarBioma(await DamnumMapa.carregarLibs(), mapa.fonte, alvo); } catch (erro) { nome = null; }
     }
+    return nome;
+}
+
+function aplicarBioma(nome) {
     const valor = nome ? BIOMA_DO_MAPA[nome] : '';
     const select = document.getElementById('bioma');
     if (valor && select.value !== valor) {
@@ -634,6 +641,7 @@ function descreverParte(p) {
 async function aoEscolherPoligono(evento) {
     const info = document.getElementById('infoPoligono');
     const arquivo = evento.target.files[0];
+    const minha = ++ordemConsulta;
     poligonoUsuario = null;
     consultaMapa = null;
     mapa.falha = '';
@@ -653,8 +661,11 @@ async function aoEscolherPoligono(evento) {
         try {
             const { libs, fonte } = await obterFonteMapa();
             const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo);
+            if (minha !== ordemConsulta) return;
+            const nomeBioma = await biomaDaLocalizacao(consulta, geo);
+            if (minha !== ordemConsulta) return;
             consultaMapa = consulta;
-            const nomeBioma = await aplicarBiomaDaLocalizacao(consulta, geo);
+            aplicarBioma(nomeBioma);
             texto += nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O bioma não foi identificado; escolha-o abaixo. ';
             if (typeof consulta.estoque_tC_ha === 'number') {
                 texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' classe(s): ' +
@@ -681,6 +692,7 @@ async function aoInformarCoordenada() {
     if (poligonoUsuario) return; // o polígono prevalece sobre a coordenada
     const lat = parseFloat(valorCampo('latitude'));
     const lon = parseFloat(valorCampo('longitude'));
+    const minha = ++ordemConsulta;
     consultaMapa = null;
     mapa.falha = '';
     if (isNaN(lat) || isNaN(lon)) { aviso.style.display = 'none'; atualizarPainelEstoque(); return; }
@@ -694,8 +706,11 @@ async function aoInformarCoordenada() {
     try {
         const { libs, fonte } = await obterFonteMapa();
         const consulta = await DamnumMapa.consultarPonto(libs, fonte, lon, lat);
+        if (minha !== ordemConsulta) return;
+        const nomeBioma = await biomaDaLocalizacao(consulta, [lon, lat]);
+        if (minha !== ordemConsulta) return;
         consultaMapa = consulta;
-        const nomeBioma = await aplicarBiomaDaLocalizacao(consulta, [lon, lat]);
+        aplicarBioma(nomeBioma);
         const textoBioma = nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O bioma não foi identificado; escolha-o abaixo. ';
         if (typeof consulta.estoque_tC_ha === 'number') {
             let texto = textoBioma + consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + (consulta.classe.c_pret || 'classe não identificada') + '), aplicado a toda a área desmatada informada.';
@@ -707,6 +722,7 @@ async function aoInformarCoordenada() {
             aviso.textContent = textoBioma + (consulta.sem_dado ? 'A coordenada cai em classe sem dado no mapa' : 'A coordenada está fora da cobertura do mapa do Inventário (por ora, a Amazônia Legal)') + '; vale a tabela por fitofisionomia ou a média do bioma.';
         }
     } catch (erro) {
+        if (minha !== ordemConsulta) return;
         mapa.falha = erro.message;
         aviso.textContent = 'Consulta ao mapa indisponível (' + erro.message + '); vale a tabela por fitofisionomia ou a média do bioma.';
     }
