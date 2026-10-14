@@ -375,6 +375,7 @@ function lerLIA() {
         taxasLicenciamento: n('liaTaxasLicenciamento'), honorariosHa: n('liaHonorariosHa'),
         reposicaoHa: n('liaReposicaoHa'),
         eiaRima: n('liaEiaRima'),
+        precoTerraNativa: n('liaPrecoTerraNativa'),
         mesBaseLicenciamento: ['liaTaxasLicenciamento', 'liaHonorariosHa', 'liaEiaRima'].some(id => document.getElementById(id).dataset.editado) ? null : ref.mesBaseLicenciamento,
         referenciaMT: true,
         fontes: 'valores de referência de Mato Grosso: EBITDA e arrendamento (Rossi et al., 2023; IMEA, 2026), taxas da SEMA/MT (Lei 11.179/2020) e UPF/MT de set./2026, honorários técnicos e EIA/RIMA (orçamento de empresa de consultoria ambiental de Mato Grosso, set./2026, por faixa de área), reposição florestal (Decreto 1.313/2022 e LC 233/2005) e Selic (Banco Central).' +
@@ -946,7 +947,8 @@ function mostrarResultado(r) {
         'Compensação ecológica: proteção perpétua de <strong>' + numeroBR(c.totalHa, 2) + ' ha</strong> de vegetação nativa, assim compostos:';
     document.getElementById('listaEspecie').innerHTML = c.itens.filter(i => i.ha > 0)
         .map(i => '<li>' + i.nome + ': ' + numeroBR(i.ha, 2) + ' ha</li>').join('') +
-        '<li>Dano climático' + (r.lia ? ' e lucro do ilícito ambiental' : '') + ': sem equivalente em área; em dinheiro.</li>';
+        '<li>Dano climático: compensado pela própria compensação ecológica, sem área adicional.</li>' +
+        (r.lia && !c.precoTerraNativa ? '<li>Lucro do ilícito ambiental: informe o preço da terra com vegetação nativa para convertê-lo em área.</li>' : '');
     document.getElementById('danoMaterialMedia').textContent = formatarMoeda(p.material.valor);
     document.getElementById('danoInterinoMedia').textContent = formatarMoeda(p.interino.valor);
     document.getElementById('danoResidual').textContent = formatarMoeda(p.residual.valor);

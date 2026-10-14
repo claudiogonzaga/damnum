@@ -38,7 +38,10 @@ test('compensação ecológica: hectares de cada parcela pelas regras do método
     // Extrapatrimonial: valor ÷ custo por hectare.
     perto(item('mercado').ha, r.parcelas.mercado.valor / r.custo.valorHa, 1e-9);
     perto(c.totalHa, c.itens.reduce((s, i) => s + i.ha, 0), 1e-9);
-    assert.ok(!c.itens.some(i => i.chave === 'social' || i.chave === 'lia'));
+    // Dano climático: compensado pela própria compensação, sem área adicional.
+    assert.ok(!c.itens.some(i => i.chave === 'social'));
+    assert.strictEqual(c.climatico.valor, r.parcelas.social.valor);
+    assert.ok(!c.itens.some(i => i.chave === 'lia'));
 });
 
 test('compensação ecológica: sem dano material no IRDR; residual do CAEx convertido pelo custo', () => {
@@ -52,6 +55,25 @@ test('compensação ecológica: sem dano material no IRDR; residual do CAEx conv
     const sem = V.calcular(entrada({ reparacaoInSitu: false }), series);
     assert.strictEqual(sem.compensacao.itens[0].ha, 13);
     assert.strictEqual(sem.compensacao.inSituHa, 0);
+});
+
+test('LIA em área: valor atualizado do LIA ÷ preço da terra com vegetação nativa', () => {
+    const base = Object.assign(V.liaPadrao('CERRADO', 10.3, 'soja', 7), { anoRegularizacao: 2026, rotuloAtividade: 'soja' });
+    const sem = V.calcular(entrada({ lia: base }), series);
+    const itemSem = sem.compensacao.itens.filter(i => i.chave === 'lia')[0];
+    assert.strictEqual(itemSem.ha, null);
+    assert.match(itemSem.regra, /informe o preço da terra/);
+    const com = V.calcular(entrada({ lia: Object.assign({}, base, { precoTerraNativa: 9469.61 }) }), series);
+    const item = com.compensacao.itens.filter(i => i.chave === 'lia')[0];
+    perto(item.ha, com.parcelas.lia.total / 9469.61, 1e-9);
+    assert.ok(com.parcelas.lia.total > com.parcelas.lia.valor);
+    // O total a proteger passa a incluir a área do LIA.
+    perto(com.compensacao.totalHa - sem.compensacao.totalHa, item.ha, 1e-9);
+    const html = R.gerarHTML(com);
+    ['valor atualizado do LIA ÷ preço da terra com vegetação nativa', 'R$\u00a09.469,61/ha', 'LIA: preço da terra com vegetação nativa',
+        'compensado pela própria compensação ecológica, sem área adicional', 'A compensação ecológica compensa também o dano climático'].forEach(t => assert.ok(html.includes(t), 'falta: ' + t));
+    assert.ok(R.gerarHTML(sem).includes('como esse preço não foi informado, a área não foi calculada'));
+    assert.ok(!html.includes('sem equivalente em área'));
 });
 
 test('fator k do dano residual multiplica a área em espécie e o valor', () => {
@@ -71,7 +93,7 @@ test('relatório: a reparação em espécie vem antes do demonstrativo em dinhei
     const iDemonstrativo = html.indexOf('2. DEMONSTRATIVO DISCRIMINADO POR PARCELA');
     assert.ok(iEspecie > 0 && iEspecie < iDemonstrativo);
     ['precedência em relação à opção pela indenização pecuniária', 'Área a recuperar no próprio local: <b>2,0000 ha</b>', 'Área a proteger (ha)',
-        'área igual à ilegalmente desmatada, arredondada para cima', 'sem equivalente em área no método', 'isto é 11 hectares',
+        'área igual à ilegalmente desmatada, arredondada para cima', 'compensado pela própria compensação ecológica, sem área adicional', 'isto é 11 hectares',
         'Regras para a instituição de RPPN'].forEach(t => assert.ok(html.includes(t), 'falta: ' + t));
     assert.ok(!html.includes('CENÁRIOS QUANTO À REPARAÇÃO'));
     // Na tela, o bloco da reparação em espécie vem antes dos valores.

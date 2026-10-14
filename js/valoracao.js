@@ -434,9 +434,11 @@
     //     arredondada para cima;
     //   - dano residual, no método padrão: área × percentual não recuperado × k;
     //   - dano interino, dano extrapatrimonial e residual pelo método do CAEx: cada
-    //     hectare adicional protegido abate o custo médio de recuperação de um hectare.
-    // O dano climático e o lucro do ilícito não têm equivalente em área no método.
-    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual) {
+    //     hectare adicional protegido abate o custo médio de recuperação de um hectare;
+    //   - dano climático: compensado pela própria compensação ecológica, sem área adicional;
+    //   - lucro do ilícito ambiental: valor do LIA ÷ preço da terra com vegetação
+    //     nativa, informado pelo usuário (sem o preço, não há área).
+    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual, precoTerraNativa) {
         function porCusto(valor) { return custoHa > 0 ? valor / custoHa : 0; }
         var REGRA_CUSTO = 'valor da parcela ÷ custo de recuperação por hectare';
         var itens = [
@@ -451,11 +453,21 @@
             { chave: 'mercado', nome: 'Dano extrapatrimonial (mercado voluntário)', valor: parcelas.mercado.valor,
               ha: porCusto(parcelas.mercado.valor), regra: REGRA_CUSTO + ', a critério do Ministério Público ou do juízo' }
         ];
+        if (parcelas.lia) {
+            // O preço da terra é o de hoje; por isso a conta usa o LIA atualizado.
+            var temPreco = precoTerraNativa > 0;
+            itens.push({ chave: 'lia', nome: 'Lucro do ilícito ambiental (LIA)', valor: parcelas.lia.total, atualizado: true,
+                ha: temPreco ? parcelas.lia.total / precoTerraNativa : null,
+                regra: temPreco ? 'valor atualizado do LIA ÷ preço da terra com vegetação nativa' : 'informe o preço da terra com vegetação nativa para converter o LIA em área' });
+        }
         return {
             custoHa: custoHa,
+            precoTerraNativa: precoTerraNativa > 0 ? precoTerraNativa : null,
             inSituHa: areaInSitu,
             itens: itens,
-            totalHa: itens.reduce(function (s, i) { return s + i.ha; }, 0)
+            // Compensado pela própria compensação ecológica, sem área adicional.
+            climatico: { nome: 'Dano climático (custo social do carbono)', valor: parcelas.social.valor },
+            totalHa: itens.reduce(function (s, i) { return s + (i.ha || 0); }, 0)
         };
     }
 
@@ -608,7 +620,7 @@
             interino: interino,
             residual: residual,
             timotheo: { custos: CUSTOS_TIMOTHEO },
-            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual),
+            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual, entrada.lia ? entrada.lia.precoTerraNativa : 0),
             // Valores padrão, para o relatório dizer o que o usuário alterou.
             padroes: {
                 precos: PRECOS_PADRAO,
