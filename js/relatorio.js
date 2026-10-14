@@ -55,10 +55,10 @@
         linhas.push(linha('Entendimento adotado', nomeEntendimento(r.entendimento)));
         linhas.push(linha('Data do dano', r.dataInformada ? data(r.dataDano) : 'não informada (valores na data do cálculo)'));
         linhas.push(linha('Data do cálculo', data(r.dataCalculo)));
-        linhas.push(linha('Área desmatada fora de APP e ARL (A<sub>1</sub>)', num(r.areas.fora, 4) + ' ha'));
-        linhas.push(linha('Área desmatada em APP e ARL (A<sub>2</sub>)', num(r.areas.em, 4) + ' ha'));
+        linhas.push(linha('Área desmatada em excedentes de vegetação nativa (A<sub>1</sub>)', num(r.areas.fora, 4) + ' ha'));
+        linhas.push(linha('Área desmatada em áreas especialmente protegidas: APP, ARL, UC e TI (A<sub>2</sub>)', num(r.areas.em, 4) + ' ha'));
         linhas.push(linha('Área total (A<sub>1</sub> + A<sub>2</sub>)', num(r.areas.total, 4) + ' ha'));
-        if (r.areas.em > 0) linhas.push(linha('Reparação <em>in situ</em> da área em APP e ARL', r.reparacaoInSitu ? 'sim, será promovida' : 'não será promovida'));
+        if (r.areas.em > 0) linhas.push(linha('Reparação <em>in situ</em> da área especialmente protegida', r.reparacaoInSitu ? 'sim, será promovida' : 'não será promovida'));
         var html = titulo('1. IDENTIFICAÇÃO') + tabela(linhas);
         if (!(id.credorNome || id.credorDoc || id.devedorNome || id.devedorDoc)) {
             html += '<p style="font-size:10pt; color:#666;">Nome e CPF/CNPJ do credor e do devedor (art. 524, I, do CPC): não informados. O preenchimento é opcional e só é exigido no requerimento de cumprimento de sentença.</p>';
@@ -132,8 +132,8 @@
         html += tabela(linhas);
         if (r.areas.em > 0) {
             html += nota(r.reparacaoInSitu
-                ? '<b>Nota:</b> havendo reparação <em>in situ</em> da área em APP/ARL, o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b>.'
-                : '<b>Nota:</b> como a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + num(r.areas.em, 4) + ' ha).');
+                ? '<b>Nota:</b> havendo reparação <em>in situ</em> da área especialmente protegida (APP, ARL, UC ou TI), o dano material direto será reparado fisicamente (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). A cobrança monetária nesse cenário refere-se ao <b>dano interino</b>.'
+                : '<b>Nota:</b> como a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área especialmente protegida (' + num(r.areas.em, 4) + ' ha).');
         }
         return html;
     }
@@ -157,8 +157,8 @@
         var html = subtitulo('2.2 Dano interino');
         var temProtegida = r.areas.em > 0 && r.reparacaoInSitu;
         if (!temProtegida && !(it.valorAreaFora > 0)) {
-            if (!(r.areas.em > 0)) return html + '<p>Não há área em APP e ARL informada. Dano interino = ' + moeda(0) + '.</p>';
-            return html + '<p style="text-align:justify;">Como a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área em APP/ARL). Dano interino = ' + moeda(0) + '.</p>';
+            if (!(r.areas.em > 0)) return html + '<p>Não há área especialmente protegida informada. Dano interino = ' + moeda(0) + '.</p>';
+            return html + '<p style="text-align:justify;">Como a reparação <em>in situ</em> não será promovida, não há dano interino a calcular (o dano material já inclui a área especialmente protegida). Dano interino = ' + moeda(0) + '.</p>';
         }
         var caex = it.metodo === 'caex';
         var forma = it.forma ? ROTULO_FORMA[it.forma] : '';
@@ -175,8 +175,8 @@
                 : 'Custo por hectare: o mesmo do dano material. O tempo de 15 anos é o mínimo adotado no trabalho; informe tempo maior quando o caso o justificar.')));
         }
         if (it.valorAreaFora > 0) {
-            linhas.push(linha('Área passível de exploração (fora de APP e reserva legal), até a regularização', num(r.areas.fora, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.jurosAnoUm, 6) + ' (juros do ano 1, i ÷ (1 + i)) × ' + num(it.anosAteRegularizacao, 0) + ' anos entre o desmatamento e o pedido de regularização = ' + moeda(it.valorAreaFora) + ' (Nota Técnica, item 1.7). A própria Nota registra que há duas posições sobre a existência de dano indenizável nessa área.' + (r.parcelas.material.valor > 0 ? ' Atenção: neste cálculo a mesma área também recebe dano material; confira se as duas parcelas devem ser cumuladas.' : '')));
-            if (temProtegida) linhas.push(linha('Área em APP e reserva legal, até a recuperação', moeda(it.valorAreaProtegida)));
+            linhas.push(linha('Excedentes de vegetação nativa (área passível de autorização), até a regularização', num(r.areas.fora, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.jurosAnoUm, 6) + ' (juros do ano 1, i ÷ (1 + i)) × ' + num(it.anosAteRegularizacao, 0) + ' anos entre o desmatamento e o pedido de regularização = ' + moeda(it.valorAreaFora) + ' (Nota Técnica, item 1.7). A própria Nota registra que há duas posições sobre a existência de dano indenizável nessa área.' + (r.parcelas.material.valor > 0 ? ' Atenção: neste cálculo a mesma área também recebe dano material; confira se as duas parcelas devem ser cumuladas.' : '')));
+            if (temProtegida) linhas.push(linha('Áreas especialmente protegidas, até a recuperação', moeda(it.valorAreaProtegida)));
         }
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
         linhas = linhas.concat(textoAtualizacaoPatrimonial(r, p));
@@ -246,11 +246,11 @@
         var html = subtitulo('2.6 Lucro do ilícito ambiental (LIA)');
         html += '<p style="text-align:justify;">Restituição do proveito econômico do infrator, a "mais-valia ecológica ilícita" (STJ, REsp 1.145.083/MG e REsp 1.198.727/MG), que se cumula com a reparação do dano. Método de Gonzaga, Roquette, Silva e Sinisgalli (trabalho submetido ao SICAM 2026). O LIA mede o ganho do infrator, e não a perda da sociedade.</p>';
         var linhas = [];
-        linhas.push(linha('Intervalo', num(c.anos, 0) + ' anos, do ano do desmatamento ao ano da regularização ou da recomposição (' + esc(r.liaAnoRegularizacao) + ')'));
+        linhas.push(linha('Intervalo', num(c.anos, 2) + ' anos, da data do dano ' + (r.liaDataRegularizacao ? 'à data da regularização ou da recomposição (' + esc(r.liaDataRegularizacao) + ')' : 'à data do cálculo, sem regularização informada')));
         linhas.push(linha('Atividade agropecuária', l.comAtividade
             ? 'sim (' + esc(c.rotuloAtividade || c.atividade) + '); presume-se o uso de toda a área desmatada desde o desmatamento, cabendo ao infrator provar uso parcial ou cessado (Súmula 618/STJ; CPC, art. 373, § 1º)'
             : 'não; a terra entra pela antecipação da valorização'));
-        linhas.push(linha('Composição', 'área autorizável (fora de APP e reserva legal): CL + ' + (l.comAtividade ? 'Σ(L + R)' : 'ΔVT') + ' + GR; área não autorizável (APP e reserva legal): Gf + ' + (l.comAtividade ? 'Σ(L + R)' : 'ΔVT') + ' + GR'));
+        linhas.push(linha('Composição', 'área autorizável (excedentes de vegetação nativa): CL + ' + (l.comAtividade ? 'Σ(L + R)' : 'ΔVT') + ' + GR; área não autorizável (APP e reserva legal): Gf + ' + (l.comAtividade ? 'Σ(L + R)' : 'ΔVT') + ' + GR'));
         html += tabela(linhas);
 
         var th = TD + ' background:#f5f5f5;';
@@ -319,7 +319,7 @@
 
     // Detalhe da consulta ao mapa do Quarto Inventário: classes cruzadas, blocos
     // usados, campo e fonte do dado; ou o motivo de o mapa não ter sido usado.
-    function blocoMapa(e) {
+    function blocoMapa(e, r) {
         var html = '';
         var m = e.mapa;
         if (!m) {
@@ -347,6 +347,7 @@
                 }).join('; ') + '.';
             }
             html += nota(aviso);
+            html += '<p style="font-size:11pt; text-align:justify;">O estoque do ponto foi aplicado a toda a área desmatada informada (' + num(r.areas.total, 4) + ' ha): área × ' + num(m.estoque_tC_ha, 2) + ' tC/ha × 3,67 × preço da tonelada de CO₂. Com o polígono, o estoque seria a média ponderada das classes que ele cruza.</p>';
         }
         var d = e.dados;
         var linhas = [];
@@ -379,7 +380,7 @@
             }).join('; ')));
         }
         html += tabela(linhas);
-        html += blocoMapa(e);
+        html += blocoMapa(e, r);
         if (e.secundaria) {
             html += nota(e.origem === 'usuario'
                 ? 'A vegetação suprimida foi declarada secundária ou já degradada, e o estoque foi informado pelo usuário.'
@@ -536,6 +537,10 @@
         html += '<p><b>2) Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):</b></p>';
         html += '<p style="text-align:justify;">Quando não houver reparação <em>in situ</em> (área passível de exploração), deverá ser realizada a compensação ecológica ou o pagamento de indenização, para que o proprietário possa regularizar a exploração da área. Neste caso, a valoração (dano material) é de ' + moeda(p.material.valor) + '. Também deverão ser reparados os danos climáticos, estimados em ' + moeda(p.social.valor) + ' e extrapatrimoniais (' + moeda(p.mercado.valor) + ').</p>';
         html += '<p><b>COMPENSAÇÃO ECOLÓGICA</b></p>';
+        var fk = c.fatorK;
+        html += '<p style="text-align:justify;">As áreas a proteger são multiplicadas pelo fator de equivalência <b>K = ' + num(fk.K, 2) + '</b>, que cobre a distância entre a área compensada e a desmatada e o risco de a proteção falhar: K = D × 1 ÷ [(1 − v) × (1 − b)], com D = ' + num(fk.D, 1) + ' (área ' + esc(fk.rotulos.distancia) + '), b = ' + fk.b + '% (probabilidade de a proteção ser desrespeitada: ' + esc(fk.rotulos.instrumento) +
+            (fk.b > (fk.config.instrumento === 'rppn' ? 12 : 20) ? ', com agravantes' : '') + ') e v = ' + fk.v + '% (vazamento: ' + esc(fk.rotulos.vazamento) + '). Faixas do levantamento "Fator K da compensação ecológica" (v. 3.1, 30/09/2026), por analogia com os descontos de risco dos padrões de crédito de carbono (pisos de reserva da Verra, de 12%, e da ICVCM, de 20%; agravantes do ART TREES e da NPRT; vazamento do ART TREES) e com os degraus de distância do guia do SEA (Chile).' +
+            (fk.recusar ? ' <b>A soma de riscos passa de 60%: a área ofertada deve ser recusada.</b>' : '') + '</p>';
         html += '<p style="text-align:justify;">Área de vegetação nativa a proteger em caráter perpétuo, por parcela, e a indenização que ela substitui:</p>';
         html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Área a proteger (ha)</th><th style="' + th + ' text-align:left;">Como se chega à área</th><th style="' + th + '">Indenização substituída (valor original)</th></tr>';
         c.itens.forEach(function (i) {
@@ -545,13 +550,18 @@
         html += '<tr style="background:#e8f5e9;"><td style="' + TD + '"><b>Total a proteger</b></td><td style="' + TDR + '"><b>' + num(c.totalHa, 4) + '</b></td><td style="' + TD + '" colspan="2">custo de recuperação por hectare: ' + moeda(c.custoHa) + '</td></tr>';
         html += '</table>';
         html += '<p style="text-align:justify;">A compensação ecológica compensa também o dano climático, sem área adicional.' + (p.lia ? ' No lucro do ilícito ambiental, a área é o valor do lucro dividido pelo preço da terra com vegetação nativa' + (c.precoTerraNativa ? '.' : '; como esse preço não foi informado, a área não foi calculada e não entra no total.') : '') + '</p>';
-        html += '<p style="text-align:justify;">Propõe-se a compensação ecológica dos danos materiais nos seguintes termos: instituição, no próprio imóvel ou imóvel de terceiro no mesmo bioma, estado da federação e preferencialmente, no mesmo município ou município contíguo, de RPPN, servidão ambiental perpétua ou aquisição e doação ao poder público de área em unidade de conservação igual à área ilegalmente desmatada (arredondada), isto é ' + num(material.ha, 0) + ' hectares, remanescendo o pagamento de indenização por danos extrapatrimoniais (que poderá ser reduzido a critério do promotor de Justiça, conforme a relevância da área protegida a ser criada) no valor de ' + moeda(p.mercado.valor) + '.</p>';
+        html += '<p style="text-align:justify;">Propõe-se a compensação ecológica dos danos materiais nos seguintes termos: instituição, no próprio imóvel ou imóvel de terceiro no mesmo bioma, estado da federação e preferencialmente, no mesmo município ou município contíguo, de RPPN reconhecida ou servidão ambiental perpétua averbada sobre área igual à ilegalmente desmatada multiplicada por K (arredondada), isto é ' + num(material.ha, 0) + ' hectares, remanescendo o pagamento de indenização por danos extrapatrimoniais (que poderá ser reduzido a critério do promotor de Justiça, conforme a relevância da área protegida a ser criada) no valor de ' + moeda(p.mercado.valor) + '.</p>';
         html += '<p style="text-align:justify;">O valor dos danos extrapatrimoniais remanescente também poderá ser reduzido com o aumento da área a ser protegida, descontando-se o valor dos custos médios de reparação para cada hectare adicional de vegetação nativa no montante do dano extrapatrimonial (isto é, ' + moeda(r.custo.valorHa) + ' por hectare fora de ARL acrescentado na RPPN além da área desmatada). É dessa regra que saem as áreas do dano interino e do dano extrapatrimonial no quadro acima.</p>';
+        html += '<p style="text-align:justify;">Só conta área que: seja excedente que a lei permite suprimir (fora de APP, reserva legal e área já comprometida); seja da mesma fitofisionomia e do mesmo bioma, em condição igual ou melhor; esteja sob pressão de conversão comprovada no município; e tenha memorial descritivo georreferenciado que coincida com o mapa do acordo. Enquanto a RPPN não for reconhecida ou a servidão não for averbada, a área vale zero.</p>';
         html += '<p><b>Regras para a instituição de RPPN (ou servidão ambiental perpétua):</b></p>';
         html += '<p style="text-align:justify;">1) A RPPN deverá abranger a área de reserva legal do imóvel, embora a ARL abrangida não será computada para fins da compensação ecológica;<br>';
         html += '2) A área protegida deverá, salvo absoluta impossibilidade, (2.1) consistir-se de um único bloco de vegetação nativa e (2.2) ser lindeira à área de reserva legal ou área de preservação permanente existente no imóvel, visando diminuir os efeitos da fragmentação de habitats e efeitos de borda.</p>';
         html += '<p style="text-align:justify;">Na hipótese de RPPN, toda a área protegida continuará sendo de propriedade da parte requerida, que poderá aferir renda com a venda de créditos de carbono e cotas de reserva ambiental (CRA) para imóveis com déficit de áreas de reserva legal.</p>';
         return html;
+    }
+
+    function DIGITO_FAIXA(rs) {
+        return rs.estatisticas ? 'de ' + num(rs.estatisticas.minimo, 2) + '% a ' + num(rs.estatisticas.maximo, 2) + '%, mediana ' + num(rs.estatisticas.mediana, 2) + '%' : '—';
     }
 
     // Parâmetros de referência usados no cálculo, com fonte, data e a indicação
@@ -571,7 +581,9 @@
         var rs = r.residual, caexR = rs.metodo === 'caex';
         ln('Dano residual: percentual que não se recupera', num(rs.pfePct, 2) + '%', caexR ? 'Relatório Técnico 963/2026 do CAEx/MPMT' : 'mediana das estimativas publicadas (seção 2.3)', caexR ? '2026' : 'estimativas de 2012 a 2026', difere(rs.pfePct, d.residual.pfePct));
         if (caexR) ln('Dano residual: taxa de juros', num(rs.taxaPct, 2) + '% ao ano', 'Relatório Técnico 963/2026 (média do IPCA)', 'IPCA de 1995 a 2023', difere(rs.taxaPct, d.residual.taxaPct));
-        else ln('Dano residual: fator de equivalência (k)', num(rs.k, 2), 'padrão da calculadora', '2026', difere(rs.k, 1));
+        else ln('Dano residual: percentual (estimativas)', DIGITO_FAIXA(rs), 'Poorter et al. (2021); Moreno-Mateos et al. (2012); Gonzaga et al. (2025); MPMT, RT 963/2026', '2012 a 2026', null);
+        var fk = r.compensacao.fatorK;
+        ln('Compensação: fator de equivalência K', num(fk.K, 2) + ' (D = ' + num(fk.D, 1) + '; b = ' + fk.b + '%; v = ' + fk.v + '%)', 'levantamento "Fator K da compensação ecológica" (v. 3.1): Verra, ICVCM, ART TREES, NPRT e guia do SEA (Chile)', '30/09/2026', difere(fk.K, d.K));
         var e = r.estoque;
         ln('Estoque de carbono', num(e.tC, 2) + ' tC/ha', esc(e.descricaoOrigem), e.origem === 'usuario' ? 'informada pelo usuário' : (e.dados ? 'Quarto Inventário (MCTI, 2020); arquivos do INPE de 25/06/2021, baixados em ' + esc(e.dados.data_download || 'data não informada') : 'Quarto Inventário (MCTI, 2020)'), e.origem === 'usuario');
         ln('Preço no mercado voluntário', 'US$ ' + num(r.parametros.precoMercadoCO2USD, 2) + '/tCO₂', 'piso do Fundo Amazônia (CNJ, Protocolo, segundo escopo, p. 66)', 'out./2024', difere(r.parametros.precoMercadoCO2USD, d.precos.precoMercadoCO2USD));
@@ -585,7 +597,7 @@
                 ln('LIA: arrendamento deduzido', moeda(c.arrendamento) + '/ha/ano', 'IMEA, custo de produção', 'set./2026', difere(c.arrendamento, pl.arrendamento));
                 ln('LIA: anos de atividade', num(c.anosAtividade, 0), 'intervalo do dano à regularização', '—', difere(c.anosAtividade, pl.anosAtividade));
             } else {
-                ln('LIA: valorização da terra', moeda(c.valorizacao) + '/ha', 'informada pelo usuário (referência: INCRA, relatório de mercado de terras)', 'informada pelo usuário', null);
+                ln('LIA: valorização da terra', moeda(c.valorizacao) + '/ha', 'INCRA, relatório de mercado de terras, mercado Norte Araguaia/MT (pastagem)', '2024', difere(c.valorizacao, pl.valorizacao));
                 ln('LIA: Selic real média', num(c.taxaRealPct, 2) + '% ao ano', 'Banco Central, SGS 4390 e 433', 'média de 2010 a 2025', difere(c.taxaRealPct, pl.taxaRealPct));
             }
             ln('LIA: taxas de licenciamento evitadas', moeda(c.taxasLicenciamento), 'SEMA/MT, Lei 11.179/2020', UPF, difere(c.taxasLicenciamento, pl.taxasLicenciamento));
@@ -594,7 +606,7 @@
             ln('LIA: volume de produto florestal', num(c.volumeM3, 1) + ' m³/ha', 'LC 233/2005-MT, volumes presumidos', '2005', difere(c.volumeM3, pl.volumeM3));
             ln('LIA: preço do produto florestal', moeda(c.precoMadeira) + '/m³', 'informado pelo usuário', 'informada pelo usuário', null);
             ln('LIA: taxa de reposição florestal', moeda(c.reposicaoHa) + '/ha', 'Decreto 1.313/2022-MT e LC 233/2005-MT', UPF, difere(c.reposicaoHa, pl.reposicaoHa));
-            ln('LIA: preço da terra com vegetação nativa', c.precoTerraNativa > 0 ? moeda(c.precoTerraNativa) + '/ha' : 'não informado', 'informado pelo usuário (referência: INCRA, relatório de mercado de terras)', 'informada pelo usuário', null);
+            ln('LIA: preço da terra com vegetação nativa', c.precoTerraNativa > 0 ? moeda(c.precoTerraNativa) + '/ha' : 'não informado', 'INCRA, relatório de mercado de terras, mercado Norte Araguaia/MT', '2024', difere(c.precoTerraNativa, pl.precoTerraNativa));
             ln('LIA: Selic nominal média', num(c.taxaNominalPct, 2) + '% ao ano', 'Banco Central, SGS 4390', 'média de 2010 a 2025', difere(c.taxaNominalPct, pl.taxaNominalPct));
         }
         var th = TD + ' background:#f5f5f5; text-align:left;';

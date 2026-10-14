@@ -105,8 +105,8 @@
     var RESIDUAL_CAEX = { pfePct: 1.99, taxaPct: 6.82, custo: 'plantio' };
 
     function residualPadrao(metodo) {
-        if (metodo === 'caex') return { metodo: 'caex', pfePct: RESIDUAL_CAEX.pfePct, taxaPct: RESIDUAL_CAEX.taxaPct, custo: RESIDUAL_CAEX.custo, k: 1 };
-        return { metodo: 'gonzaga', pfePct: C.faixaDeValores(RESIDUAL_PONTOS.map(function (p) { return p.pct; })).mediana, k: 1 };
+        if (metodo === 'caex') return { metodo: 'caex', pfePct: RESIDUAL_CAEX.pfePct, taxaPct: RESIDUAL_CAEX.taxaPct, custo: RESIDUAL_CAEX.custo };
+        return { metodo: 'gonzaga', pfePct: C.arredondar(C.faixaDeValores(RESIDUAL_PONTOS.map(function (p) { return p.pct; })).mediana, 2) };
     }
 
     // O residual só existe onde há reparação in situ: é o que a restauração não
@@ -153,6 +153,8 @@
         },
         // Valorização da terra no mercado Norte Araguaia (INCRA, 2024): só como exemplo.
         valorizacaoExemplo: { pastagem: 10636.44, agricola: 33020.24 },
+        // INCRA (2024), mercado Norte Araguaia: terra com vegetação nativa, R$/ha.
+        precoTerraNativa: 9469.61,
         // Lei 11.179/2020-MT: Plano de Exploração Florestal, 5 + 0,2 UPF por hectare;
         // Diagnóstico Ambiental, 65 UPF, acima de 1.000 ha (LC 233/2005).
         pefFixoUPF: 5, pefPorHaUPF: 0.2, diagnosticoUPF: 65, diagnosticoAcimaDeHa: 1000,
@@ -196,7 +198,8 @@
         return {
             atividade: atividade, anos: anos, anosAtividade: anos,
             ebitda: at ? at.ebitda : 0, arrendamento: at ? at.arrendamento : 0,
-            valorizacao: 0, taxaRealPct: ref.taxaRealPct, taxaNominalPct: ref.taxaNominalPct,
+            valorizacao: ref.valorizacaoExemplo.pastagem, precoTerraNativa: ref.precoTerraNativa,
+            taxaRealPct: ref.taxaRealPct, taxaNominalPct: ref.taxaNominalPct,
             volumeM3: ref.volumeM3[bioma] !== undefined ? ref.volumeM3[bioma] : ref.volumeDemaisM3, precoMadeira: 0,
             taxasLicenciamento: C.arredondar(taxasUPF * ref.upf + (areaFora > 0 ? ref.vistoria : 0), 2),
             honorariosHa: honorariosDaFaixa(areaFora, forma || formaDaVegetacao(null, bioma, null)).porHa,
@@ -207,7 +210,7 @@
     }
 
     // Calcula o LIA pela árvore de decisão do trabalho:
-    //   área não autorizável (APP e reserva legal): Gf + Σ(L + R) + GR, com atividade; Gf + ΔVT + GR, sem ela;
+    //   área não autorizável (áreas especialmente protegidas: APP, reserva legal, UC e TI): Gf + Σ(L + R) + GR, com atividade; Gf + ΔVT + GR, sem ela;
     //   área autorizável (demais áreas):            CL + Σ(L + R) + GR, com atividade; CL + ΔVT + GR, sem ela.
     // As parcelas saem em valores nominais das fontes; a atualização (correção e
     // juros, pelo Manual da Justiça Federal) é feita depois, em atualizarLIA.
@@ -239,7 +242,7 @@
         if (areaEm > 0 && !(cfg.precoMadeira > 0)) avisos.push('O preço do produto florestal não foi informado; a parcela do produto florestal retirado (Gf) ficou em zero.');
         if (!comAtividade && !(cfg.valorizacao > 0)) avisos.push('A valorização da terra (ΔV) não foi informada; a parcela de antecipação da valorização (ΔVT) ficou em zero.');
         if (comAtividade && cfg.anosAtividade !== t) avisos.push('O lucro e a renda da terra foram somados por ' + cfg.anosAtividade + ' anos de atividade, e não pelos ' + t + ' anos do intervalo.');
-        if (areaFora > LIA_REFERENCIA_MT.eiaRimaAcimaDeHa) avisos.push('A área fora de APP e reserva legal passa de 1.000 ha, o que torna exigível o EIA/RIMA (Resolução CONAMA 01/1986, art. 2º, XVII). ' + (cfg.eiaRima > 0 ? '' : 'O custo do estudo não foi informado e ficou fora do cálculo. ') + 'A compensação do art. 36 da Lei 9.985/2000 não está no cálculo.');
+        if (areaFora > LIA_REFERENCIA_MT.eiaRimaAcimaDeHa) avisos.push('A área em excedentes de vegetação nativa passa de 1.000 ha, o que torna exigível o EIA/RIMA (Resolução CONAMA 01/1986, art. 2º, XVII). ' + (cfg.eiaRima > 0 ? '' : 'O custo do estudo não foi informado e ficou fora do cálculo. ') + 'A compensação do art. 36 da Lei 9.985/2000 não está no cálculo.');
         return {
             config: cfg, comAtividade: comAtividade,
             fatorAntecipacao: fatorAnt, fatorReposicao: fatorGR, fatorLicenciamento: fLic,
@@ -259,14 +262,22 @@
         function somaDe(campo) { return lia.autorizavel[campo] + lia.naoAutorizavel[campo]; }
         var noDano = somaDe('produtoFlorestal') + somaDe('licenciamento') + somaDe('antecipacao');
         if (noDano > 0) grupos.push({ rotulo: 'produto florestal, licenciamento evitado e antecipação da valorização, no mês do dano', mes: ctx.mesDano, valor: noDano });
-        var anual = (somaDe('lucro') + somaDe('renda')) / (lia.config.anosAtividade || 1);
-        for (var k = 1; lia.comAtividade && k <= lia.config.anosAtividade; k++) {
+        // Um valor por ano completo de atividade e, se houver, um pela fração final.
+        var n = lia.config.anosAtividade || 0;
+        var anual = (somaDe('lucro') + somaDe('renda')) / (n || 1);
+        var inteiros = Math.floor(n + 1e-9);
+        for (var k = 1; lia.comAtividade && k <= inteiros; k++) {
             var mes = C.somarMeses(ctx.mesDano, 12 * k);
             grupos.push({ rotulo: 'lucro e renda da terra do ano ' + k, mes: mes > ctx.mesCalculo ? ctx.mesCalculo : mes, valor: anual });
         }
+        var fracao = n - inteiros;
+        if (lia.comAtividade && fracao > 1e-6) {
+            var mesF = C.somarMeses(ctx.mesDano, Math.round(12 * n));
+            grupos.push({ rotulo: 'lucro e renda da terra da fração final (' + C.arredondar(fracao, 2).toString().replace('.', ',') + ' ano)', mes: mesF > ctx.mesCalculo ? ctx.mesCalculo : mesF, valor: anual * fracao });
+        }
         var gr = somaDe('reposicao');
         if (gr > 0) {
-            var mesReg = C.somarMeses(ctx.mesDano, 12 * lia.config.anos);
+            var mesReg = C.somarMeses(ctx.mesDano, Math.round(12 * lia.config.anos));
             if (mesReg > ctx.mesCalculo) mesReg = ctx.mesCalculo;
             grupos.push({ rotulo: 'adiamento da reposição, no mês da regularização', mes: mesReg, termoJuros: mesReg, valor: gr });
         }
@@ -425,6 +436,51 @@
         return reserva;
     }
 
+    // ---------- fator de equivalência K da compensação ecológica ----------
+    // Levantamento dos autores "Fator K da compensação ecológica" (v. 3.1,
+    // 30/09/2026): área a compensar = área × K, com K = D × F e
+    // F = 1 ÷ [(1 − v) × (1 − b)]. D: distância (degraus do guia do SEA, Chile);
+    // b: probabilidade de a proteção ser desrespeitada (pisos da Verra e da ICVCM,
+    // agravantes do ART TREES e da NPRT); v: vazamento (ART TREES, Tabela 2).
+    var FATOR_K = {
+        instrumentos: {
+            rppn: { b: 12, rotulo: 'RPPN reconhecida pelo órgão ambiental, averbada e cadastrada no CNUC' },
+            servidao: { b: 20, rotulo: 'servidão ambiental perpétua averbada' }
+        },
+        distancias: {
+            imovel: { D: 1.0, rotulo: 'no próprio imóvel ou na mesma sub-bacia' },
+            bacia: { D: 1.3, rotulo: 'na mesma bacia' },
+            vizinha: { D: 1.6, rotulo: 'em bacia vizinha' },
+            outra: { D: 2.0, rotulo: 'em outra bacia do mesmo bioma, no Estado' }
+        },
+        vazamentos: {
+            mais90: { v: 0, rotulo: 'mais de 90% do excedente de vegetação nativa do compromitente protegido, ou não conversão do restante averbada' },
+            de60a90: { v: 5, rotulo: 'de 60% a 90% do excedente protegido' },
+            de25a60: { v: 10, rotulo: 'de 25% a 60% do excedente protegido' },
+            menos25: { v: 20, rotulo: 'menos de 25% do excedente protegido' }
+        },
+        posse: { nenhuma: 0, ate5: 5, mais5: 10 },
+        fogo: { nenhum: 0, comPlano: 5, semPlano: 8 },
+        terraApta: 4, novoDesmateMinimo: 30, limite: 60
+    };
+    var COMPENSACAO_PADRAO = { instrumento: 'rppn', distancia: 'imovel', vazamento: 'mais90', novoDesmate: false, posse: 'nenhuma', terraApta: false, fogo: 'nenhum' };
+
+    function fatorK(cfg) {
+        var c = {};
+        Object.keys(COMPENSACAO_PADRAO).forEach(function (k) { c[k] = cfg && cfg[k] !== undefined ? cfg[k] : COMPENSACAO_PADRAO[k]; });
+        var ins = FATOR_K.instrumentos[c.instrumento], dist = FATOR_K.distancias[c.distancia], vaz = FATOR_K.vazamentos[c.vazamento];
+        var b = ins.b;
+        if (c.novoDesmate) b = Math.max(b, FATOR_K.novoDesmateMinimo);
+        b += FATOR_K.posse[c.posse] + (c.terraApta ? FATOR_K.terraApta : 0) + FATOR_K.fogo[c.fogo];
+        var F = 1 / ((1 - vaz.v / 100) * (1 - b / 100));
+        return {
+            config: c, D: dist.D, b: b, v: vaz.v, F: F,
+            K: C.arredondar(dist.D * F, 2),
+            recusar: b > FATOR_K.limite,
+            rotulos: { instrumento: ins.rotulo, distancia: dist.rotulo, vazamento: vaz.rotulo }
+        };
+    }
+
     // Preços de referência do carbono, em US$ por tCO₂ (editáveis na tela).
     var PRECOS_PADRAO = { precoSocialCO2USD: 24.20, precoMercadoCO2USD: 5.00 };
 
@@ -438,13 +494,15 @@
     //   - dano climático: compensado pela própria compensação ecológica, sem área adicional;
     //   - lucro do ilícito ambiental: valor do LIA ÷ preço da terra com vegetação
     //     nativa, informado pelo usuário (sem o preço, não há área).
-    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual, precoTerraNativa) {
-        function porCusto(valor) { return custoHa > 0 ? valor / custoHa : 0; }
-        var REGRA_CUSTO = 'valor da parcela ÷ custo de recuperação por hectare';
+    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual, precoTerraNativa, fk) {
+        fk = fk || fatorK({});
+        var K = fk.K;
+        function porCusto(valor) { return custoHa > 0 ? valor / custoHa * K : 0; }
+        var REGRA_CUSTO = 'valor da parcela ÷ custo de recuperação por hectare × K';
         var itens = [
             { chave: 'material', nome: 'Dano material', valor: parcelas.material.valor,
-              ha: parcelas.material.valor > 0 ? Math.ceil(areaMaterial) : 0,
-              regra: 'área igual à ilegalmente desmatada, arredondada para cima' },
+              ha: parcelas.material.valor > 0 ? Math.ceil(areaMaterial * K - 1e-9) : 0,
+              regra: 'área ilegalmente desmatada × K, arredondada para cima' },
             { chave: 'interino', nome: 'Dano interino', valor: parcelas.interino.valor,
               ha: porCusto(parcelas.interino.valor), regra: REGRA_CUSTO },
             { chave: 'residual', nome: 'Dano residual', valor: parcelas.residual.valor,
@@ -457,10 +515,11 @@
             // O preço da terra é o de hoje; por isso a conta usa o LIA atualizado.
             var temPreco = precoTerraNativa > 0;
             itens.push({ chave: 'lia', nome: 'Lucro do ilícito ambiental (LIA)', valor: parcelas.lia.total, atualizado: true,
-                ha: temPreco ? parcelas.lia.total / precoTerraNativa : null,
-                regra: temPreco ? 'valor atualizado do LIA ÷ preço da terra com vegetação nativa' : 'informe o preço da terra com vegetação nativa para converter o LIA em área' });
+                ha: temPreco ? parcelas.lia.total / precoTerraNativa * K : null,
+                regra: temPreco ? 'valor atualizado do LIA ÷ preço da terra com vegetação nativa × K' : 'informe o preço da terra com vegetação nativa para converter o LIA em área' });
         }
         return {
+            fatorK: fk,
             custoHa: custoHa,
             precoTerraNativa: precoTerraNativa > 0 ? precoTerraNativa : null,
             inSituHa: areaInSitu,
@@ -554,7 +613,9 @@
         var configInterino = entrada.interino || { metodo: 'gonzaga', forma: null, taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao };
         var interino = calcularInterino(configInterino, custo.valorHa, configInterino.metodo === 'caex' ? custoTimotheo(configInterino.resiliencia) : null, areaInterino, fora);
         var valorInterino = interino.valorAreaProtegida + interino.valorAreaFora;
-        var configResidual = entrada.residual || residualPadrao('gonzaga');
+        var fk = fatorK(entrada.compensacao || {});
+        var configResidual = Object.assign({}, entrada.residual || residualPadrao('gonzaga'));
+        if (entrada.compensacao || !configResidual.k) configResidual.k = fk.K;
         var residual = calcularResidual(configResidual, custo.valorHa, configResidual.metodo === 'caex' ? custoTimotheo(configResidual.custo) : null, areaInterino);
 
         var parametros = Object.assign({}, entrada.parametros);
@@ -620,16 +681,19 @@
             interino: interino,
             residual: residual,
             timotheo: { custos: CUSTOS_TIMOTHEO },
-            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual, entrada.lia ? entrada.lia.precoTerraNativa : 0),
+            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual, entrada.lia ? entrada.lia.precoTerraNativa : 0, fk),
             // Valores padrão, para o relatório dizer o que o usuário alterou.
             padroes: {
                 precos: PRECOS_PADRAO,
+                compensacao: COMPENSACAO_PADRAO,
+                K: fatorK({}).K,
                 interino: interinoPadrao(configInterino.metodo, configInterino.forma || formaDaVegetacao(null, entrada.bioma, null)),
                 residual: residualPadrao(configResidual.metodo),
                 lia: entrada.lia ? liaPadrao(entrada.bioma, fora, entrada.lia.atividade, entrada.lia.anos, configInterino.forma) : null
             },
             lia: lia,
             liaAnoRegularizacao: entrada.lia ? entrada.lia.anoRegularizacao : null,
+            liaDataRegularizacao: entrada.lia ? entrada.lia.dataRegularizacao || null : null,
             parametros: parametros,
             estoque: entrada.estoque,
             parcelas: parcelas,
@@ -677,6 +741,7 @@
             origemEstoque: entrada.estoque.origem,
             opcaoExtrapatrimonial: entrada.opcaoExtrapatrimonial,
             residual: entrada.residual || null,
+            compensacao: entrada.compensacao || null,
             lia: entrada.lia || null,
             manual: entrada.manual || null
         });
@@ -706,6 +771,9 @@
         estoqueDoMapa: estoqueDoMapa,
         estoqueDoMunicipio: estoqueDoMunicipio,
         compensacaoEcologica: compensacaoEcologica,
+        fatorK: fatorK,
+        FATOR_K: FATOR_K,
+        COMPENSACAO_PADRAO: COMPENSACAO_PADRAO,
         PRECOS_PADRAO: PRECOS_PADRAO,
         resolverEstoque: resolverEstoque,
         calcular: calcular,

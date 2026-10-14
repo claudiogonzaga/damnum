@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.2';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.3';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -148,6 +148,23 @@
             return decodificados[meta.chave];
         }
 
+        // Camada leve com os limites dos seis biomas, para identificar o bioma em
+        // todo o Brasil (versao.json traz o arquivo e o SHA-256).
+        var promessaBiomas = null;
+        function biomas() {
+            if (!promessaBiomas) {
+                promessaBiomas = info().then(function (v) {
+                    if (!v.biomas_limites) return null;
+                    var meta = { chave: v.biomas_limites.arquivo.replace(/^blocos\//, '').replace(/\.gz$/, ''), sha256: v.biomas_limites.sha256 };
+                    return bytesDoBloco(meta).then(function (bytes) {
+                        return decodificarBiomas(libs, JSON.parse(new TextDecoder().decode(libs.gunzipSync(new Uint8Array(bytes)))));
+                    });
+                });
+                promessaBiomas.catch(function () { promessaBiomas = null; });
+            }
+            return promessaBiomas;
+        }
+
         async function blocosNaCaixa(caixa) {
             var metas = (await indice()).filter(function (m) { return caixasSeTocam(m.bbox, caixa); });
             if (metas.length > LIMITE_BLOCOS) {
@@ -156,7 +173,7 @@
             return Promise.all(metas.map(bloco));
         }
 
-        return { blocosNaCaixa: blocosNaCaixa, info: info, indice: indice };
+        return { blocosNaCaixa: blocosNaCaixa, info: info, indice: indice, biomas: biomas };
     }
 
     // Blocos já baixados e conferidos ficam no navegador (Cache API), com a versão
@@ -178,14 +195,73 @@
     }
 
     // Fonte em memória (testes): blocos já em objeto, no formato publicado.
-    function criarFonteMemoria(libs, blocos, descricao) {
+    function criarFonteMemoria(libs, blocos, descricao, biomas) {
         var prontos = blocos.map(function (b) { return decodificarBloco(libs, JSON.parse(JSON.stringify(b))); });
+        var limites = biomas ? decodificarBiomas(libs, JSON.parse(JSON.stringify(biomas))) : null;
         return {
             blocosNaCaixa: async function (caixa) {
                 return prontos.filter(function (b) { return caixasSeTocam(b.bbox, caixa); });
             },
-            info: async function () { return descricao || { versao: 'memória', campo: CAMPO_ESTOQUE, fontes: [] }; }
+            info: async function () { return descricao || { versao: 'memória', campo: CAMPO_ESTOQUE, fontes: [] }; },
+            biomas: async function () { return limites; }
         };
+    }
+
+    // ---------- bioma pela localização ----------
+
+    function decodificarBiomas(libs, dados) {
+        return dados.biomas.map(function (b) {
+            var geo = {
+                type: 'Feature', properties: { bioma: b.nome },
+                geometry: { type: 'MultiPolygon', coordinates: b.pol.map(function (p) { return p.map(function (a) { return decodificarAnel(a, dados.escala); }); }) }
+            };
+            geo.caixa = libs.bbox(geo);
+            return geo;
+        });
+    }
+
+    // Bioma da consulta ao mapa: no polígono, o de maior área com dado; na
+    // coordenada, o da classe encontrada.
+    function biomaDaConsulta(consulta) {
+        if (!consulta) return null;
+        if (consulta.tipo === 'coordenada') return consulta.classe ? consulta.classe.bioma : null;
+        var porBioma = {};
+        (consulta.partes || []).forEach(function (p) { porBioma[p.bioma] = (porBioma[p.bioma] || 0) + p.area_ha; });
+        var nomes = Object.keys(porBioma).sort(function (a, b) { return porBioma[b] - porBioma[a]; });
+        return nomes[0] || null;
+    }
+
+    // Bioma pela camada de limites: o do ponto; no polígono, o que contém a maior
+    // parte de uma amostra de pontos (centro e vértices).
+    async function identificarBioma(libs, fonte, alvo) {
+        var limites = fonte.biomas ? await fonte.biomas() : null;
+        if (!limites) return null;
+        var pontos;
+        if (Array.isArray(alvo)) {
+            pontos = [alvo];
+        } else {
+            pontos = [];
+            libs.flatten(alvo).features.filter(ehPoligono).forEach(function (f) {
+                var c = libs.bbox(f);
+                pontos.push([(c[0] + c[2]) / 2, (c[1] + c[3]) / 2]);
+                var aneis = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : f.geometry.coordinates.map(function (p) { return p[0]; });
+                aneis.forEach(function (a) {
+                    var passo = Math.max(1, Math.floor(a.length / 40));
+                    for (var i = 0; i < a.length; i += passo) pontos.push(a[i]);
+                });
+            });
+        }
+        var votos = {};
+        pontos.forEach(function (p) {
+            var ponto = libs.point(p);
+            for (var i = 0; i < limites.length; i++) {
+                var c = limites[i].caixa;
+                if (p[0] < c[0] || p[0] > c[2] || p[1] < c[1] || p[1] > c[3]) continue;
+                if (libs.booleanPointInPolygon(ponto, limites[i])) { votos[limites[i].properties.bioma] = (votos[limites[i].properties.bioma] || 0) + 1; break; }
+            }
+        });
+        var nomes = Object.keys(votos).sort(function (a, b) { return votos[b] - votos[a]; });
+        return nomes[0] || null;
     }
 
     // O mapa pode ser usado? Exige o interruptor, o endereço e a versão esperada.
@@ -461,6 +537,8 @@
         criarFonteBlocos: criarFonteBlocos,
         criarFonteMemoria: criarFonteMemoria,
         verificarDisponibilidade: verificarDisponibilidade,
+        identificarBioma: identificarBioma,
+        biomaDaConsulta: biomaDaConsulta,
         areaHa: areaHa,
         consultarPoligono: consultarPoligono,
         consultarPonto: consultarPonto,

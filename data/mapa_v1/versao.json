@@ -62,5 +62,11 @@
    "modificado_no_servidor": "2021-06-25",
    "data_do_arquivo_local": "2020-05-20"
   }
- ]
+ ],
+ "biomas_limites": {
+  "arquivo": "blocos/biomas_br.gz",
+  "bytes": 99391,
+  "sha256": "266440de3426caf8e895a2ba2bbceaf5c9f7e6773ff7fedcf40a1c5d5d7540be",
+  "fonte": "malhas municipais por bioma do Quarto Inventário (IBGE, 2016), simplificadas a 0.005 grau"
+ }
 }

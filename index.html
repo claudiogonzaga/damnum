@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.2">
+    <link rel="stylesheet" href="style.css?v=7.1.3">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -48,9 +48,29 @@
             </div>
 
             <form id="calculoForm" class="form-container">
+                <div class="input-group" id="grupoLocalizacao" style="display:none;">
+                    <h4 class="titulo-secao-form">Localização do desmatamento (obrigatória)</h4>
+                    <p class="ajuda-campo">Envie o polígono da área desmatada ou, ao menos, uma coordenada. Por eles a calculadora identifica o bioma e busca, no mapa do Quarto Inventário, o estoque de carbono da vegetação original: no polígono, a média ponderada pela área; na coordenada, o estoque daquele ponto, aplicado a toda a área desmatada informada.</p>
+                    <p id="textoPrivacidadeMapa" class="ajuda-campo">O polígono e a coordenada ficam no seu navegador. O site só baixa os blocos do mapa que cobrem a área.</p>
+                    <label for="arquivoPoligono">Polígono da área desmatada (KML, KMZ, GeoJSON ou shapefile zipado):</label>
+                    <input type="file" id="arquivoPoligono" accept=".kml,.kmz,.geojson,.json,.zip">
+                    <p id="infoPoligono" class="ajuda-campo" style="display:none;"></p>
+                    <div id="divergenciaArea" class="aviso-campo" style="display:none;">
+                        <span id="textoDivergenciaArea"></span>
+                        <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="digitada" checked> Prevalece a área digitada</label>
+                        <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="calculada"> Prevalece a área calculada do polígono</label>
+                    </div>
+                    <p class="ajuda-campo" style="margin-top:10px;">Sem polígono, informe uma coordenada de um ponto da área desmatada (graus decimais, SIRGAS 2000 ou WGS 84):</p>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="latitude" step="0.000001" min="-34" max="6" placeholder="Latitude, ex.: -12.500000">
+                        <input type="number" id="longitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000">
+                    </div>
+                    <p id="avisoCoordenada" class="aviso-campo" style="display:none;"></p>
+                </div>
+
                 <div class="input-group">
-                    <label for="bioma">Selecione o Bioma:</label>
-                    <select id="bioma" name="bioma" required>
+                    <label for="bioma">Bioma (identificado pela localização; escolha à mão só se ela não o indicar):</label>
+                    <select id="bioma" name="bioma">
                         <option value="">-- Selecione um bioma --</option>
                         <option value="CERRADO">CERRADO</option>
                         <option value="FLORESTA AMAZÔNICA">FLORESTA AMAZÔNICA</option>
@@ -87,26 +107,6 @@
                     <p id="avisoSecundaria" class="ajuda-campo" style="display:none;">Os estoques da tabela e do mapa são da vegetação original. Para vegetação secundária ou degradada, informe acima o estoque do caso; sem isso, o relatório registra que o valor pode superestimar o dano.</p>
                 </div>
 
-                <div class="input-group" id="grupoLocalizacao" style="display:none;">
-                    <h4 class="titulo-secao-form">Localização do desmatamento</h4>
-                    <p class="ajuda-campo">O estoque de carbono é obtido do mapa do Quarto Inventário para o polígono da área do dano (média ponderada pela área) ou, na falta dele, para a coordenada informada, com aviso de aproximação.</p>
-                    <p id="textoPrivacidadeMapa" class="ajuda-campo">O polígono e a coordenada ficam no seu navegador. O site só baixa os blocos do mapa que cobrem a área.</p>
-                    <label for="arquivoPoligono">Polígono da área desmatada (KML, KMZ, GeoJSON ou shapefile zipado):</label>
-                    <input type="file" id="arquivoPoligono" accept=".kml,.kmz,.geojson,.json,.zip">
-                    <p id="infoPoligono" class="ajuda-campo" style="display:none;"></p>
-                    <div id="divergenciaArea" class="aviso-campo" style="display:none;">
-                        <span id="textoDivergenciaArea"></span>
-                        <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="digitada" checked> Prevalece a área digitada</label>
-                        <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="calculada"> Prevalece a área calculada do polígono</label>
-                    </div>
-                    <p class="ajuda-campo" style="margin-top:10px;">Sem polígono, informe uma coordenada (graus decimais, SIRGAS 2000 ou WGS 84):</p>
-                    <div style="display:flex; gap:10px;">
-                        <input type="number" id="latitude" step="0.000001" min="-34" max="6" placeholder="Latitude, ex.: -12.500000">
-                        <input type="number" id="longitude" step="0.000001" min="-74" max="-34" placeholder="Longitude, ex.: -55.500000">
-                    </div>
-                    <p id="avisoCoordenada" class="aviso-campo" style="display:none;"></p>
-                </div>
-
                 <div class="input-group" id="grupoMunicipio" style="display:none;">
                     <label for="municipio">Sem polígono e sem coordenada: município do desmatamento (opcional):</label>
                     <select id="municipio"><option value="">Não informar</option></select>
@@ -132,19 +132,19 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="areaForaAPP">Área ilegalmente desmatada fora de APP e ARL (hectares):</label>
-                    <input type="number" id="areaForaAPP" name="areaForaAPP" step="0.0001" min="0" placeholder="Ex: 3.3095">
+                    <label for="areaEmAPP">Área ilegalmente desmatada dentro de áreas especialmente protegidas: APP, reserva legal, unidade de conservação e terra indígena (hectares):</label>
+                    <input type="number" id="areaEmAPP" name="areaEmAPP" step="0.0001" min="0" placeholder="Ex: 1.5">
                 </div>
 
                 <div class="input-group">
-                    <label for="areaEmAPP">Área ilegalmente desmatada em APP e ARL (hectares):</label>
-                    <input type="number" id="areaEmAPP" name="areaEmAPP" step="0.0001" min="0" placeholder="Ex: 1.5">
+                    <label for="areaForaAPP">Área ilegalmente desmatada dentro de excedentes de vegetação nativa, passíveis de autorização (hectares):</label>
+                    <input type="number" id="areaForaAPP" name="areaForaAPP" step="0.0001" min="0" placeholder="Ex: 3.3095">
                 </div>
 
                 <div id="checkboxReparacaoContainer" class="input-group" style="display:none;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.95em; color:#2c3e50; background:#e8f5e9; padding:10px 14px; border-radius:6px; border-left:4px solid #27ae60;">
                         <input type="checkbox" id="reparacaoInSitu" checked style="width:18px; height:18px; cursor:pointer;">
-                        Reparação <em>in situ</em> é possível e será promovida
+                        Reparação <em>in situ</em> da área especialmente protegida é possível e será promovida
                     </label>
                 </div>
 
@@ -152,8 +152,8 @@
                     <summary>Lucro do ilícito ambiental (LIA): parâmetros</summary>
                     <p class="ajuda-campo">Restituição do que o infrator ganhou com o desmatamento (a "mais-valia ecológica ilícita" do STJ), que se soma à reparação do dano. É calculado sempre que a data do dano for informada, com os valores abaixo. Os valores de referência são de <strong>Mato Grosso</strong>; confira e ajuste cada um.</p>
                     <div id="camposLIA" class="campos-lia">
-                        <label for="liaAnoRegularizacao">Ano da regularização ou da recomposição (em branco: ano atual, ainda sem regularização):</label>
-                        <input type="number" id="liaAnoRegularizacao" step="1" min="2001" placeholder="Ex.: 2026">
+                        <label for="liaDataRegularizacao">Data da regularização ou da recomposição (em branco: hoje, ainda sem regularização):</label>
+                        <input type="date" id="liaDataRegularizacao">
 
                         <label for="liaAtividade">Atividade agropecuária instalada na área:</label>
                         <select id="liaAtividade">
@@ -168,27 +168,27 @@
                             <input type="number" id="liaEbitda" step="0.01" min="0">
                             <label for="liaArrendamento">Arrendamento deduzido no EBITDA (renda da terra), R$ por hectare por ano:</label>
                             <input type="number" id="liaArrendamento" step="0.01" min="0">
-                            <label for="liaAnosAtividade">Anos de atividade (padrão: todo o intervalo):</label>
-                            <input type="number" id="liaAnosAtividade" step="1" min="0">
+                            <label for="liaAnosAtividade">Anos de atividade (padrão: da data do dano até hoje ou até a regularização):</label>
+                            <input type="number" id="liaAnosAtividade" step="0.01" min="0">
                             <p id="liaFonteAtividade" class="ajuda-campo"></p>
                         </div>
                         <div id="liaSemAtividade" style="display:none;">
                             <label for="liaValorizacao">Valorização da terra (ΔV): valor com uso agropecuário menos valor com vegetação nativa, R$ por hectare:</label>
-                            <input type="number" id="liaValorizacao" step="0.01" min="0" placeholder="Planilha de Preços Referenciais do INCRA para o mercado regional">
-                            <p class="ajuda-campo">Exemplo do mercado Norte Araguaia/MT (INCRA, 2024): R$ 10.636,44 para pastagem e R$ 33.020,24 para uso agrícola.</p>
+                            <input type="number" id="liaValorizacao" step="0.01" min="0">
+                            <p class="ajuda-campo">Padrão: R$ 10.636,44, valorização para pastagem no mercado Norte Araguaia/MT (INCRA, 2024); para uso agrícola, R$ 33.020,24. Troque pelo valor do mercado regional do caso.</p>
                         </div>
 
-                        <label for="liaVolume">Área em APP e reserva legal: volume de produto florestal retirado, m³ por hectare:</label>
+                        <label for="liaVolume">Áreas especialmente protegidas: volume de produto florestal retirado, m³ por hectare:</label>
                         <input type="number" id="liaVolume" step="0.1" min="0">
-                        <label for="liaPrecoMadeira">Preço do produto florestal, R$ por m³ (sem preço, essa parcela fica em zero):</label>
+                        <label for="liaPrecoMadeira">Preço do produto florestal, R$ por m³ (sem referência no método; sem preço, essa parcela fica em zero):</label>
                         <input type="number" id="liaPrecoMadeira" step="0.01" min="0" placeholder="Preço de mercado da região">
 
-                        <label for="liaTaxasLicenciamento">Área fora de APP e reserva legal: taxas de licenciamento evitadas, R$ (total):</label>
+                        <label for="liaTaxasLicenciamento">Excedentes de vegetação nativa: taxas de licenciamento evitadas, R$ (total):</label>
                         <input type="number" id="liaTaxasLicenciamento" step="0.01" min="0">
                         <label for="liaHonorariosHa">Honorários técnicos evitados (caracterização da vegetação, inventário florestal e Plano de Exploração Florestal), R$ por hectare:</label>
                         <input type="number" id="liaHonorariosHa" step="0.01" min="0">
                         <label for="liaEiaRima">Custo evitado do EIA/RIMA, R$ (total; exigível acima de 1.000 ha):</label>
-                        <input type="number" id="liaEiaRima" step="0.01" min="0" placeholder="Em branco: não há">
+                        <input type="number" id="liaEiaRima" step="0.01" min="0">
                         <p class="ajuda-campo">Taxas da SEMA/MT (Lei 11.179/2020): Plano de Exploração Florestal, 5 + 0,2 UPF/MT por hectare; vistoria, cerca de R$ 5.500; Diagnóstico Ambiental, 65 UPF/MT, acima de 1.000 ha. UPF/MT de set./2026: R$ 263,97. Honorários e EIA/RIMA: orçamento de empresa de consultoria ambiental de Mato Grosso (set./2026) para 50, 150 e 1.500 ha, em vegetação savânica e florestal; a calculadora usa o cenário da faixa de área (até 100 ha, de 100 a 1.000 ha, acima de 1.000 ha). Sem alteração sua, esses valores são levados ao mês do dano pelo IPCA-15.</p>
 
                         <label for="liaReposicaoHa">Taxa de reposição florestal não paga, R$ por hectare:</label>
@@ -196,8 +196,8 @@
                         <p id="liaNotaReposicao" class="ajuda-campo"></p>
 
                         <label for="liaPrecoTerraNativa">Preço da terra com vegetação nativa, R$ por hectare (converte o LIA em área a proteger):</label>
-                        <input type="number" id="liaPrecoTerraNativa" step="0.01" min="0" placeholder="Planilha de Preços Referenciais do INCRA para o mercado regional">
-                        <p class="ajuda-campo">A área equivalente ao LIA é o valor do lucro dividido por esse preço. Exemplo do mercado Norte Araguaia/MT (INCRA, 2024): R$ 9.469,61 por hectare. Em branco, o LIA fica só em dinheiro.</p>
+                        <input type="number" id="liaPrecoTerraNativa" step="0.01" min="0">
+                        <p class="ajuda-campo">A área equivalente ao LIA é o valor do lucro dividido por esse preço. Padrão: R$ 9.469,61 por hectare, mercado Norte Araguaia/MT (INCRA, 2024). Troque pelo valor do mercado regional do caso.</p>
 
                         <label for="liaTaxaReal">Selic real média do período (% ao ano):</label>
                         <input type="number" id="liaTaxaReal" step="0.01" min="0" value="3.74">
@@ -303,9 +303,9 @@
                         <span class="nota-parametro">Valores da Nota Técnica (IPCA de 2017 a 2023), sem reajuste.</span>
                     </div>
                     <div class="parametro-item" id="itemAnosRegularizacao" style="display:none;">
-                        <label for="anosRegularizacao">Área passível de exploração (fora de APP e reserva legal): anos entre o desmatamento e a regularização:</label>
+                        <label for="anosRegularizacao">Excedentes de vegetação nativa (área passível de autorização): anos entre o desmatamento e a regularização:</label>
                         <input type="number" id="anosRegularizacao" value="" step="1" min="0" placeholder="Em branco: do ano do dano ao da regularização">
-                        <span class="nota-parametro">Em APP e reserva legal a cobrança vai até a recuperação (tempo acima). Na área passível de exploração vai até a regularização: juros do ano 1 × número de anos (Nota Técnica 03/2022, item 1.7). Em branco, usa o ano da regularização informado nos parâmetros do LIA ou, sem ele, o ano atual. Informe 0 para não cobrar.</span>
+                        <span class="nota-parametro">Nas áreas especialmente protegidas a cobrança vai até a recuperação (tempo acima). Nos excedentes de vegetação nativa vai até a regularização: juros do ano 1 × número de anos (Nota Técnica 03/2022, item 1.7). Em branco, usa a data da regularização informada nos parâmetros do LIA ou, sem ela, a data de hoje. Informe 0 para não cobrar.</span>
                     </div>
                     <div class="parametro-item">
                         <label for="metodoResidual">Método do dano residual: <a href="manual.html#calculo-de-cada-parcela" target="_blank" title="Saiba mais" style="text-decoration:none; color:#2c5530;">&#9432;</a></label>
@@ -316,14 +316,47 @@
                         <span id="notaMetodoResidual" class="nota-parametro"></span>
                     </div>
                     <div class="parametro-item">
+                        <label for="pfeFonte">Estimativa publicada do percentual que não se recupera:</label>
+                        <select id="pfeFonte"></select>
                         <label for="pfeResidual">Percentual que não se recupera (%):</label>
                         <input type="number" id="pfeResidual" value="14" step="0.01" min="0" max="100">
                         <span id="notaPfeResidual" class="nota-parametro"></span>
                     </div>
-                    <div class="parametro-item" id="itemKResidual">
-                        <label for="kResidual">Fator de equivalência da compensação do dano residual (k):</label>
-                        <input type="number" id="kResidual" value="1" step="0.1" min="0.1" max="10">
-                        <span class="nota-parametro">Multiplica a área a proteger e o valor em dinheiro. Padrão: 1 (área de mesma qualidade ecológica).</span>
+                    <div class="parametro-item" id="itemFatorK">
+                        <label for="compInstrumento">Compensação ecológica: instrumento de proteção da área compensada:</label>
+                        <select id="compInstrumento">
+                            <option value="rppn">RPPN reconhecida, averbada e no CNUC (risco de 12%)</option>
+                            <option value="servidao">Servidão ambiental perpétua averbada (risco de 20%)</option>
+                        </select>
+                        <label for="compDistancia">Onde fica a área compensada, em relação à desmatada:</label>
+                        <select id="compDistancia">
+                            <option value="imovel">No próprio imóvel ou na mesma sub-bacia (D = 1,0)</option>
+                            <option value="bacia">Na mesma bacia (D = 1,3)</option>
+                            <option value="vizinha">Em bacia vizinha (D = 1,6)</option>
+                            <option value="outra">Em outra bacia do mesmo bioma, no Estado (D = 2,0)</option>
+                        </select>
+                        <label for="compVazamento">Parte do excedente de vegetação nativa do compromitente protegida:</label>
+                        <select id="compVazamento">
+                            <option value="mais90">Mais de 90%, ou não conversão do restante averbada (vazamento de 0%)</option>
+                            <option value="de60a90">De 60% a 90% (vazamento de 5%)</option>
+                            <option value="de25a60">De 25% a 60% (vazamento de 10%)</option>
+                            <option value="menos25">Menos de 25% (vazamento de 20%)</option>
+                        </select>
+                        <label for="compPosse">Disputa de posse, sobreposição no CAR ou SIGEF, ou invasão nos últimos 5 anos:</label>
+                        <select id="compPosse">
+                            <option value="nenhuma">Não</option>
+                            <option value="ate5">Sim, em até 5% da área (+5)</option>
+                            <option value="mais5">Sim, em mais de 5% da área (+10)</option>
+                        </select>
+                        <label for="compFogo">Fogo em mais de 1% da área nos últimos 5 anos:</label>
+                        <select id="compFogo">
+                            <option value="nenhum">Não</option>
+                            <option value="comPlano">Sim, com plano de prevenção no acordo (+5)</option>
+                            <option value="semPlano">Sim, sem plano de prevenção (+8)</option>
+                        </select>
+                        <label class="caixa-opcao"><input type="checkbox" id="compNovoDesmate"> Novo desmate ilegal no imóvel depois do acordo (risco mínimo de 30%)</label>
+                        <label class="caixa-opcao"><input type="checkbox" id="compTerraApta"> Terra apta a lavoura ou pasto, valendo aberta o dobro ou mais (+4)</label>
+                        <span id="notaFatorK" class="nota-parametro"></span>
                     </div>
                     <div class="parametro-item" id="itemTaxaResidual" style="display:none;">
                         <label for="taxaResidual">Taxa de juros do dano residual (% ao ano):</label>
@@ -376,20 +409,21 @@
                 </div>
 
                 <h4 style="margin:18px 0 8px 0; color:#2c5530;">Indenização em dinheiro, para o que não for reparado em espécie</h4>
+                <p id="notaEstoqueResultado" style="font-size:0.9em; margin:0 0 10px 0; line-height:1.5;"></p>
 
                 <div class="resultado-secao">
-                    <h4>Dano Material (área fora de APP e ARL)</h4>
+                    <h4>Dano Material (excedentes de vegetação nativa)</h4>
                     <div class="valor-item valor-destaque-medio">
                         <span class="label">Valor:</span>
                         <span id="danoMaterialMedia" class="valor"></span>
                     </div>
                     <p id="notaDanoMaterial" style="display:none; font-size:0.85em; color:#8b4513; margin:8px 0 0 0; padding:8px 12px; background:#fef9e7; border-left:3px solid #d4ac0d; border-radius:3px; line-height:1.5;">
-                        <strong>Nota:</strong> Se o dano é em área protegida (APP/ARL) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.
+                        <strong>Nota:</strong> Se o dano é em área especialmente protegida (APP, ARL, UC ou TI) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.
                     </p>
                 </div>
 
                 <div class="resultado-secao">
-                    <h4>Dano Interino (área em APP e ARL)</h4>
+                    <h4>Dano Interino (áreas especialmente protegidas)</h4>
                     <div class="valor-item valor-destaque-medio">
                         <span class="label">Valor:</span>
                         <span id="danoInterinoMedia" class="valor"></span>
@@ -466,12 +500,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.2"></script>
-    <script src="js/series.js?v=7.1.2"></script>
-    <script src="js/mapa-qcn.js?v=7.1.2"></script>
-    <script src="js/valoracao.js?v=7.1.2"></script>
-    <script src="js/relatorio.js?v=7.1.2"></script>
-    <script src="script.js?v=7.1.2"></script>
+    <script src="js/calculo.js?v=7.1.3"></script>
+    <script src="js/series.js?v=7.1.3"></script>
+    <script src="js/mapa-qcn.js?v=7.1.3"></script>
+    <script src="js/valoracao.js?v=7.1.3"></script>
+    <script src="js/relatorio.js?v=7.1.3"></script>
+    <script src="script.js?v=7.1.3"></script>
 </body>
 </html>
 

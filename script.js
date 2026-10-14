@@ -289,14 +289,57 @@ function atualizarPadroesResidual(forcar) {
     const campoPfe = document.getElementById('pfeResidual');
     if (forcar || !campoPfe.dataset.editado) { campoPfe.value = padrao.pfePct; delete campoPfe.dataset.editado; }
     document.getElementById('itemTaxaResidual').style.display = metodo === 'caex' ? '' : 'none';
-    document.getElementById('itemKResidual').style.display = metodo === 'caex' ? 'none' : '';
     document.getElementById('notaMetodoResidual').textContent = metodo === 'caex'
         ? 'Área × (custo de reposição × percentual) ÷ taxa de juros.'
         : 'Área × custo de recuperação × percentual. Método padrão.';
-    const f = DamnumCalc.faixaDeValores(DamnumValoracao.RESIDUAL_PONTOS.map(p => p.pct));
-    document.getElementById('notaPfeResidual').textContent = metodo === 'caex'
-        ? 'Relatório Técnico 963/2026: 1,99%, com pesos iguais para os doze atributos de Poorter et al. (2021).'
-        : 'Estimativas publicadas: de ' + numeroBR(f.minimo, 2) + '% a ' + numeroBR(f.maximo, 0) + '% (' + f.quantidade + ' estimativas). Padrão: a mediana, ' + numeroBR(f.mediana, 0) + '%. A faixa é exploratória, e não um intervalo estatístico; o relatório a mostra inteira.';
+    preencherEstimativasPFE(metodo);
+    document.getElementById('notaPfeResidual').innerHTML = metodo === 'caex'
+        ? 'Relatório Técnico 963/2026 do CAEx/MPMT: 1,99%, com pesos iguais para os doze atributos de Poorter et al. (2021).'
+        : 'Estimativas publicadas: ' + DamnumValoracao.RESIDUAL_PONTOS.map(p => numeroBR(p.pct, p.pct % 1 ? 2 : 0) + '%, ' + p.fonte + ' (' + p.nota + ')').join('; ') +
+          '. Padrão: a mediana, ' + numeroBR(padrao.pfePct, 0) + '%. A faixa é exploratória: reúne fontes e ecossistemas diferentes e não é um intervalo estatístico.';
+}
+
+// Seletor das estimativas publicadas: escolher uma preenche o percentual.
+function preencherEstimativasPFE(metodo) {
+    const select = document.getElementById('pfeFonte');
+    const padrao = DamnumValoracao.residualPadrao('gonzaga').pfePct;
+    const opcoes = metodo === 'caex'
+        ? [{ pct: 1.99, texto: '1,99% — CAEx/MPMT, Relatório Técnico 963/2026' }]
+        : [{ pct: padrao, texto: numeroBR(padrao, 0) + '% — mediana das estimativas (padrão)' }].concat(
+            DamnumValoracao.RESIDUAL_PONTOS.map(p => ({ pct: p.pct, texto: numeroBR(p.pct, p.pct % 1 ? 2 : 0) + '% — ' + p.fonte + ': ' + p.nota })));
+    select.innerHTML = '';
+    opcoes.forEach((o, i) => {
+        const opcao = document.createElement('option');
+        opcao.value = String(o.pct);
+        opcao.textContent = o.texto;
+        select.appendChild(opcao);
+    });
+    const outro = document.createElement('option');
+    outro.value = '';
+    outro.textContent = 'Outro valor, informado abaixo';
+    select.appendChild(outro);
+    const atual = parseFloat(valorCampo('pfeResidual'));
+    const igual = opcoes.find(o => Math.abs(o.pct - atual) < 1e-9);
+    select.value = igual ? String(igual.pct) : '';
+}
+
+function lerCompensacao() {
+    return {
+        instrumento: valorCampo('compInstrumento'),
+        distancia: valorCampo('compDistancia'),
+        vazamento: valorCampo('compVazamento'),
+        posse: valorCampo('compPosse'),
+        fogo: valorCampo('compFogo'),
+        novoDesmate: document.getElementById('compNovoDesmate').checked,
+        terraApta: document.getElementById('compTerraApta').checked
+    };
+}
+
+function atualizarFatorK() {
+    const f = DamnumValoracao.fatorK(lerCompensacao());
+    document.getElementById('notaFatorK').innerHTML = '<strong>K = ' + numeroBR(f.K, 2) + '</strong> = D × 1 ÷ [(1 − v) × (1 − b)], com D = ' + numeroBR(f.D, 1) +
+        ', b = ' + f.b + '% e v = ' + f.v + '%. Multiplica as áreas a proteger e o valor do dano residual. Faixas do levantamento "Fator K da compensação ecológica" (2026), por analogia com o risco descontado pelos padrões de crédito de carbono (Verra, ICVCM, ART TREES) e com os degraus de distância do guia do SEA (Chile).' +
+        (f.recusar ? ' <strong>Risco acima de 60%: a área ofertada deve ser recusada.</strong>' : '');
 }
 
 function lerResidual() {
@@ -304,7 +347,6 @@ function lerResidual() {
     const padrao = DamnumValoracao.residualPadrao(metodo);
     padrao.pfePct = parseFloat(valorCampo('pfeResidual'));
     if (metodo === 'caex') padrao.taxaPct = parseFloat(valorCampo('taxaResidual'));
-    else padrao.k = parseFloat(valorCampo('kResidual')) > 0 ? parseFloat(valorCampo('kResidual')) : 1;
     return padrao;
 }
 
@@ -312,14 +354,23 @@ function lerResidual() {
 // LUCRO DO ILÍCITO AMBIENTAL (LIA)
 // ============================================================
 
-const CAMPOS_LIA_PADRAO = ['liaEbitda', 'liaArrendamento', 'liaAnosAtividade', 'liaVolume', 'liaTaxasLicenciamento', 'liaHonorariosHa', 'liaReposicaoHa', 'liaEiaRima'];
-const CAMPOS_LIA = CAMPOS_LIA_PADRAO.concat(['liaAnoRegularizacao', 'liaAtividade', 'liaValorizacao', 'liaPrecoMadeira', 'liaTaxaReal', 'liaTaxaNominal']);
+const CAMPOS_LIA_PADRAO = ['liaEbitda', 'liaArrendamento', 'liaAnosAtividade', 'liaVolume', 'liaTaxasLicenciamento', 'liaHonorariosHa', 'liaReposicaoHa', 'liaEiaRima', 'liaValorizacao', 'liaPrecoTerraNativa'];
+const CAMPOS_LIA = CAMPOS_LIA_PADRAO.concat(['liaDataRegularizacao', 'liaAtividade', 'liaValorizacao', 'liaPrecoMadeira', 'liaTaxaReal', 'liaTaxaNominal']);
 
+// Intervalo do LIA, em anos com fração: da data do dano até a data da
+// regularização ou, sem ela, até hoje.
 function anosDoLIA() {
     const dataDano = obterDataDano();
     if (!dataDano) return null;
-    const anoFim = parseInt(valorCampo('liaAnoRegularizacao'), 10) || new Date().getFullYear();
-    return { anoFim, anos: anoFim - dataDano.getFullYear() };
+    const campo = valorCampo('liaDataRegularizacao');
+    let fim = new Date();
+    fim = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+    if (campo) {
+        const p = campo.split('-');
+        fim = new Date(p[0], p[1] - 1, p[2]);
+    }
+    const anos = Math.round((fim - dataDano) / (365.25 * 24 * 3600 * 1000) * 100) / 100;
+    return { dataFim: fim, informada: !!campo, anoFim: fim.getFullYear(), anos };
 }
 
 // Preenche os campos do LIA com os valores de referência, sem tocar no que o
@@ -328,15 +379,17 @@ function atualizarPadroesLIA() {
     const atividade = valorCampo('liaAtividade');
     document.getElementById('liaComAtividade').style.display = atividade === 'nenhuma' ? 'none' : '';
     document.getElementById('liaSemAtividade').style.display = atividade === 'nenhuma' ? '' : 'none';
+    // Sem bioma, os valores que dependem dele saem pela regra geral e são
+    // refeitos quando o bioma for identificado.
     const bioma = document.getElementById('bioma').value;
-    if (!bioma) return;
     const intervalo = anosDoLIA();
     const areaFora = parseFloat(valorCampo('areaForaAPP')) || 0;
     const padrao = DamnumValoracao.liaPadrao(bioma, areaFora, atividade, intervalo ? Math.max(intervalo.anos, 0) : 0, valorCampo('formaVegetacao'));
     const valores = {
         liaEbitda: padrao.ebitda, liaArrendamento: padrao.arrendamento, liaAnosAtividade: padrao.anosAtividade,
         liaVolume: padrao.volumeM3, liaTaxasLicenciamento: padrao.taxasLicenciamento,
-        liaHonorariosHa: padrao.honorariosHa, liaReposicaoHa: padrao.reposicaoHa, liaEiaRima: padrao.eiaRima || ''
+        liaHonorariosHa: padrao.honorariosHa, liaReposicaoHa: padrao.reposicaoHa, liaEiaRima: padrao.eiaRima,
+        liaValorizacao: padrao.valorizacao, liaPrecoTerraNativa: padrao.precoTerraNativa
     };
     CAMPOS_LIA_PADRAO.forEach(id => {
         const campo = document.getElementById(id);
@@ -357,7 +410,7 @@ function atualizarPadroesLIA() {
 function lerLIA() {
     const intervalo = anosDoLIA();
     if (!intervalo) return null;
-    if (intervalo.anos < 0) throw new Error('O ano da regularização não pode ser anterior ao ano do dano.');
+    if (intervalo.anos < 0) throw new Error('A data da regularização não pode ser anterior à data do dano.');
     const n = id => parseFloat(valorCampo(id)) || 0;
     const atividade = valorCampo('liaAtividade');
     const ref = DamnumValoracao.LIA_REFERENCIA_MT;
@@ -366,6 +419,7 @@ function lerLIA() {
         atividade,
         rotuloAtividade: ref.atividades[atividade] ? ref.atividades[atividade].rotulo : 'informada pelo usuário',
         anoRegularizacao: intervalo.anoFim,
+        dataRegularizacao: intervalo.informada ? intervalo.dataFim.toLocaleDateString('pt-BR') : null,
         anos: intervalo.anos,
         anosAtividade: atividade === 'nenhuma' ? 0 : n('liaAnosAtividade'),
         ebitda: n('liaEbitda'), arrendamento: n('liaArrendamento'),
@@ -378,7 +432,7 @@ function lerLIA() {
         precoTerraNativa: n('liaPrecoTerraNativa'),
         mesBaseLicenciamento: ['liaTaxasLicenciamento', 'liaHonorariosHa', 'liaEiaRima'].some(id => document.getElementById(id).dataset.editado) ? null : ref.mesBaseLicenciamento,
         referenciaMT: true,
-        fontes: 'valores de referência de Mato Grosso: EBITDA e arrendamento (Rossi et al., 2023; IMEA, 2026), taxas da SEMA/MT (Lei 11.179/2020) e UPF/MT de set./2026, honorários técnicos e EIA/RIMA (orçamento de empresa de consultoria ambiental de Mato Grosso, set./2026, por faixa de área), reposição florestal (Decreto 1.313/2022 e LC 233/2005) e Selic (Banco Central).' +
+        fontes: 'valores de referência de Mato Grosso: EBITDA e arrendamento (Rossi et al., 2023; IMEA, 2026), valorização e preço da terra com vegetação nativa (INCRA, 2024, mercado Norte Araguaia), taxas da SEMA/MT (Lei 11.179/2020) e UPF/MT de set./2026, honorários técnicos e EIA/RIMA (orçamento de empresa de consultoria ambiental de Mato Grosso, set./2026, por faixa de área), reposição florestal (Decreto 1.313/2022 e LC 233/2005) e Selic (Banco Central).' +
             (editados.length ? ' O usuário alterou ' + editados.length + ' dos valores de referência.' : '')
     };
 }
@@ -411,7 +465,7 @@ function preencherFitofisionomias(bioma) {
     const mostrar = !!(bioma && tabelaQCN);
     document.getElementById('grupoFitofisionomia').style.display = mostrar ? '' : 'none';
     document.getElementById('grupoEstoqueUsuario').style.display = bioma ? '' : 'none';
-    document.getElementById('grupoLocalizacao').style.display = bioma && mapa.disponivel ? '' : 'none';
+    document.getElementById('grupoLocalizacao').style.display = mapa.disponivel ? '' : 'none';
     document.getElementById('grupoMunicipio').style.display = bioma && mapa.disponivel && tabelaMunicipios ? '' : 'none';
     select.innerHTML = '';
     if (mostrar) {
@@ -552,6 +606,27 @@ function atualizarDivergenciaArea() {
     }
 }
 
+// Bioma identificado pela localização: o do mapa do Inventário, quando houver;
+// senão, o da camada de limites dos biomas. Preenche a escolha do bioma.
+const BIOMA_DO_MAPA = { 'Amazônia': 'FLORESTA AMAZÔNICA', 'Cerrado': 'CERRADO', 'Pantanal': 'PANTANAL MATO-GROSSENSE',
+    'Caatinga': 'CAATINGA', 'Pampa': 'PAMPAS', 'Mata Atlântica': 'MATA ATLÂNTICA' };
+
+async function aplicarBiomaDaLocalizacao(consulta, alvo) {
+    let nome = DamnumMapa.biomaDaConsulta(consulta);
+    if (!nome && mapa.fonte) {
+        try { nome = await DamnumMapa.identificarBioma(await DamnumMapa.carregarLibs(), mapa.fonte, alvo); } catch (erro) { nome = null; }
+    }
+    const valor = nome ? BIOMA_DO_MAPA[nome] : '';
+    const select = document.getElementById('bioma');
+    if (valor && select.value !== valor) {
+        select.value = valor;
+        atualizarImagemBioma(valor);
+        preencherFitofisionomias(valor);
+        atualizarPadroesLIA();
+    }
+    return nome;
+}
+
 function descreverParte(p) {
     return (p.c_pret || 'classe não identificada') + ' (' + numeroBR(p.d, 2) + ' tC/ha)';
 }
@@ -579,6 +654,8 @@ async function aoEscolherPoligono(evento) {
             const { libs, fonte } = await obterFonteMapa();
             const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo);
             consultaMapa = consulta;
+            const nomeBioma = await aplicarBiomaDaLocalizacao(consulta, geo);
+            texto += nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O bioma não foi identificado; escolha-o abaixo. ';
             if (typeof consulta.estoque_tC_ha === 'number') {
                 texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' classe(s): ' +
                     consulta.partes.slice(0, 6).map(descreverParte).join('; ') + (consulta.partes.length > 6 ? '; ...' : '') + '.';
@@ -586,7 +663,7 @@ async function aoEscolherPoligono(evento) {
                     texto += ' ' + numeroBR(consulta.pct_descoberto, 2) + '% do polígono está fora da cobertura do mapa ou em classe sem dado; nessa parte vale a tabela.';
                 }
             } else {
-                texto += 'O polígono está fora da cobertura do mapa ou em classe sem dado; vale a tabela por fitofisionomia ou a média do bioma.';
+                texto += 'O polígono está fora da cobertura do mapa do Inventário (por ora, a Amazônia Legal) ou em classe sem dado; vale a tabela por fitofisionomia ou a média do bioma.';
             }
         } catch (erro) {
             // Falha de rede ou do servidor de dados: o cálculo segue pela reserva.
@@ -618,14 +695,16 @@ async function aoInformarCoordenada() {
         const { libs, fonte } = await obterFonteMapa();
         const consulta = await DamnumMapa.consultarPonto(libs, fonte, lon, lat);
         consultaMapa = consulta;
+        const nomeBioma = await aplicarBiomaDaLocalizacao(consulta, [lon, lat]);
+        const textoBioma = nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O bioma não foi identificado; escolha-o abaixo. ';
         if (typeof consulta.estoque_tC_ha === 'number') {
-            let texto = consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + (consulta.classe.c_pret || 'classe não identificada') + ').';
+            let texto = textoBioma + consulta.aviso + ' Estoque no ponto: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha (' + (consulta.classe.c_pret || 'classe não identificada') + '), aplicado a toda a área desmatada informada.';
             if (consulta.vizinhas.length) {
                 texto += ' Classes a menos de 100 m: ' + consulta.vizinhas.map(descreverParte).join('; ') + '.';
             }
             aviso.textContent = texto;
         } else {
-            aviso.textContent = (consulta.sem_dado ? 'A coordenada cai em classe sem dado no mapa' : 'A coordenada está fora da cobertura do mapa') + '; vale a tabela por fitofisionomia ou a média do bioma.';
+            aviso.textContent = textoBioma + (consulta.sem_dado ? 'A coordenada cai em classe sem dado no mapa' : 'A coordenada está fora da cobertura do mapa do Inventário (por ora, a Amazônia Legal)') + '; vale a tabela por fitofisionomia ou a média do bioma.';
         }
     } catch (erro) {
         mapa.falha = erro.message;
@@ -809,8 +888,16 @@ async function calcularValoracao() {
     let areaForaAPP = parseFloat(valorCampo('areaForaAPP')) || 0;
     let areaEmAPP = parseFloat(valorCampo('areaEmAPP')) || 0;
 
+    // A localização é obrigatória quando o mapa está disponível: dela vêm o
+    // bioma e o estoque de carbono. Dispensa-se só com o estoque informado.
+    const latitude = parseFloat(valorCampo('latitude')), longitude = parseFloat(valorCampo('longitude'));
+    const temLocalizacao = !!poligonoUsuario || (!isNaN(latitude) && !isNaN(longitude));
+    if (mapa.disponivel && !temLocalizacao && !document.getElementById('usarEstoqueUsuario').checked) {
+        alert('Informe o polígono da área desmatada ou, ao menos, uma coordenada. Por eles a calculadora identifica o bioma e busca o estoque de carbono no mapa do Quarto Inventário.');
+        return;
+    }
     if (!bioma) {
-        alert('Por favor, selecione um bioma.');
+        alert('O bioma não foi identificado pela localização. Escolha-o na lista.');
         return;
     }
     if (areaForaAPP <= 0 && areaEmAPP <= 0) {
@@ -867,7 +954,7 @@ async function calcularValoracao() {
                 const escala = poligonoUsuario.area_ha / (areaForaAPP + areaEmAPP);
                 areaForaAPP *= escala;
                 areaEmAPP *= escala;
-                observacaoArea += 'Por escolha do usuário, prevaleceu a área calculada; as áreas fora e dentro de APP e ARL foram ajustadas na mesma proporção.';
+                observacaoArea += 'Por escolha do usuário, prevaleceu a área calculada; as áreas em excedentes e em áreas especialmente protegidas foram ajustadas na mesma proporção.';
             } else {
                 observacaoArea += 'Por escolha do usuário, prevaleceu a área digitada.';
             }
@@ -895,6 +982,7 @@ async function calcularValoracao() {
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
             interino: lerInterino(),
             residual: lerResidual(),
+            compensacao: lerCompensacao(),
             lia,
             parametros,
             estoque,
@@ -941,9 +1029,16 @@ async function calcularValoracao() {
 function mostrarResultado(r) {
     ultimoResultado = r;
     const p = r.parcelas;
+    const e = r.estoque;
+    let notaEstoque = 'Estoque de carbono: ' + numeroBR(e.tC, 2) + ' tC/ha';
+    if (e.origem === 'mapa-coordenada') notaEstoque += ', obtido no mapa do Quarto Inventário para o ponto informado e aplicado a toda a área desmatada (' + numeroBR(r.areas.total, 2) + ' ha). É um valor aproximado; o polígono dá a média da área.';
+    else if (e.origem === 'mapa-poligono') notaEstoque += ', média do mapa do Quarto Inventário no polígono informado, aplicada aos ' + numeroBR(r.areas.total, 2) + ' ha desmatados.';
+    else notaEstoque += ' (' + e.descricaoOrigem + '), aplicado aos ' + numeroBR(r.areas.total, 2) + ' ha desmatados.';
+    document.getElementById('notaEstoqueResultado').textContent = notaEstoque;
+
     // Reparação em espécie, antes dos valores em dinheiro.
     const c = r.compensacao;
-    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em APP e reserva legal. ' : '') +
+    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em áreas especialmente protegidas. ' : '') +
         'Compensação ecológica: proteção perpétua de <strong>' + numeroBR(c.totalHa, 2) + ' ha</strong> de vegetação nativa, assim compostos:';
     document.getElementById('listaEspecie').innerHTML = c.itens.filter(i => i.ha > 0)
         .map(i => '<li>' + i.nome + ': ' + numeroBR(i.ha, 2) + ' ha</li>').join('') +
@@ -963,8 +1058,8 @@ function mostrarResultado(r) {
     if (r.areas.em > 0) {
         notaDanoMaterial.style.display = '';
         notaDanoMaterial.innerHTML = r.reparacaoInSitu
-            ? '<strong>Nota:</strong> Se o dano é em área protegida (APP/ARL) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.'
-            : '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área em APP/ARL (' + numeroBR(r.areas.em, 4) + ' ha).';
+            ? '<strong>Nota:</strong> Se o dano é em área especialmente protegida (APP, ARL, UC ou TI) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.'
+            : '<strong>Nota:</strong> Considerando que a reparação <em>in situ</em> não é possível e não será promovida, o dano material deverá ser compensado ou indenizado. O valor acima inclui a área especialmente protegida (' + numeroBR(r.areas.em, 4) + ' ha).';
     } else {
         notaDanoMaterial.style.display = 'none';
     }
@@ -1057,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     atualizarPadroesInterino(true);
     atualizarPadroesResidual(true);
     atualizarPadroesLIA();
+    atualizarFatorK();
     atualizarParametrosCalculados();
 
     biomaSelect.addEventListener('change', function() {
@@ -1073,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // Lucro do ilícito ambiental
-    ['liaAtividade', 'liaAnoRegularizacao', 'bioma', 'dataDano', 'formaVegetacao', 'fitofisionomia'].forEach(id => {
+    ['liaAtividade', 'liaDataRegularizacao', 'bioma', 'dataDano', 'formaVegetacao', 'fitofisionomia'].forEach(id => {
         document.getElementById(id).addEventListener('change', atualizarPadroesLIA);
     });
     document.getElementById('areaForaAPP').addEventListener('input', atualizarPadroesLIA);
@@ -1106,6 +1202,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('tempoRecuperacao').addEventListener('input', function() { this.dataset.editado = '1'; });
     document.getElementById('metodoInterino').addEventListener('change', function() { atualizarPadroesInterino(true); });
     document.getElementById('metodoResidual').addEventListener('change', function() { atualizarPadroesResidual(true); });
+    document.getElementById('pfeFonte').addEventListener('change', function() {
+        if (this.value === '') return;
+        const campo = document.getElementById('pfeResidual');
+        campo.value = this.value;
+        campo.dataset.editado = '1';
+    });
+    document.getElementById('pfeResidual').addEventListener('input', function() {
+        const select = document.getElementById('pfeFonte');
+        const v = parseFloat(this.value);
+        const igual = [...select.options].find(o => o.value !== '' && Math.abs(parseFloat(o.value) - v) < 1e-9);
+        select.value = igual ? igual.value : '';
+    });
+    ['compInstrumento', 'compDistancia', 'compVazamento', 'compPosse', 'compFogo', 'compNovoDesmate', 'compTerraApta'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarFatorK);
+    });
     document.getElementById('pfeResidual').addEventListener('input', function() { this.dataset.editado = '1'; });
     document.getElementById('formaVegetacao').addEventListener('change', function() {
         this.dataset.editado = '1';

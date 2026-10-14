@@ -1,6 +1,6 @@
 {
   "name": "damnum",
-  "version": "7.1.2",
+  "version": "7.1.3",
   "private": true,
   "description": "DAMNUM — valoração de danos ambientais por desmatamento ilegal (site estático). As dependências abaixo servem só para os testes e para gerar vendor/damnum-geo.js.",
   "scripts": {

@@ -68,7 +68,9 @@ test('sem atividade: a terra entra pela antecipação, nunca somada ao lucro e �
     assert.strictEqual(l.autorizavel.lucro, 0);
     assert.strictEqual(l.autorizavel.renda, 0);
     perto(l.autorizavel.antecipacao, 100 * 33020.24 * C.fatorAntecipacao(3.74, 16), 1e-6);
-    const semValor = V.calcularLIA(V.liaPadrao('CERRADO', 100, 'nenhuma', 16), 100, 0);
+    // Padrão: valorização para pastagem no mercado Norte Araguaia (INCRA, 2024).
+    assert.strictEqual(V.liaPadrao('CERRADO', 100, 'nenhuma', 16).valorizacao, 10636.44);
+    const semValor = V.calcularLIA(Object.assign(V.liaPadrao('CERRADO', 100, 'nenhuma', 16), { valorizacao: 0 }), 100, 0);
     assert.ok(semValor.avisos.some(a => /valorização da terra/.test(a)));
 });
 
@@ -144,4 +146,16 @@ test('relatório: seção do LIA com as parcelas, a presunção de uso e o aviso
         'GR — adiamento da reposição florestal', 'Súmula 618/STJ', 'Mato Grosso', 'LUCRO DO ILÍCITO AMBIENTAL ='].forEach(t => assert.ok(html.includes(t), 'falta: ' + t));
     assert.ok(!R.gerarHTML(V.calcular(entrada(null), series)).includes('2.6 Lucro do ilícito'));
     assert.ok(!/Santa L/i.test(html));
+});
+
+test('LIA com intervalo fracionário: anos completos e a fração final, cada um atualizado do seu mês', () => {
+    const cfg = Object.assign(V.liaPadrao('CERRADO', 10, 'soja', 6.5), { anoRegularizacao: 2026 });
+    const r = V.calcular(entrada(cfg), series);
+    const g = r.parcelas.lia.grupos.filter(x => /lucro e renda/.test(x.rotulo));
+    assert.strictEqual(g.length, 7);
+    assert.match(g[6].rotulo, /fração final \(0,5 ano\)/);
+    assert.strictEqual(g[6].mes, '202512');
+    const anual = g[0].valor;
+    assert.ok(Math.abs(g[6].valor - anual * 0.5) <= 0.01);
+    assert.ok(Math.abs(r.lia.naoAutorizavel.lucro + r.lia.autorizavel.lucro - 12 * 1558.57 * 6.5) < 1e-6);
 });

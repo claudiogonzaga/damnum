@@ -80,7 +80,10 @@ test('coordenada: o aviso de aproximação aparece na tela e no relatório', asy
     assert.ok(html.includes('consulta por coordenada (valor aproximado)'));
     // Na tela, o texto exibido começa pelo aviso que vem da consulta.
     const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
-    assert.match(script, /let texto = consulta\.aviso \+ ' Estoque no ponto: '/);
+    assert.match(script, /let texto = textoBioma \+ consulta\.aviso \+ ' Estoque no ponto: '/);
+    assert.match(script, /aplicado a toda a área desmatada informada/);
+    // No relatório, fica dito que o estoque do ponto vale para toda a área.
+    assert.ok(html.includes('O estoque do ponto foi aplicado a toda a área desmatada informada (12,0000 ha)'));
     assert.match(script, /aviso\.textContent = texto;/);
 });
 
@@ -108,7 +111,7 @@ test('com MAPA_QCN_ATIVO = false: sem opção de polígono ou coordenada, cálcu
     assert.match(html, /id="grupoLocalizacao" style="display:none;"/);
     assert.match(html, /id="grupoMunicipio" style="display:none;"/);
     const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
-    assert.match(script, /getElementById\('grupoLocalizacao'\)\.style\.display = bioma && mapa\.disponivel \? '' : 'none';/);
+    assert.match(script, /getElementById\('grupoLocalizacao'\)\.style\.display = mapa\.disponivel \? '' : 'none';/);
     assert.match(script, /if \(DamnumMapa\.CONFIG\.ativo && DamnumMapa\.CONFIG\.baseUrl\)/);
     // Mesmo que houvesse uma consulta guardada, com o mapa indisponível vale a reserva.
     const consulta = await Mapa.consultarPoligono(libs, fonte(), POLIGONO);
@@ -146,4 +149,27 @@ test('classe sem dado: o relatório diz que a reserva foi usada', async () => {
     const html = R.gerarHTML(calcular(f));
     assert.ok(html.includes('a classe está sem dado no mapa'));
     assert.ok(html.includes('nela foi usada a reserva: média do bioma Cerrado'));
+});
+
+test('localização obrigatória e bioma identificado pelo polígono ou pela coordenada', async () => {
+    const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
+    assert.match(script, /if \(mapa\.disponivel && !temLocalizacao && !document\.getElementById\('usarEstoqueUsuario'\)\.checked\)/);
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    // A localização vem antes do bioma, e o bioma deixa de ser obrigatório na mão.
+    assert.ok(html.indexOf('id="grupoLocalizacao"') < html.indexOf('id="bioma"'));
+    assert.ok(!/<select id="bioma"[^>]*required/.test(html));
+    // Pela consulta ao mapa: bioma da classe no ponto; no polígono, o de maior área.
+    const ponto = await Mapa.consultarPonto(libs, fonte(), -55.41, -12.60);
+    assert.strictEqual(Mapa.biomaDaConsulta(ponto), 'Cerrado');
+    const pol = await Mapa.consultarPoligono(libs, fonte(), POLIGONO);
+    assert.strictEqual(Mapa.biomaDaConsulta(pol), 'Cerrado');
+    // Pela camada de limites dos biomas, fora da cobertura do mapa.
+    const limites = { versao: 'v1', escala: 100000, biomas: [
+        { nome: 'Mata Atlântica', pol: [[S.anel([[-47, -24], [-46, -24], [-46, -23], [-47, -23], [-47, -24]]).map(x => Math.round(x / 10))]] },
+        { nome: 'Caatinga', pol: [[S.anel([[-41, -10], [-39, -10], [-39, -8], [-41, -8], [-41, -10]]).map(x => Math.round(x / 10))]] }
+    ] };
+    const f = Mapa.criarFonteMemoria(libs, S.mapaSintetico(), null, limites);
+    assert.strictEqual(await Mapa.identificarBioma(libs, f, [-46.6, -23.5]), 'Mata Atlântica');
+    assert.strictEqual(await Mapa.identificarBioma(libs, f, S.poligono(-40.5, -9.5, -40, -9)), 'Caatinga');
+    assert.strictEqual(await Mapa.identificarBioma(libs, f, [-60, -3]), null);
 });
