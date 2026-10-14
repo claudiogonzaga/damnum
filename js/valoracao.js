@@ -463,7 +463,9 @@
         fogo: { nenhum: 0, comPlano: 5, semPlano: 8 },
         terraApta: 4, novoDesmateMinimo: 30, limite: 60
     };
-    var COMPENSACAO_PADRAO = { instrumento: 'rppn', distancia: 'imovel', vazamento: 'mais90', novoDesmate: false, posse: 'nenhuma', terraApta: false, fogo: 'nenhum' };
+    // Padrão para quando não se sabe o instrumento nem quanto do excedente fica
+    // protegido: servidão (piso da ICVCM) com vazamento máximo, K = 1,56.
+    var COMPENSACAO_PADRAO = { instrumento: 'servidao', distancia: 'imovel', vazamento: 'menos25', novoDesmate: false, posse: 'nenhuma', terraApta: false, fogo: 'nenhum' };
 
     function fatorK(cfg) {
         var c = {};
@@ -494,10 +496,13 @@
     //   - dano climático: compensado pela própria compensação ecológica, sem área adicional;
     //   - lucro do ilícito ambiental: valor do LIA ÷ preço da terra com vegetação
     //     nativa, informado pelo usuário (sem o preço, não há área).
-    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual, precoTerraNativa, fk) {
+    function compensacaoEcologica(custoHa, areaInSitu, areaMaterial, parcelas, residual, precoTerraNativa, fk, custoHoje) {
         fk = fk || fatorK({});
+        custoHoje = custoHoje || { valorHa: custoHa, mesReferencia: null };
         var K = fk.K;
         function porCusto(valor) { return custoHa > 0 ? valor / custoHa * K : 0; }
+        // O carbono está em preço de hoje: divide-se pelo custo de recuperação de hoje.
+        function porCustoHoje(valor) { return custoHoje.valorHa > 0 ? valor / custoHoje.valorHa * K : 0; }
         var REGRA_CUSTO = 'valor da parcela ÷ custo de recuperação por hectare × K';
         var itens = [
             { chave: 'material', nome: 'Dano material', valor: parcelas.material.valor,
@@ -509,7 +514,7 @@
               ha: residual.metodo === 'caex' ? porCusto(parcelas.residual.valor) : (residual.areaEmEspecie || 0),
               regra: residual.metodo === 'caex' ? REGRA_CUSTO : 'área com reparação no local × percentual que não se recupera × k' },
             { chave: 'mercado', nome: 'Dano extrapatrimonial (mercado voluntário)', valor: parcelas.mercado.valor,
-              ha: porCusto(parcelas.mercado.valor), regra: REGRA_CUSTO + ', a critério do Ministério Público ou do juízo' }
+              ha: porCustoHoje(parcelas.mercado.valor), regra: 'valor da parcela ÷ custo de recuperação por hectare de hoje × K, a critério do Ministério Público ou do juízo' }
         ];
         if (parcelas.lia) {
             // O preço da terra é o de hoje; por isso a conta usa o LIA atualizado.
@@ -521,6 +526,8 @@
         return {
             fatorK: fk,
             custoHa: custoHa,
+            custoHojeHa: custoHoje.valorHa,
+            custoHojeMes: custoHoje.mesReferencia,
             precoTerraNativa: precoTerraNativa > 0 ? precoTerraNativa : null,
             inSituHa: areaInSitu,
             itens: itens,
@@ -589,6 +596,14 @@
             custo.valorHa = portaria.media;
             custo.mesReferencia = C.MES_BASE_PORTARIA;
             custo.fator = null;
+        }
+        // Custo de recuperação de hoje (último IPCA-15 publicado até o mês do
+        // cálculo), para converter em área as parcelas que estão em preço de hoje.
+        var custoHoje = { valorHa: custo.valorHa, mesReferencia: custo.mesReferencia };
+        var mesesIndice = Object.keys(series.ipca15_indice).filter(function (m) { return m <= mesCalculo; }).sort();
+        if (mesesIndice.length && typeof series.ipca15_indice[C.MES_BASE_PORTARIA] === 'number') {
+            var mh = mesesIndice[mesesIndice.length - 1];
+            custoHoje = { valorHa: C.arredondar(C.custoNoMes(portaria.media, series, mh).valor, 2), mesReferencia: mh };
         }
 
         var ctx = { atualizar: atualizar, manual: manual, series: series, mesDano: mesDano, mesCalculo: mesCalculo, percentualJurosExtra: 0 };
@@ -681,7 +696,7 @@
             interino: interino,
             residual: residual,
             timotheo: { custos: CUSTOS_TIMOTHEO },
-            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual, entrada.lia ? entrada.lia.precoTerraNativa : 0, fk),
+            compensacao: compensacaoEcologica(custo.valorHa, areaInterino, areaMaterial, parcelas, residual, entrada.lia ? entrada.lia.precoTerraNativa : 0, fk, custoHoje),
             // Valores padrão, para o relatório dizer o que o usuário alterou.
             padroes: {
                 precos: PRECOS_PADRAO,

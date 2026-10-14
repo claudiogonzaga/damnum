@@ -28,17 +28,18 @@ test('compensação ecológica: hectares de cada parcela pelas regras do método
     const c = r.compensacao;
     const item = k => c.itens.filter(i => i.chave === k)[0];
     const K = c.fatorK.K;
-    assert.strictEqual(K, 1.14); // padrão: RPPN, no próprio imóvel, todo o excedente protegido
+    assert.strictEqual(K, 1.56); // padrão: servidão, no próprio imóvel, vazamento de 20%
     assert.strictEqual(c.inSituHa, 2);
     assert.strictEqual(c.custoHa, r.custo.valorHa);
-    // Material: área desmatada em excedentes × K = 10,3 × 1,14 = 11,742, arredondada para 12.
-    assert.strictEqual(item('material').ha, 12);
+    // Material: área desmatada em excedentes × K = 10,3 × 1,56 = 16,07, arredondada para 17.
+    assert.strictEqual(item('material').ha, 17);
     // Interino: valor ÷ custo por hectare × K = área × i × (t + 1) ÷ 2 × K = 2 × 0,06 × 8 × 1,14.
     perto(item('interino').ha, 0.96 * K, 1e-4);
     // Residual (método padrão): área com reparação no local × 14% × K.
     perto(item('residual').ha, 2 * 0.14 * K, 1e-9);
-    // Extrapatrimonial: valor ÷ custo por hectare × K.
-    perto(item('mercado').ha, r.parcelas.mercado.valor / r.custo.valorHa * K, 1e-9);
+    // Extrapatrimonial (preço de hoje): valor ÷ custo por hectare de hoje × K.
+    assert.ok(c.custoHojeHa > c.custoHa);
+    perto(item('mercado').ha, r.parcelas.mercado.valor / c.custoHojeHa * K, 1e-9);
     perto(c.totalHa, c.itens.reduce((s, i) => s + i.ha, 0), 1e-9);
     // Dano climático: compensado pela própria compensação, sem área adicional.
     assert.ok(!c.itens.some(i => i.chave === 'social'));
@@ -51,11 +52,11 @@ test('compensação ecológica: sem dano material no IRDR; residual do CAEx conv
     assert.strictEqual(irdr.compensacao.itens[0].ha, 0);
     const caex = V.calcular(entrada({ residual: V.residualPadrao('caex') }), series);
     const item = caex.compensacao.itens.filter(i => i.chave === 'residual')[0];
-    perto(item.ha, caex.parcelas.residual.valor / caex.custo.valorHa * 1.14, 1e-9);
+    perto(item.ha, caex.parcelas.residual.valor / caex.custo.valorHa * 1.56, 1e-9);
     assert.match(item.regra, /custo de recuperação por hectare/);
-    // Sem reparação no local, o material cobre a área toda: 12,3 × 1,14 = 14,02, arredondada para 15.
+    // Sem reparação no local, o material cobre a área toda: 12,3 × 1,56 = 19,19, arredondada para 20.
     const sem = V.calcular(entrada({ reparacaoInSitu: false }), series);
-    assert.strictEqual(sem.compensacao.itens[0].ha, 15);
+    assert.strictEqual(sem.compensacao.itens[0].ha, 20);
     assert.strictEqual(sem.compensacao.inSituHa, 0);
 });
 
@@ -69,7 +70,7 @@ test('LIA em área: valor atualizado do LIA ÷ preço da terra com vegetação n
     assert.match(itemSem.regra, /informe o preço da terra/);
     const com = V.calcular(entrada({ lia: Object.assign({}, base, { precoTerraNativa: 9469.61 }) }), series);
     const item = com.compensacao.itens.filter(i => i.chave === 'lia')[0];
-    perto(item.ha, com.parcelas.lia.total / 9469.61 * 1.14, 1e-9);
+    perto(item.ha, com.parcelas.lia.total / 9469.61 * 1.56, 1e-9);
     assert.ok(com.parcelas.lia.total > com.parcelas.lia.valor);
     // O total a proteger passa a incluir a área do LIA.
     perto(com.compensacao.totalHa - sem.compensacao.totalHa, item.ha, 1e-9);
@@ -82,12 +83,13 @@ test('LIA em área: valor atualizado do LIA ÷ preço da terra com vegetação n
 
 test('fator K por faixas: reproduz a tabela do levantamento (v. 3.1) e multiplica as áreas e o residual', () => {
     const casos = [
-        [{}, 12, 0, 1.14], [{ vazamento: 'de25a60' }, 12, 10, 1.26], [{ vazamento: 'menos25' }, 12, 20, 1.42],
-        [{ instrumento: 'servidao' }, 20, 0, 1.25], [{ instrumento: 'servidao', vazamento: 'de25a60' }, 20, 10, 1.39],
+        [{ instrumento: 'rppn', vazamento: 'mais90' }, 12, 0, 1.14], [{ instrumento: 'rppn', vazamento: 'de25a60' }, 12, 10, 1.26], [{ instrumento: 'rppn', vazamento: 'menos25' }, 12, 20, 1.42],
+        [{ instrumento: 'servidao', vazamento: 'mais90' }, 20, 0, 1.25], [{ instrumento: 'servidao', vazamento: 'de25a60' }, 20, 10, 1.39],
+        [{}, 20, 20, 1.56],
         [{ instrumento: 'servidao', vazamento: 'menos25' }, 20, 20, 1.56],
         [{ instrumento: 'servidao', vazamento: 'menos25', novoDesmate: true }, 30, 20, 1.79],
         [{ instrumento: 'servidao', vazamento: 'menos25', novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }, 52, 20, 2.60],
-        [{ distancia: 'bacia' }, 12, 0, 1.48],
+        [{ instrumento: 'rppn', vazamento: 'mais90', distancia: 'bacia' }, 12, 0, 1.48],
         [{ distancia: 'bacia', instrumento: 'servidao', vazamento: 'menos25', novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }, 52, 20, 3.39]
     ];
     for (const [cfg, b, v, K] of casos) {
@@ -96,9 +98,10 @@ test('fator K por faixas: reproduz a tabela do levantamento (v. 3.1) e multiplic
         assert.strictEqual(f.recusar, false);
     }
     assert.strictEqual(V.fatorK({ novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano', instrumento: 'servidao' }).recusar, false);
-    assert.strictEqual(V.fatorK({ novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }).b, 52);
-    const base = V.calcular(entrada({ compensacao: {} }), series);
-    const bacia = V.calcular(entrada({ compensacao: { distancia: 'bacia' } }), series);
+    assert.strictEqual(V.fatorK({ instrumento: 'rppn', novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }).b, 52);
+    const base = V.calcular(entrada({ compensacao: { instrumento: 'rppn', vazamento: 'mais90' } }), series);
+    const bacia = V.calcular(entrada({ compensacao: { instrumento: 'rppn', vazamento: 'mais90', distancia: 'bacia' } }), series);
+    assert.strictEqual(V.calcular(entrada({ compensacao: {} }), series).residual.k, 1.56);
     assert.strictEqual(base.residual.k, 1.14);
     perto(bacia.residual.areaEmEspecie, 2 * 0.14 * 1.48, 1e-9);
     perto(bacia.parcelas.residual.valor / base.parcelas.residual.valor, 1.48 / 1.14, 1e-4);
@@ -124,7 +127,7 @@ test('relatório: a reparação em espécie vem antes do demonstrativo em dinhei
     const iDemonstrativo = html.indexOf('2. DEMONSTRATIVO DISCRIMINADO POR PARCELA');
     assert.ok(iEspecie > 0 && iEspecie < iDemonstrativo);
     ['precedência em relação à opção pela indenização pecuniária', 'Área a recuperar no próprio local: <b>2,0000 ha</b>', 'Área a proteger (ha)',
-        'área ilegalmente desmatada × K, arredondada para cima', 'compensado pela própria compensação ecológica, sem área adicional', 'isto é 12 hectares',
+        'área ilegalmente desmatada × K, arredondada para cima', 'compensado pela própria compensação ecológica, sem área adicional', 'isto é 17 hectares', 'hoje (', 
         'Regras para a instituição de RPPN'].forEach(t => assert.ok(html.includes(t), 'falta: ' + t));
     assert.ok(!html.includes('CENÁRIOS QUANTO À REPARAÇÃO'));
     // Na tela, o bloco da reparação em espécie vem antes dos valores.

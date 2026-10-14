@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.7">
+    <link rel="stylesheet" href="style.css?v=7.1.8">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -325,8 +325,8 @@
                     <div class="parametro-item" id="itemFatorK">
                         <label for="compInstrumento">Compensação ecológica: instrumento de proteção da área compensada:</label>
                         <select id="compInstrumento">
+                            <option value="servidao" selected>Servidão ambiental perpétua averbada, ou instrumento ainda não definido (risco de 20%; padrão)</option>
                             <option value="rppn">RPPN reconhecida, averbada e no CNUC (risco de 12%)</option>
-                            <option value="servidao">Servidão ambiental perpétua averbada (risco de 20%)</option>
                         </select>
                         <label for="compDistancia">Onde fica a área compensada, em relação à desmatada:</label>
                         <select id="compDistancia">
@@ -337,10 +337,10 @@
                         </select>
                         <label for="compVazamento">Parte do excedente de vegetação nativa do compromitente protegida:</label>
                         <select id="compVazamento">
+                            <option value="menos25" selected>Menos de 25%, ou não se sabe (vazamento de 20%; padrão)</option>
                             <option value="mais90">Mais de 90%, ou não conversão do restante averbada (vazamento de 0%)</option>
                             <option value="de60a90">De 60% a 90% (vazamento de 5%)</option>
                             <option value="de25a60">De 25% a 60% (vazamento de 10%)</option>
-                            <option value="menos25">Menos de 25% (vazamento de 20%)</option>
                         </select>
                         <label for="compPosse">Disputa de posse, sobreposição no CAR ou SIGEF, ou invasão nos últimos 5 anos:</label>
                         <select id="compPosse">
@@ -500,12 +500,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.7"></script>
-    <script src="js/series.js?v=7.1.7"></script>
-    <script src="js/mapa-qcn.js?v=7.1.7"></script>
-    <script src="js/valoracao.js?v=7.1.7"></script>
-    <script src="js/relatorio.js?v=7.1.7"></script>
-    <script src="script.js?v=7.1.7"></script>
+    <script src="js/calculo.js?v=7.1.8"></script>
+    <script src="js/series.js?v=7.1.8"></script>
+    <script src="js/mapa-qcn.js?v=7.1.8"></script>
+    <script src="js/valoracao.js?v=7.1.8"></script>
+    <script src="js/relatorio.js?v=7.1.8"></script>
+    <script src="script.js?v=7.1.8"></script>
 </body>
 </html>
 

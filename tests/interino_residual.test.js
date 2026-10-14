@@ -71,8 +71,8 @@ test('residual do CAEx reproduz o Relatório Técnico 963/2026: 215,71 ha = R$ 2
 test('na valoração: o residual só incide na área com reparação in situ, é atualizado e entra nos totais', () => {
     const r = V.calcular(entrada({ areas: { fora: 10, em: 2 } }), series);
     assert.strictEqual(r.residual.area, 2);
-    assert.strictEqual(r.residual.k, 1.14);
-    assert.strictEqual(r.parcelas.residual.valor, C.arredondar(2 * r.custo.valorHa * 0.14 * 1.14, 2));
+    assert.strictEqual(r.residual.k, 1.56);
+    assert.strictEqual(r.parcelas.residual.valor, C.arredondar(2 * r.custo.valorHa * 0.14 * 1.56, 2));
     assert.ok(r.parcelas.residual.correcao > 0 && r.parcelas.residual.juros > 0);
     const semReparo = V.calcular(entrada({ areas: { fora: 10, em: 2 }, reparacaoInSitu: false }), series);
     assert.strictEqual(semReparo.parcelas.residual.valor, 0);
