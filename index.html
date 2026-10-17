@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.8">
+    <link rel="stylesheet" href="style.css?v=7.1.9">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -325,38 +325,15 @@
                     <div class="parametro-item" id="itemFatorK">
                         <label for="compInstrumento">Compensação ecológica: instrumento de proteção da área compensada:</label>
                         <select id="compInstrumento">
-                            <option value="servidao" selected>Servidão ambiental perpétua averbada, ou instrumento ainda não definido (risco de 20%; padrão)</option>
-                            <option value="rppn">RPPN reconhecida, averbada e no CNUC (risco de 12%)</option>
+                            <option value="servidao" selected>Servidão ambiental perpétua averbada, ou instrumento ainda não definido (padrão)</option>
+                            <option value="rppn">RPPN reconhecida, averbada e no CNUC (K = 1,14)</option>
                         </select>
-                        <label for="compDistancia">Onde fica a área compensada, em relação à desmatada:</label>
-                        <select id="compDistancia">
-                            <option value="imovel">No próprio imóvel ou na mesma sub-bacia (D = 1,0)</option>
-                            <option value="bacia">Na mesma bacia (D = 1,3)</option>
-                            <option value="vizinha">Em bacia vizinha (D = 1,6)</option>
-                            <option value="outra">Em outra bacia do mesmo bioma, no Estado (D = 2,0)</option>
-                        </select>
-                        <label for="compVazamento">Parte do excedente de vegetação nativa do compromitente protegida:</label>
-                        <select id="compVazamento">
-                            <option value="menos25" selected>Menos de 25%, ou não se sabe (vazamento de 20%; padrão)</option>
-                            <option value="mais90">Mais de 90%, ou não conversão do restante averbada (vazamento de 0%)</option>
-                            <option value="de60a90">De 60% a 90% (vazamento de 5%)</option>
-                            <option value="de25a60">De 25% a 60% (vazamento de 10%)</option>
-                        </select>
-                        <label for="compPosse">Disputa de posse, sobreposição no CAR ou SIGEF, ou invasão nos últimos 5 anos:</label>
-                        <select id="compPosse">
-                            <option value="nenhuma">Não</option>
-                            <option value="ate5">Sim, em até 5% da área (+5)</option>
-                            <option value="mais5">Sim, em mais de 5% da área (+10)</option>
-                        </select>
-                        <label for="compFogo">Fogo em mais de 1% da área nos últimos 5 anos:</label>
-                        <select id="compFogo">
-                            <option value="nenhum">Não</option>
-                            <option value="comPlano">Sim, com plano de prevenção no acordo (+5)</option>
-                            <option value="semPlano">Sim, sem plano de prevenção (+8)</option>
-                        </select>
-                        <label class="caixa-opcao"><input type="checkbox" id="compNovoDesmate"> Novo desmate ilegal no imóvel depois do acordo (risco mínimo de 30%)</label>
-                        <label class="caixa-opcao"><input type="checkbox" id="compTerraApta"> Terra apta a lavoura ou pasto, valendo aberta o dobro ou mais (+4)</label>
+                        <div id="itemKServidao">
+                            <label for="compKServidao">Fator K da servidão (de 1,14 a 1,56; padrão 1,56, que a negociação pode baixar):</label>
+                            <input type="number" id="compKServidao" value="1.56" step="0.01" min="1.14" max="1.56">
+                        </div>
                         <span id="notaFatorK" class="nota-parametro"></span>
+                        <span class="nota-parametro">A área da RPPN ou da servidão contabilizada para a compensação não pode abranger áreas já protegidas do imóvel, como a reserva legal e as APPs: só conta excedente de vegetação nativa.</span>
                     </div>
                     <div class="parametro-item" id="itemTaxaResidual" style="display:none;">
                         <label for="taxaResidual">Taxa de juros do dano residual (% ao ano):</label>
@@ -500,12 +477,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.8"></script>
-    <script src="js/series.js?v=7.1.8"></script>
-    <script src="js/mapa-qcn.js?v=7.1.8"></script>
-    <script src="js/valoracao.js?v=7.1.8"></script>
-    <script src="js/relatorio.js?v=7.1.8"></script>
-    <script src="script.js?v=7.1.8"></script>
+    <script src="js/calculo.js?v=7.1.9"></script>
+    <script src="js/series.js?v=7.1.9"></script>
+    <script src="js/mapa-qcn.js?v=7.1.9"></script>
+    <script src="js/valoracao.js?v=7.1.9"></script>
+    <script src="js/relatorio.js?v=7.1.9"></script>
+    <script src="script.js?v=7.1.9"></script>
 </body>
 </html>
 

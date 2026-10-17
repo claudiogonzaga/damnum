@@ -327,22 +327,17 @@ function preencherEstimativasPFE(metodo) {
 }
 
 function lerCompensacao() {
-    return {
-        instrumento: valorCampo('compInstrumento'),
-        distancia: valorCampo('compDistancia'),
-        vazamento: valorCampo('compVazamento'),
-        posse: valorCampo('compPosse'),
-        fogo: valorCampo('compFogo'),
-        novoDesmate: document.getElementById('compNovoDesmate').checked,
-        terraApta: document.getElementById('compTerraApta').checked
-    };
+    return { instrumento: valorCampo('compInstrumento'), kServidao: parseFloat(valorCampo('compKServidao')) };
 }
 
 function atualizarFatorK() {
     const f = DamnumValoracao.fatorK(lerCompensacao());
-    document.getElementById('notaFatorK').innerHTML = '<strong>K = ' + numeroBR(f.K, 2) + '</strong> = D × 1 ÷ [(1 − v) × (1 − b)], com D = ' + numeroBR(f.D, 1) +
-        ', b = ' + f.b + '% e v = ' + f.v + '%. Multiplica as áreas a proteger e o valor do dano residual. Faixas do levantamento "Fator K da compensação ecológica" (2026), por analogia com o risco descontado pelos padrões de crédito de carbono (Verra, ICVCM, ART TREES) e com os degraus de distância do guia do SEA (Chile).' +
-        (f.recusar ? ' <strong>Risco acima de 60%: a área ofertada deve ser recusada.</strong>' : '');
+    document.getElementById('itemKServidao').style.display = f.instrumento === 'servidao' ? '' : 'none';
+    document.getElementById('notaFatorK').innerHTML = '<strong>K = ' + numeroBR(f.K, 2) + '</strong>. Multiplica as áreas a proteger e o valor do dano residual. ' +
+        (f.instrumento === 'rppn'
+            ? 'RPPN reconhecida: 1,14 (risco de 12%, piso da Verra).'
+            : 'Servidão perpétua: 1,56 por padrão (risco de 20%, piso da ICVCM, com vazamento de 20%); por negociação, até 1,14.') +
+        ' Levantamento "Fator K da compensação ecológica" (2026), por analogia com os padrões de crédito de carbono.';
 }
 
 function lerResidual() {
@@ -1238,9 +1233,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const igual = [...select.options].find(o => o.value !== '' && Math.abs(parseFloat(o.value) - v) < 1e-9);
         select.value = igual ? igual.value : '';
     });
-    ['compInstrumento', 'compDistancia', 'compVazamento', 'compPosse', 'compFogo', 'compNovoDesmate', 'compTerraApta'].forEach(id => {
-        document.getElementById(id).addEventListener('change', atualizarFatorK);
-    });
+    document.getElementById('compInstrumento').addEventListener('change', atualizarFatorK);
+    document.getElementById('compKServidao').addEventListener('input', atualizarFatorK);
     document.getElementById('pfeResidual').addEventListener('input', function() { this.dataset.editado = '1'; });
     document.getElementById('formaVegetacao').addEventListener('change', function() {
         this.dataset.editado = '1';

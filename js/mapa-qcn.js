@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.8';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.9';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;

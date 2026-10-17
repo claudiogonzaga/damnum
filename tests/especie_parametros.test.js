@@ -81,36 +81,29 @@ test('LIA em área: valor atualizado do LIA ÷ preço da terra com vegetação n
     assert.ok(!html.includes('sem equivalente em área'));
 });
 
-test('fator K por faixas: reproduz a tabela do levantamento (v. 3.1) e multiplica as áreas e o residual', () => {
-    const casos = [
-        [{ instrumento: 'rppn', vazamento: 'mais90' }, 12, 0, 1.14], [{ instrumento: 'rppn', vazamento: 'de25a60' }, 12, 10, 1.26], [{ instrumento: 'rppn', vazamento: 'menos25' }, 12, 20, 1.42],
-        [{ instrumento: 'servidao', vazamento: 'mais90' }, 20, 0, 1.25], [{ instrumento: 'servidao', vazamento: 'de25a60' }, 20, 10, 1.39],
-        [{}, 20, 20, 1.56],
-        [{ instrumento: 'servidao', vazamento: 'menos25' }, 20, 20, 1.56],
-        [{ instrumento: 'servidao', vazamento: 'menos25', novoDesmate: true }, 30, 20, 1.79],
-        [{ instrumento: 'servidao', vazamento: 'menos25', novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }, 52, 20, 2.60],
-        [{ instrumento: 'rppn', vazamento: 'mais90', distancia: 'bacia' }, 12, 0, 1.48],
-        [{ distancia: 'bacia', instrumento: 'servidao', vazamento: 'menos25', novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }, 52, 20, 3.39]
-    ];
-    for (const [cfg, b, v, K] of casos) {
-        const f = V.fatorK(cfg);
-        assert.deepStrictEqual([f.b, f.v, f.K], [b, v, K], JSON.stringify(cfg));
-        assert.strictEqual(f.recusar, false);
-    }
-    assert.strictEqual(V.fatorK({ novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano', instrumento: 'servidao' }).recusar, false);
-    assert.strictEqual(V.fatorK({ instrumento: 'rppn', novoDesmate: true, posse: 'mais5', terraApta: true, fogo: 'semPlano' }).b, 52);
-    const base = V.calcular(entrada({ compensacao: { instrumento: 'rppn', vazamento: 'mais90' } }), series);
-    const bacia = V.calcular(entrada({ compensacao: { instrumento: 'rppn', vazamento: 'mais90', distancia: 'bacia' } }), series);
-    assert.strictEqual(V.calcular(entrada({ compensacao: {} }), series).residual.k, 1.56);
-    assert.strictEqual(base.residual.k, 1.14);
-    perto(bacia.residual.areaEmEspecie, 2 * 0.14 * 1.48, 1e-9);
-    perto(bacia.parcelas.residual.valor / base.parcelas.residual.valor, 1.48 / 1.14, 1e-4);
-    assert.strictEqual(bacia.compensacao.itens[0].ha, Math.ceil(10.3 * 1.48));
-    assert.notStrictEqual(V.textoCanonico(entrada({ compensacao: {} })), V.textoCanonico(entrada({ compensacao: { distancia: 'bacia' } })));
+test('fator K: servidão 1,56 por padrão, negociável até 1,14; RPPN 1,14', () => {
+    assert.strictEqual(V.fatorK({}).K, 1.56);
+    assert.strictEqual(V.fatorK({ instrumento: 'servidao' }).K, 1.56);
+    assert.strictEqual(V.fatorK({ instrumento: 'servidao', kServidao: 1.3 }).K, 1.3);
+    assert.strictEqual(V.fatorK({ instrumento: 'servidao', kServidao: 1.3 }).negociado, true);
+    assert.strictEqual(V.fatorK({ instrumento: 'servidao', kServidao: 0.9 }).K, 1.14);
+    assert.strictEqual(V.fatorK({ instrumento: 'servidao', kServidao: 3 }).K, 1.56);
+    assert.strictEqual(V.fatorK({ instrumento: 'rppn', kServidao: 1.5 }).K, 1.14);
+    const servidao = V.calcular(entrada({ compensacao: {} }), series);
+    const rppn = V.calcular(entrada({ compensacao: { instrumento: 'rppn' } }), series);
+    assert.strictEqual(servidao.residual.k, 1.56);
+    assert.strictEqual(rppn.residual.k, 1.14);
+    perto(rppn.residual.areaEmEspecie, 2 * 0.14 * 1.14, 1e-9);
+    perto(servidao.parcelas.residual.valor / rppn.parcelas.residual.valor, 1.56 / 1.14, 1e-4);
+    assert.strictEqual(rppn.compensacao.itens[0].ha, Math.ceil(10.3 * 1.14));
+    assert.notStrictEqual(V.textoCanonico(entrada({ compensacao: {} })), V.textoCanonico(entrada({ compensacao: { instrumento: 'rppn' } })));
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-    ['compInstrumento', 'compDistancia', 'compVazamento', 'compPosse', 'compFogo', 'compNovoDesmate', 'compTerraApta'].forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
-    const rel = R.gerarHTML(bacia);
-    ['K = 1,48', 'D = 1,3', 'Fator K da compensação ecológica', 'Verra', 'Compensação: fator de equivalência K', 'Enquanto a RPPN não for reconhecida'].forEach(t => assert.ok(rel.includes(t), 'falta: ' + t));
+    assert.match(html, /<option value="servidao" selected>/);
+    assert.match(html, /id="compKServidao" value="1.56" step="0.01" min="1.14" max="1.56"/);
+    assert.ok(html.includes('não pode abranger áreas já protegidas do imóvel, como a reserva legal e as APPs'));
+    const rel = R.gerarHTML(rppn);
+    ['K = 1,14', 'Fator K da compensação ecológica', 'Compensação: fator de equivalência K', 'não pode abranger áreas já protegidas do imóvel', 'Enquanto a RPPN não for reconhecida'].forEach(t => assert.ok(rel.includes(t), 'falta: ' + t));
+    assert.ok(R.gerarHTML(V.calcular(entrada({ compensacao: { kServidao: 1.3 } }), series)).includes('reduzido por negociação a 1,30'));
 });
 
 test('residual: o seletor traz cada estimativa com a fonte, e a mediana sai redonda', () => {

@@ -437,50 +437,27 @@
     }
 
     // ---------- fator de equivalência K da compensação ecológica ----------
-    // Levantamento dos autores "Fator K da compensação ecológica" (v. 3.1,
-    // 30/09/2026): área a compensar = área × K, com K = D × F e
-    // F = 1 ÷ [(1 − v) × (1 − b)]. D: distância (degraus do guia do SEA, Chile);
-    // b: probabilidade de a proteção ser desrespeitada (pisos da Verra e da ICVCM,
-    // agravantes do ART TREES e da NPRT); v: vazamento (ART TREES, Tabela 2).
+    // Regra dos autores, a partir do levantamento "Fator K da compensação
+    // ecológica" (v. 3.1, 30/09/2026), em que K = D × 1 ÷ [(1 − v) × (1 − b)]:
+    //   - RPPN reconhecida: K = 1,14 (b = 12%, piso da Verra; mesma sub-bacia; sem vazamento);
+    //   - servidão ambiental perpétua: K = 1,56 por padrão (b = 20%, piso da ICVCM,
+    //     com vazamento de 20%), que a negociação pode baixar até 1,14.
     var FATOR_K = {
-        instrumentos: {
-            rppn: { b: 12, rotulo: 'RPPN reconhecida pelo órgão ambiental, averbada e cadastrada no CNUC' },
-            servidao: { b: 20, rotulo: 'servidão ambiental perpétua averbada' }
-        },
-        distancias: {
-            imovel: { D: 1.0, rotulo: 'no próprio imóvel ou na mesma sub-bacia' },
-            bacia: { D: 1.3, rotulo: 'na mesma bacia' },
-            vizinha: { D: 1.6, rotulo: 'em bacia vizinha' },
-            outra: { D: 2.0, rotulo: 'em outra bacia do mesmo bioma, no Estado' }
-        },
-        vazamentos: {
-            mais90: { v: 0, rotulo: 'mais de 90% do excedente de vegetação nativa do compromitente protegido, ou não conversão do restante averbada' },
-            de60a90: { v: 5, rotulo: 'de 60% a 90% do excedente protegido' },
-            de25a60: { v: 10, rotulo: 'de 25% a 60% do excedente protegido' },
-            menos25: { v: 20, rotulo: 'menos de 25% do excedente protegido' }
-        },
-        posse: { nenhuma: 0, ate5: 5, mais5: 10 },
-        fogo: { nenhum: 0, comPlano: 5, semPlano: 8 },
-        terraApta: 4, novoDesmateMinimo: 30, limite: 60
+        rppn: { K: 1.14, rotulo: 'RPPN reconhecida pelo órgão ambiental, averbada e cadastrada no CNUC' },
+        servidao: { K: 1.56, minimo: 1.14, rotulo: 'servidão ambiental perpétua averbada' }
     };
-    // Padrão para quando não se sabe o instrumento nem quanto do excedente fica
-    // protegido: servidão (piso da ICVCM) com vazamento máximo, K = 1,56.
-    var COMPENSACAO_PADRAO = { instrumento: 'servidao', distancia: 'imovel', vazamento: 'menos25', novoDesmate: false, posse: 'nenhuma', terraApta: false, fogo: 'nenhum' };
+    var COMPENSACAO_PADRAO = { instrumento: 'servidao', kServidao: 1.56 };
 
     function fatorK(cfg) {
-        var c = {};
-        Object.keys(COMPENSACAO_PADRAO).forEach(function (k) { c[k] = cfg && cfg[k] !== undefined ? cfg[k] : COMPENSACAO_PADRAO[k]; });
-        var ins = FATOR_K.instrumentos[c.instrumento], dist = FATOR_K.distancias[c.distancia], vaz = FATOR_K.vazamentos[c.vazamento];
-        var b = ins.b;
-        if (c.novoDesmate) b = Math.max(b, FATOR_K.novoDesmateMinimo);
-        b += FATOR_K.posse[c.posse] + (c.terraApta ? FATOR_K.terraApta : 0) + FATOR_K.fogo[c.fogo];
-        var F = 1 / ((1 - vaz.v / 100) * (1 - b / 100));
-        return {
-            config: c, D: dist.D, b: b, v: vaz.v, F: F,
-            K: C.arredondar(dist.D * F, 2),
-            recusar: b > FATOR_K.limite,
-            rotulos: { instrumento: ins.rotulo, distancia: dist.rotulo, vazamento: vaz.rotulo }
-        };
+        cfg = cfg || {};
+        var instrumento = cfg.instrumento === 'rppn' ? 'rppn' : 'servidao';
+        var K = FATOR_K.rppn.K;
+        if (instrumento === 'servidao') {
+            var k = typeof cfg.kServidao === 'number' && !isNaN(cfg.kServidao) ? cfg.kServidao : FATOR_K.servidao.K;
+            K = Math.min(FATOR_K.servidao.K, Math.max(FATOR_K.servidao.minimo, C.arredondar(k, 2)));
+        }
+        return { config: { instrumento: instrumento, kServidao: instrumento === 'servidao' ? K : null }, instrumento: instrumento, K: K,
+                 negociado: instrumento === 'servidao' && K < FATOR_K.servidao.K, rotulo: FATOR_K[instrumento].rotulo };
     }
 
     // Preços de referência do carbono, em US$ por tCO₂ (editáveis na tela).
