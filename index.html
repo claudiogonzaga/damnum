@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.9">
+    <link rel="stylesheet" href="style.css?v=7.1.10">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -204,6 +204,16 @@
                         <label for="liaTaxaNominal">Selic nominal média do período (% ao ano):</label>
                         <input type="number" id="liaTaxaNominal" step="0.01" min="0" value="9.73">
                         <p class="ajuda-campo">Médias de 2010 a 2025 (Banco Central, séries SGS 4390 e 433). Ajuste para o período do caso.</p>
+                    </div>
+                </details>
+
+                <details class="input-group" id="grupoGradacao" open>
+                    <summary>Dano extrapatrimonial: gradação pelos critérios do STJ (<span id="resumoGradacao">fator 1,00</span>)</summary>
+                    <p class="ajuda-campo">O valor-base mede a extensão do dano: área × estoque de carbono × preço da tonelada. O STJ manda graduar o valor também pelos critérios abaixo (REsp 2.200.069/MT). Sem elementos para graduar um critério, deixe-o no meio, que é o padrão. Cada grau acima do meio acrescenta 10% do valor-base; cada grau abaixo retira 5%. Com todos no máximo, o valor dobra; com todos no mínimo, cai à metade.</p>
+                    <div id="camposGradacao" class="gradacao"></div>
+                    <div class="gradacao-rodape">
+                        <p id="notaGradacao" class="gradacao-total" aria-live="polite"></p>
+                        <button type="button" id="btnGradacaoMeio" class="btn-gradacao-meio">Voltar todos ao meio</button>
                     </div>
                 </details>
 
@@ -421,6 +431,7 @@
                     <div class="valor-item">
                         <span id="danoExtrapatrimonialMercado" class="valor-destaque"></span>
                     </div>
+                    <p id="notaGradacaoResultado" class="nota-explicativa"></p>
                 </div>
 
                 <div class="resultado-secao">
@@ -477,12 +488,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.9"></script>
-    <script src="js/series.js?v=7.1.9"></script>
-    <script src="js/mapa-qcn.js?v=7.1.9"></script>
-    <script src="js/valoracao.js?v=7.1.9"></script>
-    <script src="js/relatorio.js?v=7.1.9"></script>
-    <script src="script.js?v=7.1.9"></script>
+    <script src="js/calculo.js?v=7.1.10"></script>
+    <script src="js/series.js?v=7.1.10"></script>
+    <script src="js/mapa-qcn.js?v=7.1.10"></script>
+    <script src="js/valoracao.js?v=7.1.10"></script>
+    <script src="js/relatorio.js?v=7.1.10"></script>
+    <script src="script.js?v=7.1.10"></script>
 </body>
 </html>
 

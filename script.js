@@ -340,6 +340,78 @@ function atualizarFatorK() {
         ' Levantamento "Fator K da compensação ecológica" (2026), por analogia com os padrões de crédito de carbono.';
 }
 
+// ============================================================
+// GRADAÇÃO DO DANO EXTRAPATRIMONIAL (STJ, REsp 2.200.069/MT)
+// ============================================================
+
+function textoAjuste(pct) {
+    return pct > 0 ? '+' + pct + '%' : (pct < 0 ? '−' + Math.abs(pct) + '%' : '0%');
+}
+
+// Monta as escalas a partir dos critérios de valoracao.js, com o meio marcado.
+function montarGradacao() {
+    const caixa = document.getElementById('camposGradacao');
+    DamnumValoracao.GRADACAO_STJ.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'gradacao-item';
+        item.setAttribute('role', 'radiogroup');
+        item.setAttribute('aria-labelledby', 'gradNome_' + c.chave);
+        item.setAttribute('aria-describedby', 'gradAjuda_' + c.chave);
+        const cabeca = document.createElement('div');
+        cabeca.className = 'gradacao-cabeca';
+        const nome = document.createElement('span');
+        nome.className = 'gradacao-nome';
+        nome.id = 'gradNome_' + c.chave;
+        nome.textContent = c.nome;
+        const efeito = document.createElement('span');
+        efeito.className = 'gradacao-efeito';
+        efeito.id = 'gradEfeito_' + c.chave;
+        cabeca.append(nome, efeito);
+        const escala = document.createElement('div');
+        escala.className = 'gradacao-escala';
+        for (let grau = 1; grau <= 5; grau++) {
+            const ajuste = DamnumValoracao.AJUSTE_GRAU_PCT[grau];
+            const opcao = document.createElement('label');
+            opcao.className = 'gradacao-opcao';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'gradacao_' + c.chave;
+            radio.value = String(grau);
+            radio.checked = grau === 3;
+            radio.setAttribute('aria-label', 'grau ' + grau + ', ' + c.graus[grau - 1] + ' (' + textoAjuste(ajuste) + ')');
+            const marca = document.createElement('span');
+            marca.textContent = textoAjuste(ajuste);
+            opcao.append(radio, marca);
+            escala.appendChild(opcao);
+        }
+        const ajuda = document.createElement('p');
+        ajuda.className = 'ajuda-campo';
+        ajuda.id = 'gradAjuda_' + c.chave;
+        ajuda.textContent = c.ajuda;
+        item.append(cabeca, escala, ajuda);
+        caixa.appendChild(item);
+    });
+}
+
+function lerGradacao() {
+    const niveis = {};
+    DamnumValoracao.GRADACAO_STJ.forEach(c => {
+        const marcado = document.querySelector('input[name="gradacao_' + c.chave + '"]:checked');
+        niveis[c.chave] = marcado ? parseInt(marcado.value, 10) : 3;
+    });
+    return niveis;
+}
+
+function atualizarGradacao() {
+    const g = DamnumValoracao.gradacaoExtrapatrimonial(lerGradacao());
+    g.criterios.forEach(c => {
+        document.getElementById('gradEfeito_' + c.chave).textContent = c.rotulo + ' · ' + (c.ajustePct === 0 ? 'sem ajuste' : textoAjuste(c.ajustePct));
+    });
+    document.getElementById('resumoGradacao').textContent = 'fator ' + numeroBR(g.fator, 2);
+    document.getElementById('notaGradacao').textContent = 'Fator de gradação: ' + numeroBR(g.fator, 2) +
+        (g.padrao ? ' (todos no meio: vale o valor-base)' : ' (' + numeroBR(g.fator * 100, 0) + '% do valor-base)');
+}
+
 function lerResidual() {
     const metodo = valorCampo('metodoResidual');
     const padrao = DamnumValoracao.residualPadrao(metodo);
@@ -1002,6 +1074,7 @@ async function calcularValoracao() {
             interino: lerInterino(),
             residual: lerResidual(),
             compensacao: lerCompensacao(),
+            gradacao: lerGradacao(),
             lia,
             parametros,
             estoque,
@@ -1068,6 +1141,10 @@ function mostrarResultado(r) {
     document.getElementById('danoResidual').textContent = formatarMoeda(p.residual.valor);
     document.getElementById('notaDanoResidual').textContent = r.residual.metodo === 'caex' || !(r.residual.area > 0) ? '' : 'Em espécie: proteção perpétua de ' + numeroBR(r.residual.areaEmEspecie, 2) + ' ha de vegetação nativa. Faixa em dinheiro: de ' + formatarMoeda(r.residual.estatisticas.valor_minimo) + ' a ' + formatarMoeda(r.residual.estatisticas.valor_maximo) + '.';
     document.getElementById('danoExtrapatrimonialMercado').textContent = formatarMoeda(p.mercado.valor);
+    const g = r.gradacao;
+    document.getElementById('notaGradacaoResultado').textContent = g.padrao
+        ? 'Critérios do STJ (REsp 2.200.069/MT) no meio: vale o valor-base, que mede a extensão do dano.'
+        : 'Valor-base (extensão do dano) de ' + formatarMoeda(g.valorBase) + ' × fator de gradação ' + numeroBR(g.fator, 2) + ', pelos critérios do STJ (REsp 2.200.069/MT).';
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
     document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);
     document.getElementById('secaoLIA').style.display = r.lia ? '' : 'none';
@@ -1172,6 +1249,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     atualizarPadroesResidual(true);
     atualizarPadroesLIA();
     atualizarFatorK();
+    montarGradacao();
+    atualizarGradacao();
     atualizarParametrosCalculados();
 
     biomaSelect.addEventListener('change', function() {
@@ -1235,6 +1314,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     document.getElementById('compInstrumento').addEventListener('change', atualizarFatorK);
     document.getElementById('compKServidao').addEventListener('input', atualizarFatorK);
+    document.getElementById('camposGradacao').addEventListener('change', atualizarGradacao);
+    document.getElementById('btnGradacaoMeio').addEventListener('click', function() {
+        document.querySelectorAll('#camposGradacao input[value="3"]').forEach(radio => { radio.checked = true; });
+        atualizarGradacao();
+    });
     document.getElementById('pfeResidual').addEventListener('input', function() { this.dataset.editado = '1'; });
     document.getElementById('formaVegetacao').addEventListener('change', function() {
         this.dataset.editado = '1';

@@ -463,6 +463,50 @@
     // Preços de referência do carbono, em US$ por tCO₂ (editáveis na tela).
     var PRECOS_PADRAO = { precoSocialCO2USD: 24.20, precoMercadoCO2USD: 5.00 };
 
+    // ---------- gradação do dano extrapatrimonial ----------
+    // STJ, REsp 2.200.069/MT (1ª Turma, 13/05/2025), critério 6: o valor do dano
+    // moral coletivo se gradua pela contribuição causal do infrator e sua situação
+    // socioeconômica, pela extensão e perenidade do dano, pela gravidade da culpa e
+    // pelo proveito obtido com o ilícito. O valor-base (área × estoque × 3,67 ×
+    // preço) mede a extensão; os demais critérios entram em escala de cinco graus,
+    // com o meio como padrão. Cada grau acima do meio acrescenta 10% do valor-base
+    // e cada grau abaixo retira 5%: todos no máximo dobram o valor, todos no mínimo
+    // o reduzem à metade. A redução é menor porque o valor-base parte, por padrão,
+    // do piso de preço do Protocolo do CNJ.
+    var AJUSTE_GRAU_PCT = { 1: -10, 2: -5, 3: 0, 4: 10, 5: 20 };
+    var GRAUS_F = ['muito baixa', 'baixa', 'média', 'alta', 'muito alta'];
+    var GRAUS_M = ['muito baixo', 'baixo', 'médio', 'alto', 'muito alto'];
+    var GRADACAO_STJ = [
+        { chave: 'contribuicao', nome: 'Contribuição causal do infrator', graus: GRAUS_F,
+          ajuda: 'Menor quando outros agentes ou fatores concorreram para o dano; maior quando a conduta do infrator foi decisiva para ele.' },
+        { chave: 'situacao', nome: 'Situação socioeconômica do infrator', graus: GRAUS_F,
+          ajuda: 'Menor para agricultor familiar ou pessoa de baixa renda; maior para grande proprietário ou empresa de grande porte.' },
+        { chave: 'perenidade', nome: 'Perenidade do dano', graus: GRAUS_F,
+          ajuda: 'Menor quando a regeneração é rápida e já está em curso; maior quando a perda é duradoura, sem recuperação no local.' },
+        { chave: 'culpa', nome: 'Gravidade da culpa', graus: GRAUS_F,
+          ajuda: 'Menor na culpa leve; maior no dolo, na reincidência ou no desrespeito a embargo.' },
+        { chave: 'proveito', nome: 'Proveito obtido com o ilícito', graus: GRAUS_M,
+          ajuda: 'Menor quando o ganho foi pequeno; maior quando foi grande. O lucro em si é restituído pelo LIA; aqui ele só gradua o dano moral coletivo.' }
+    ];
+
+    // Grau fora de 1 a 5 (ou ausente) vale o meio.
+    function gradacaoExtrapatrimonial(niveis) {
+        niveis = niveis || {};
+        var criterios = GRADACAO_STJ.map(function (c) {
+            var g = Number(niveis[c.chave]);
+            if (!(g >= 1 && g <= 5 && g % 1 === 0)) g = 3;
+            return { chave: c.chave, nome: c.nome, grau: g, rotulo: c.graus[g - 1], ajustePct: AJUSTE_GRAU_PCT[g] };
+        });
+        var somaPct = criterios.reduce(function (s, c) { return s + c.ajustePct; }, 0);
+        return {
+            criterios: criterios,
+            niveis: criterios.reduce(function (o, c) { o[c.chave] = c.grau; return o; }, {}),
+            somaPct: somaPct,
+            fator: (100 + somaPct) / 100,
+            padrao: criterios.every(function (c) { return c.grau === 3; })
+        };
+    }
+
     // Reparação em espécie, que precede a indenização (CNJ, Protocolo, segundo
     // escopo, 2024, p. 38). Regras de Gonzaga et al. (2025):
     //   - dano material: proteção perpétua de área igual à ilegalmente desmatada,
@@ -614,11 +658,19 @@
         parametros.precoSocialCO2BRL = C.arredondar(parametros.precoSocialCO2USD * parametros.cotacaoDolar, 2);
         parametros.precoMercadoCO2BRL = C.arredondar(parametros.precoMercadoCO2USD * parametros.cotacaoDolar, 2);
 
+        // Dano extrapatrimonial: o valor-base mede a extensão; o fator gradua pelos demais critérios do STJ.
+        var gradacao = gradacaoExtrapatrimonial(entrada.gradacao);
+        gradacao.valorBase = C.arredondar(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL), 2);
+        gradacao.precoImplicitoUSD = parametros.precoMercadoCO2USD * gradacao.fator;
+        gradacao.aviso = gradacao.fator < 1 && C.abaixoDoPisoCNJ(gradacao.precoImplicitoUSD) && !C.abaixoDoPisoCNJ(parametros.precoMercadoCO2USD)
+            ? 'Com a gradação, o preço implícito da tonelada ficou em US$ ' + String(gradacao.precoImplicitoUSD.toFixed(2)).replace('.', ',') + '/tCO₂, abaixo de US$ 5,00/tCO₂e, piso recomendado pelo Protocolo do CNJ (2024, p. 66). A redução decorre só dos critérios do STJ graduados abaixo do meio.'
+            : '';
+
         var parcelas = {
             material: parcelaPatrimonial(entrada.entendimento === 'irdr' ? 0 : valorMaterialGonzaga, areaMaterial, ctx),
             interino: parcelaPatrimonial(valorInterino, areaInterino, ctx),
             residual: parcelaPatrimonial(residual.valor, areaInterino, ctx),
-            mercado: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL), ctx),
+            mercado: parcelaCarbono(gradacao.valorBase * gradacao.fator, ctx),
             social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL), ctx)
         };
 
@@ -681,8 +733,10 @@
                 K: fatorK({}).K,
                 interino: interinoPadrao(configInterino.metodo, configInterino.forma || formaDaVegetacao(null, entrada.bioma, null)),
                 residual: residualPadrao(configResidual.metodo),
-                lia: entrada.lia ? liaPadrao(entrada.bioma, fora, entrada.lia.atividade, entrada.lia.anos, configInterino.forma) : null
+                lia: entrada.lia ? liaPadrao(entrada.bioma, fora, entrada.lia.atividade, entrada.lia.anos, configInterino.forma) : null,
+                gradacao: gradacaoExtrapatrimonial({}).niveis
             },
+            gradacao: gradacao,
             lia: lia,
             liaAnoRegularizacao: entrada.lia ? entrada.lia.anoRegularizacao : null,
             liaDataRegularizacao: entrada.lia ? entrada.lia.dataRegularizacao || null : null,
@@ -732,6 +786,7 @@
             estoqueTC: entrada.estoque.tC,
             origemEstoque: entrada.estoque.origem,
             opcaoExtrapatrimonial: entrada.opcaoExtrapatrimonial,
+            gradacao: gradacaoExtrapatrimonial(entrada.gradacao).niveis,
             residual: entrada.residual || null,
             compensacao: entrada.compensacao || null,
             lia: entrada.lia || null,
@@ -767,6 +822,9 @@
         FATOR_K: FATOR_K,
         COMPENSACAO_PADRAO: COMPENSACAO_PADRAO,
         PRECOS_PADRAO: PRECOS_PADRAO,
+        GRADACAO_STJ: GRADACAO_STJ,
+        AJUSTE_GRAU_PCT: AJUSTE_GRAU_PCT,
+        gradacaoExtrapatrimonial: gradacaoExtrapatrimonial,
         resolverEstoque: resolverEstoque,
         calcular: calcular,
         avisoPiso: avisoPiso,

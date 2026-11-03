@@ -1002,3 +1002,102 @@ header h2 {
     border-radius: 4px;
 }
 .campos-lia label { margin-top: 10px; }
+
+/* v7.1.10: gradação do dano extrapatrimonial pelos critérios do STJ */
+#grupoGradacao summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #2c5530;
+    padding: 6px 0;
+}
+.gradacao {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: #f8faf8;
+    border-left: 3px solid #4a7c59;
+    border-radius: 4px;
+}
+.gradacao-item { margin-bottom: 16px; }
+.gradacao-item:last-child { margin-bottom: 4px; }
+.gradacao-cabeca {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2px 12px;
+    margin-bottom: 6px;
+}
+.gradacao-nome { font-weight: 500; color: #2c5530; }
+.gradacao-efeito { font-size: 0.85em; color: #555; }
+.gradacao-escala {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border: 1px solid #c9d6c9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(90deg, #d6e6f2 0%, #e9f2ea 30%, #f6f4ee 50%, #fbe6cf 72%, #f4c9bd 100%);
+}
+.gradacao .gradacao-opcao {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #33473a;
+    border-left: 1px solid rgba(44, 85, 48, 0.15);
+    user-select: none;
+}
+.gradacao .gradacao-opcao:first-child { border-left: 0; }
+.gradacao .gradacao-opcao input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.gradacao .gradacao-opcao span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    white-space: nowrap;
+}
+.gradacao .gradacao-opcao:hover span { border-color: rgba(44, 85, 48, 0.35); }
+.gradacao .gradacao-opcao input:checked + span {
+    background: #2c5530;
+    border-color: #2c5530;
+    color: #fff;
+}
+.gradacao .gradacao-opcao input:focus-visible + span {
+    outline: 3px solid #1a5276;
+    outline-offset: 2px;
+}
+.gradacao-rodape {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-top: 10px;
+}
+.gradacao-total { margin: 0; font-weight: 600; color: #2c5530; }
+.btn-gradacao-meio {
+    background: none;
+    border: 1px solid #4a7c59;
+    color: #2c5530;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.9em;
+    font-family: inherit;
+    cursor: pointer;
+}
+.btn-gradacao-meio:hover { background: #eef5ee; }
+@media (max-width: 420px) {
+    .gradacao { padding: 10px 8px; }
+    .gradacao .gradacao-opcao span { padding: 4px 3px; }
+}

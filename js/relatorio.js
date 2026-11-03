@@ -284,13 +284,36 @@
         return html;
     }
 
+    // Gradação do dano extrapatrimonial pelos critérios do STJ (REsp 2.200.069/MT).
+    var BIOMAS_PATRIMONIO_NACIONAL = ['FLORESTA AMAZÔNICA', 'MATA ATLÂNTICA', 'PANTANAL MATO-GROSSENSE'];
+    function sinalPct(p) { return p > 0 ? '+' + num(p, 0) + '%' : (p < 0 ? '−' + num(-p, 0) + '%' : '0%'); }
+    function blocoGradacao(r) {
+        var g = r.gradacao;
+        var th = TD + ' background:#f5f5f5;';
+        var html = '<p style="font-size:11pt; text-align:justify;"><b>Gradação pelos critérios do STJ.</b> Constatada a degradação, presume-se o dano moral coletivo, e o valor se gradua pela contribuição causal do infrator e sua situação socioeconômica, pela extensão e perenidade do dano, pela gravidade da culpa e pelo proveito obtido com o ilícito (STJ, REsp 2.200.069/MT, 1ª Turma, 2025, critérios 3 e 6). O valor-base mede a extensão. Os demais critérios foram graduados em cinco graus, com o meio como padrão: cada grau acima do meio acrescenta 10% do valor-base e cada grau abaixo retira 5%, de modo que o fator fica entre 0,5 e 2.</p>';
+        html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Critério</th><th style="' + th + '">Grau (de 1 a 5)</th><th style="' + th + '">Ajuste sobre o valor-base</th></tr>';
+        html += '<tr><td style="' + TD + '">Extensão do dano</td><td style="' + TD + '" colspan="2">medida no valor-base: ' + moeda(g.valorBase) + '</td></tr>';
+        g.criterios.forEach(function (c) {
+            html += '<tr><td style="' + TD + '">' + esc(c.nome) + '</td><td style="' + TDR + '">' + c.grau + ' (' + esc(c.rotulo) + ')</td><td style="' + TDR + '">' + sinalPct(c.ajustePct) + '</td></tr>';
+        });
+        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Fator de gradação</b></td><td style="' + TD + '">1 + soma dos ajustes (' + sinalPct(g.somaPct) + ')</td><td style="' + TDR + '"><b>' + num(g.fator, 2) + '</b></td></tr></table>';
+        html += '<p style="font-size:11pt; text-align:justify;">Valor graduado: ' + moeda(g.valorBase) + ' × ' + num(g.fator, 2) + ' = <b>' + moeda(r.parcelas.mercado.valor) + '</b>.' + (g.padrao ? ' Todos os critérios ficaram no meio; o valor graduado é o valor-base.' : '') + ' O proveito gradua o dano moral coletivo; a restituição do lucro é feita à parte, no lucro do ilícito ambiental.</p>';
+        if (g.aviso) html += nota(esc(g.aviso));
+        if (BIOMAS_PATRIMONIO_NACIONAL.indexOf(r.bioma) >= 0) {
+            html += '<p style="font-size:11pt; text-align:justify;">O bioma é patrimônio nacional (Constituição, art. 225, § 4º): há dano imaterial difuso sempre que a conduta o descaracterize ou afete sua integridade, independentemente da extensão da área (REsp 2.200.069/MT, critério 7).</p>';
+        }
+        return html;
+    }
+
     function blocoCarbono(r, chave, numero, nome, rotuloPreco, precoUSD, precoBRL, fontePreco) {
         var p = r.parcelas[chave];
         var e = r.estoque;
+        var g = chave === 'mercado' && r.gradacao ? r.gradacao : null;
         var html = subtitulo(numero + ' ' + nome);
         var linhas = [];
-        linhas.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × estoque de carbono (tC/ha) × 3,67 × preço (R$/tCO₂)'));
-        linhas.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + num(e.tC, 2) + ' tC/ha × 3,67 × ' + moeda(precoBRL) + '/tCO₂. ' + rotuloPreco + ': US$ ' + num(precoUSD, 2) + '/tCO₂ (' + fontePreco + '), convertido à cotação de R$ ' + num(r.parametros.cotacaoDolar, 2) + '. Estoque e fator 3,67: ver "Estoque de carbono".'));
+        linhas.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × estoque de carbono (tC/ha) × 3,67 × preço (R$/tCO₂)' + (g ? ' × fator de gradação' : '')));
+        linhas.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + num(e.tC, 2) + ' tC/ha × 3,67 × ' + moeda(precoBRL) + '/tCO₂. ' + rotuloPreco + ': US$ ' + num(precoUSD, 2) + '/tCO₂ (' + fontePreco + '), convertido à cotação de R$ ' + num(r.parametros.cotacaoDolar, 2) + '. Estoque e fator 3,67: ver "Estoque de carbono".' + (g ? ' Fator de gradação: ' + num(g.fator, 2) + ', pelos critérios do STJ (quadro abaixo).' : '')));
+        if (g) linhas.push(linha('Valor-base (extensão do dano)', moeda(g.valorBase)));
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, a preços de ' + data(r.dataCalculo) + ' (data do cálculo, que equivale ao arbitramento)'));
         linhas.push(linha('Índice de correção (art. 524, II)', 'não há correção: o valor já está a preços da data do cálculo, e a correção do dano extrapatrimonial corre do arbitramento (Súmula 362/STJ)'));
         if (!r.atualizacao.aplicada) {
@@ -314,7 +337,7 @@
             linhas.push(linha('Juros de mora', moeda(p.juros)));
             linhas.push(linha('Valor atualizado', '<b>' + moeda(p.total) + '</b>'));
         }
-        return html + tabela(linhas);
+        return html + tabela(linhas) + (g ? blocoGradacao(r) : '');
     }
 
     // Detalhe da consulta ao mapa do Quarto Inventário: classes cruzadas, blocos
@@ -589,6 +612,8 @@
         var e = r.estoque;
         ln('Estoque de carbono', num(e.tC, 2) + ' tC/ha', esc(e.descricaoOrigem), e.origem === 'usuario' ? 'informada pelo usuário' : (e.dados ? 'Quarto Inventário (MCTI, 2020); arquivos do INPE de 25/06/2021, baixados em ' + esc(e.dados.data_download || 'data não informada') : 'Quarto Inventário (MCTI, 2020)'), e.origem === 'usuario');
         ln('Preço no mercado voluntário', 'US$ ' + num(r.parametros.precoMercadoCO2USD, 2) + '/tCO₂', 'piso do Fundo Amazônia (CNJ, Protocolo, segundo escopo, p. 66)', 'out./2024', difere(r.parametros.precoMercadoCO2USD, d.precos.precoMercadoCO2USD));
+        var g = r.gradacao;
+        if (g) ln('Dano extrapatrimonial: fator de gradação', num(g.fator, 2) + (g.padrao ? ' (todos os critérios no meio)' : ''), 'critérios do STJ (REsp 2.200.069/MT, critério 6), em cinco graus; escala do DAMNUM', '13/05/2025', !g.padrao);
         ln('Custo social do carbono', 'US$ ' + num(r.parametros.precoSocialCO2USD, 2) + '/tCO₂', 'Ricke et al. (2018), cenário SSP2/RCP6.0', '2018', difere(r.parametros.precoSocialCO2USD, d.precos.precoSocialCO2USD));
         ln('Cotação do dólar', 'R$ ' + num(r.parametros.cotacaoDolar, 2), esc(r.parametros.origemCotacao), data(r.dataCalculo), null);
         if (r.lia) {
@@ -655,6 +680,7 @@
         html += '<p style="' + p + '">BRASIL. Ministério da Ciência, Tecnologia e Inovações. <em>Quarta Comunicação Nacional do Brasil à Convenção-Quadro das Nações Unidas sobre Mudança do Clima. Relatório de Referência: Setor Uso da Terra, Mudança do Uso da Terra e Florestas</em>. Brasília: MCTI, 2020. Tabelas 23 a 28.</p>';
         html += '<p style="' + p + '">CONSELHO DA JUSTIÇA FEDERAL. <em>Manual de orientação de procedimentos para os cálculos na Justiça Federal</em>. Brasília: CJF, 2026. Capítulo 4, item 4.2.</p>';
         html += '<p style="' + p + '">CONSELHO NACIONAL DE JUSTIÇA. <em>Protocolo para julgamento de ações ambientais: segundo escopo</em>. Brasília: CNJ, 2024. Recomendação CNJ 156/2024.</p>';
+        html += '<p style="' + p + '">BRASIL. Superior Tribunal de Justiça (1. Turma). <em>Recurso Especial n. 2.200.069/MT</em>. Relatora: Ministra Regina Helena Costa. Julgado em 13 maio 2025.</p>';
         if (r.lia) {
             html += '<p style="' + p + '">GONZAGA, Claudio Angelo Correa; ROQUETTE, José Guilherme; SILVA, Anelise Gomes da; SINISGALLI, Paulo Antonio de Almeida. Proposta de valoração do proveito econômico do ilícito ambiental. Trabalho submetido ao Simpósio Interdisciplinar de Ciência Ambiental da USP (SICAM), 2026. Não publicado.</p>';
         }
