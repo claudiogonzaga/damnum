@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.10">
+    <link rel="stylesheet" href="style.css?v=7.1.11">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -208,8 +208,8 @@
                 </details>
 
                 <details class="input-group" id="grupoGradacao" open>
-                    <summary>Dano extrapatrimonial: gradação pelos critérios do STJ (<span id="resumoGradacao">fator 1,00</span>)</summary>
-                    <p class="ajuda-campo">O valor-base mede a extensão do dano: área × estoque de carbono × preço da tonelada. O STJ manda graduar o valor também pelos critérios abaixo (REsp 2.200.069/MT). Sem elementos para graduar um critério, deixe-o no meio, que é o padrão. Cada grau acima do meio acrescenta 10% do valor-base; cada grau abaixo retira 5%. Com todos no máximo, o valor dobra; com todos no mínimo, cai à metade.</p>
+                    <summary>Dano extrapatrimonial: gradação pelos critérios do STJ (<span id="resumoGradacao">fator 1</span>)</summary>
+                    <p class="ajuda-campo">O valor-base mede a extensão do dano: área × estoque de carbono × preço da tonelada no mercado voluntário. Esse valor fica no meio de cada escala. O STJ manda graduar o valor também pelos critérios abaixo (REsp 2.200.069/MT). Sem elementos para graduar um critério, deixe-o no meio. Um ponto para qualquer lado do meio soma ou retira 1/8 do valor-base; dois pontos, 1/6. Com todos no máximo, o valor sobe 5/6; com todos no mínimo, cai a 1/6 do valor-base.</p>
                     <div id="camposGradacao" class="gradacao"></div>
                     <div class="gradacao-rodape">
                         <p id="notaGradacao" class="gradacao-total" aria-live="polite"></p>
@@ -488,12 +488,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.10"></script>
-    <script src="js/series.js?v=7.1.10"></script>
-    <script src="js/mapa-qcn.js?v=7.1.10"></script>
-    <script src="js/valoracao.js?v=7.1.10"></script>
-    <script src="js/relatorio.js?v=7.1.10"></script>
-    <script src="script.js?v=7.1.10"></script>
+    <script src="js/calculo.js?v=7.1.11"></script>
+    <script src="js/series.js?v=7.1.11"></script>
+    <script src="js/mapa-qcn.js?v=7.1.11"></script>
+    <script src="js/valoracao.js?v=7.1.11"></script>
+    <script src="js/relatorio.js?v=7.1.11"></script>
+    <script src="script.js?v=7.1.11"></script>
 </body>
 </html>
 

@@ -286,18 +286,21 @@
 
     // Gradação do dano extrapatrimonial pelos critérios do STJ (REsp 2.200.069/MT).
     var BIOMAS_PATRIMONIO_NACIONAL = ['FLORESTA AMAZÔNICA', 'MATA ATLÂNTICA', 'PANTANAL MATO-GROSSENSE'];
-    function sinalPct(p) { return p > 0 ? '+' + num(p, 0) + '%' : (p < 0 ? '−' + num(-p, 0) + '%' : '0%'); }
+    // Fator como fração exata e, se não for inteiro, com o decimal: '9/8 ≈ 1,125'.
+    function fatorTexto(g) {
+        return g.fatorFracao.indexOf('/') < 0 ? g.fatorFracao : g.fatorFracao + ' ≈ ' + new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 }).format(g.fator);
+    }
     function blocoGradacao(r) {
         var g = r.gradacao;
         var th = TD + ' background:#f5f5f5;';
-        var html = '<p style="font-size:11pt; text-align:justify;"><b>Gradação pelos critérios do STJ.</b> Constatada a degradação, presume-se o dano moral coletivo, e o valor se gradua pela contribuição causal do infrator e sua situação socioeconômica, pela extensão e perenidade do dano, pela gravidade da culpa e pelo proveito obtido com o ilícito (STJ, REsp 2.200.069/MT, 1ª Turma, 2025, critérios 3 e 6). O valor-base mede a extensão. Os demais critérios foram graduados em cinco graus, com o meio como padrão: cada grau acima do meio acrescenta 10% do valor-base e cada grau abaixo retira 5%, de modo que o fator fica entre 0,5 e 2.</p>';
+        var html = '<p style="font-size:11pt; text-align:justify;"><b>Gradação pelos critérios do STJ.</b> Constatada a degradação, presume-se o dano moral coletivo, e o valor se gradua pela contribuição causal do infrator e sua situação socioeconômica, pela extensão e perenidade do dano, pela gravidade da culpa e pelo proveito obtido com o ilícito (STJ, REsp 2.200.069/MT, 1ª Turma, 2025, critérios 3 e 6). O valor-base, pelo preço do mercado voluntário de carbono, mede a extensão e fica no meio da escala de cinco graus de cada um dos demais critérios. Um grau para qualquer lado do meio soma ou retira 1/8 do valor-base; dois graus, 1/6. O fator é 1 mais a soma dos ajustes e vai de 1/6, com todos os critérios no mínimo, a 11/6, com todos no máximo.</p>';
         html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Critério</th><th style="' + th + '">Grau (de 1 a 5)</th><th style="' + th + '">Ajuste sobre o valor-base</th></tr>';
         html += '<tr><td style="' + TD + '">Extensão do dano</td><td style="' + TD + '" colspan="2">medida no valor-base: ' + moeda(g.valorBase) + '</td></tr>';
         g.criterios.forEach(function (c) {
-            html += '<tr><td style="' + TD + '">' + esc(c.nome) + '</td><td style="' + TDR + '">' + c.grau + ' (' + esc(c.rotulo) + ')</td><td style="' + TDR + '">' + sinalPct(c.ajustePct) + '</td></tr>';
+            html += '<tr><td style="' + TD + '">' + esc(c.nome) + '</td><td style="' + TDR + '">' + c.grau + ' (' + esc(c.rotulo) + ')</td><td style="' + TDR + '">' + c.ajuste + '</td></tr>';
         });
-        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Fator de gradação</b></td><td style="' + TD + '">1 + soma dos ajustes (' + sinalPct(g.somaPct) + ')</td><td style="' + TDR + '"><b>' + num(g.fator, 2) + '</b></td></tr></table>';
-        html += '<p style="font-size:11pt; text-align:justify;">Valor graduado: ' + moeda(g.valorBase) + ' × ' + num(g.fator, 2) + ' = <b>' + moeda(r.parcelas.mercado.valor) + '</b>.' + (g.padrao ? ' Todos os critérios ficaram no meio; o valor graduado é o valor-base.' : '') + ' O proveito gradua o dano moral coletivo; a restituição do lucro é feita à parte, no lucro do ilícito ambiental.</p>';
+        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Fator de gradação</b></td><td style="' + TD + '">1 + soma dos ajustes (' + g.soma + ')</td><td style="' + TDR + '"><b>' + fatorTexto(g) + '</b></td></tr></table>';
+        html += '<p style="font-size:11pt; text-align:justify;">Valor graduado: ' + moeda(g.valorBase) + ' × ' + g.fatorFracao + ' = <b>' + moeda(r.parcelas.mercado.valor) + '</b>.' + (g.padrao ? ' Todos os critérios ficaram no meio; o valor graduado é o valor-base.' : '') + ' O proveito gradua o dano moral coletivo; a restituição do lucro é feita à parte, no lucro do ilícito ambiental.</p>';
         if (g.aviso) html += nota(esc(g.aviso));
         if (BIOMAS_PATRIMONIO_NACIONAL.indexOf(r.bioma) >= 0) {
             html += '<p style="font-size:11pt; text-align:justify;">O bioma é patrimônio nacional (Constituição, art. 225, § 4º): há dano imaterial difuso sempre que a conduta o descaracterize ou afete sua integridade, independentemente da extensão da área (REsp 2.200.069/MT, critério 7).</p>';
@@ -613,7 +616,7 @@
         ln('Estoque de carbono', num(e.tC, 2) + ' tC/ha', esc(e.descricaoOrigem), e.origem === 'usuario' ? 'informada pelo usuário' : (e.dados ? 'Quarto Inventário (MCTI, 2020); arquivos do INPE de 25/06/2021, baixados em ' + esc(e.dados.data_download || 'data não informada') : 'Quarto Inventário (MCTI, 2020)'), e.origem === 'usuario');
         ln('Preço no mercado voluntário', 'US$ ' + num(r.parametros.precoMercadoCO2USD, 2) + '/tCO₂', 'piso do Fundo Amazônia (CNJ, Protocolo, segundo escopo, p. 66)', 'out./2024', difere(r.parametros.precoMercadoCO2USD, d.precos.precoMercadoCO2USD));
         var g = r.gradacao;
-        if (g) ln('Dano extrapatrimonial: fator de gradação', num(g.fator, 2) + (g.padrao ? ' (todos os critérios no meio)' : ''), 'critérios do STJ (REsp 2.200.069/MT, critério 6), em cinco graus; escala do DAMNUM', '13/05/2025', !g.padrao);
+        if (g) ln('Dano extrapatrimonial: fator de gradação', fatorTexto(g) + (g.padrao ? ' (todos os critérios no meio)' : ''), 'critérios do STJ (REsp 2.200.069/MT, critério 6), em cinco graus; escala do DAMNUM (1/8 e 1/6 por grau)', '13/05/2025', !g.padrao);
         ln('Custo social do carbono', 'US$ ' + num(r.parametros.precoSocialCO2USD, 2) + '/tCO₂', 'Ricke et al. (2018), cenário SSP2/RCP6.0', '2018', difere(r.parametros.precoSocialCO2USD, d.precos.precoSocialCO2USD));
         ln('Cotação do dólar', 'R$ ' + num(r.parametros.cotacaoDolar, 2), esc(r.parametros.origemCotacao), data(r.dataCalculo), null);
         if (r.lia) {

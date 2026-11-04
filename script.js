@@ -344,8 +344,9 @@ function atualizarFatorK() {
 // GRADAÇÃO DO DANO EXTRAPATRIMONIAL (STJ, REsp 2.200.069/MT)
 // ============================================================
 
-function textoAjuste(pct) {
-    return pct > 0 ? '+' + pct + '%' : (pct < 0 ? '−' + Math.abs(pct) + '%' : '0%');
+// Fator com até quatro casas, sem zeros à direita: 1,125; 1,1667; 1.
+function decimalBR(valor) {
+    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 }).format(valor);
 }
 
 // Monta as escalas a partir dos critérios de valoracao.js, com o meio marcado.
@@ -370,7 +371,7 @@ function montarGradacao() {
         const escala = document.createElement('div');
         escala.className = 'gradacao-escala';
         for (let grau = 1; grau <= 5; grau++) {
-            const ajuste = DamnumValoracao.AJUSTE_GRAU_PCT[grau];
+            const ajuste = DamnumValoracao.fracao24(DamnumValoracao.AJUSTE_GRAU_24[grau]);
             const opcao = document.createElement('label');
             opcao.className = 'gradacao-opcao';
             const radio = document.createElement('input');
@@ -378,9 +379,9 @@ function montarGradacao() {
             radio.name = 'gradacao_' + c.chave;
             radio.value = String(grau);
             radio.checked = grau === 3;
-            radio.setAttribute('aria-label', 'grau ' + grau + ', ' + c.graus[grau - 1] + ' (' + textoAjuste(ajuste) + ')');
+            radio.setAttribute('aria-label', 'grau ' + grau + ', ' + c.graus[grau - 1] + ' (' + (ajuste === '0' ? 'sem ajuste' : ajuste + ' do valor-base') + ')');
             const marca = document.createElement('span');
-            marca.textContent = textoAjuste(ajuste);
+            marca.textContent = ajuste;
             opcao.append(radio, marca);
             escala.appendChild(opcao);
         }
@@ -405,11 +406,11 @@ function lerGradacao() {
 function atualizarGradacao() {
     const g = DamnumValoracao.gradacaoExtrapatrimonial(lerGradacao());
     g.criterios.forEach(c => {
-        document.getElementById('gradEfeito_' + c.chave).textContent = c.rotulo + ' · ' + (c.ajustePct === 0 ? 'sem ajuste' : textoAjuste(c.ajustePct));
+        document.getElementById('gradEfeito_' + c.chave).textContent = c.rotulo + ' · ' + (c.ajuste24 === 0 ? 'sem ajuste' : c.ajuste + ' do valor-base');
     });
-    document.getElementById('resumoGradacao').textContent = 'fator ' + numeroBR(g.fator, 2);
-    document.getElementById('notaGradacao').textContent = 'Fator de gradação: ' + numeroBR(g.fator, 2) +
-        (g.padrao ? ' (todos no meio: vale o valor-base)' : ' (' + numeroBR(g.fator * 100, 0) + '% do valor-base)');
+    document.getElementById('resumoGradacao').textContent = 'fator ' + decimalBR(g.fator);
+    document.getElementById('notaGradacao').textContent = 'Fator de gradação: ' +
+        (g.padrao ? '1 (todos no meio: vale o valor-base)' : g.fatorFracao + (g.fatorFracao.indexOf('/') < 0 ? '' : ' ≈ ' + decimalBR(g.fator)) + ' (' + numeroBR(g.fator * 100, 1) + '% do valor-base)');
 }
 
 function lerResidual() {
@@ -1144,7 +1145,7 @@ function mostrarResultado(r) {
     const g = r.gradacao;
     document.getElementById('notaGradacaoResultado').textContent = g.padrao
         ? 'Critérios do STJ (REsp 2.200.069/MT) no meio: vale o valor-base, que mede a extensão do dano.'
-        : 'Valor-base (extensão do dano) de ' + formatarMoeda(g.valorBase) + ' × fator de gradação ' + numeroBR(g.fator, 2) + ', pelos critérios do STJ (REsp 2.200.069/MT).';
+        : 'Valor-base (extensão do dano) de ' + formatarMoeda(g.valorBase) + ' × fator de gradação ' + g.fatorFracao + (g.fatorFracao.indexOf('/') < 0 ? '' : ' (≈ ' + decimalBR(g.fator) + ')') + ', pelos critérios do STJ (REsp 2.200.069/MT).';
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
     document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);
     document.getElementById('secaoLIA').style.display = r.lia ? '' : 'none';

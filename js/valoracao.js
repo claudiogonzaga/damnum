@@ -468,12 +468,21 @@
     // moral coletivo se gradua pela contribuição causal do infrator e sua situação
     // socioeconômica, pela extensão e perenidade do dano, pela gravidade da culpa e
     // pelo proveito obtido com o ilícito. O valor-base (área × estoque × 3,67 ×
-    // preço) mede a extensão; os demais critérios entram em escala de cinco graus,
-    // com o meio como padrão. Cada grau acima do meio acrescenta 10% do valor-base
-    // e cada grau abaixo retira 5%: todos no máximo dobram o valor, todos no mínimo
-    // o reduzem à metade. A redução é menor porque o valor-base parte, por padrão,
-    // do piso de preço do Protocolo do CNJ.
-    var AJUSTE_GRAU_PCT = { 1: -10, 2: -5, 3: 0, 4: 10, 5: 20 };
+    // preço do mercado voluntário) mede a extensão e fica no meio da escala de
+    // cinco graus de cada um dos demais critérios. Regra dos autores (04/11/2026):
+    // um grau para qualquer lado do meio soma ou retira 1/8 do valor-base; dois
+    // graus, 1/6. As frações ficam em 24 avos, para a conta ser exata: o fator vai
+    // de 4/24 (todos no mínimo) a 44/24 (todos no máximo).
+    var AJUSTE_GRAU_24 = { 1: -4, 2: -3, 3: 0, 4: 3, 5: 4 };
+
+    function mdc(a, b) { return b ? mdc(b, a % b) : a; }
+    // Fração de n/24, reduzida: fracao24(3) = '+1/8', fracao24(-4) = '−1/6',
+    // fracao24(28, false) = '7/6' (sem sinal, para o fator).
+    function fracao24(n, comSinal) {
+        if (n === 0) return '0';
+        var d = mdc(Math.abs(n), 24), num = Math.abs(n) / d, den = 24 / d;
+        return (n < 0 ? '−' : (comSinal === false ? '' : '+')) + (den === 1 ? String(num) : num + '/' + den);
+    }
     var GRAUS_F = ['muito baixa', 'baixa', 'média', 'alta', 'muito alta'];
     var GRAUS_M = ['muito baixo', 'baixo', 'médio', 'alto', 'muito alto'];
     var GRADACAO_STJ = [
@@ -495,14 +504,16 @@
         var criterios = GRADACAO_STJ.map(function (c) {
             var g = Number(niveis[c.chave]);
             if (!(g >= 1 && g <= 5 && g % 1 === 0)) g = 3;
-            return { chave: c.chave, nome: c.nome, grau: g, rotulo: c.graus[g - 1], ajustePct: AJUSTE_GRAU_PCT[g] };
+            return { chave: c.chave, nome: c.nome, grau: g, rotulo: c.graus[g - 1], ajuste24: AJUSTE_GRAU_24[g], ajuste: fracao24(AJUSTE_GRAU_24[g]) };
         });
-        var somaPct = criterios.reduce(function (s, c) { return s + c.ajustePct; }, 0);
+        var soma24 = criterios.reduce(function (s, c) { return s + c.ajuste24; }, 0);
         return {
             criterios: criterios,
             niveis: criterios.reduce(function (o, c) { o[c.chave] = c.grau; return o; }, {}),
-            somaPct: somaPct,
-            fator: (100 + somaPct) / 100,
+            soma24: soma24,
+            soma: fracao24(soma24),
+            fator: (24 + soma24) / 24,
+            fatorFracao: fracao24(24 + soma24, false),
             padrao: criterios.every(function (c) { return c.grau === 3; })
         };
     }
@@ -823,7 +834,8 @@
         COMPENSACAO_PADRAO: COMPENSACAO_PADRAO,
         PRECOS_PADRAO: PRECOS_PADRAO,
         GRADACAO_STJ: GRADACAO_STJ,
-        AJUSTE_GRAU_PCT: AJUSTE_GRAU_PCT,
+        AJUSTE_GRAU_24: AJUSTE_GRAU_24,
+        fracao24: fracao24,
         gradacaoExtrapatrimonial: gradacaoExtrapatrimonial,
         resolverEstoque: resolverEstoque,
         calcular: calcular,
