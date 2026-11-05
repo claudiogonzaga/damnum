@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.12';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.13';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -504,29 +504,41 @@
 
     // ---------- leitura do arquivo do usuário (navegador) ----------
 
-    // Aceita GeoJSON, KML, KMZ e shapefile zipado. Devolve FeatureCollection só
-    // com polígonos, em WGS 84.
-    async function lerArquivoGeometria(libs, arquivo) {
+    // Aceita GeoJSON, KML, KMZ e shapefile zipado. Devolve uma lista de coleções,
+    // cada uma com o nome de origem: o zip do CAR traz um shapefile por tema.
+    async function lerColecoes(libs, arquivo) {
         var nome = (arquivo.name || '').toLowerCase();
-        var geo;
+        var base = (arquivo.name || '').replace(/\.[^.]+$/, '');
         if (/\.(geojson|json)$/.test(nome)) {
-            geo = JSON.parse(await arquivo.text());
-        } else if (/\.kml$/.test(nome)) {
-            geo = libs.kml(new DOMParser().parseFromString(await arquivo.text(), 'text/xml'));
-        } else if (/\.kmz$/.test(nome)) {
+            return [{ nome: base, geo: JSON.parse(await arquivo.text()) }];
+        }
+        if (/\.kml$/.test(nome)) {
+            return [{ nome: base, geo: libs.kml(new DOMParser().parseFromString(await arquivo.text(), 'text/xml')) }];
+        }
+        if (/\.kmz$/.test(nome)) {
             var conteudo = libs.unzipSync(new Uint8Array(await arquivo.arrayBuffer()));
             var interno = Object.keys(conteudo).filter(function (n) { return /\.kml$/i.test(n); })[0];
             if (!interno) throw new Error('O arquivo KMZ não contém KML.');
-            geo = libs.kml(new DOMParser().parseFromString(new TextDecoder().decode(conteudo[interno]), 'text/xml'));
-        } else if (/\.zip$/.test(nome)) {
-            geo = await libs.shp(await arquivo.arrayBuffer());
-            if (Array.isArray(geo)) {
-                geo = libs.featureCollection([].concat.apply([], geo.map(function (g) { return g.features; })));
-            }
-        } else {
-            throw new Error('Formato não aceito. Use KML, KMZ, GeoJSON ou shapefile zipado (.zip).');
+            return [{ nome: base, geo: libs.kml(new DOMParser().parseFromString(new TextDecoder().decode(conteudo[interno]), 'text/xml')) }];
         }
-        return normalizar(libs, geo);
+        if (/\.zip$/.test(nome)) {
+            var lidos = await libs.shp(await arquivo.arrayBuffer());
+            // No zip, cada shapefile é um tema (APP, RESERVA_LEGAL...): o nome dele diz o que é.
+            return (Array.isArray(lidos) ? lidos : [lidos]).map(function (g) { return { nome: g.fileName || base, geo: g, tema: !!g.fileName }; });
+        }
+        throw new Error('Formato não aceito. Use KML, KMZ, GeoJSON ou shapefile zipado (.zip).');
+    }
+
+    function feicoesDe(geo) {
+        if (geo.type === 'FeatureCollection') return geo.features;
+        if (geo.type === 'Feature') return [geo];
+        return [{ type: 'Feature', properties: {}, geometry: geo }];
+    }
+
+    // Devolve FeatureCollection só com polígonos, em WGS 84.
+    async function lerArquivoGeometria(libs, arquivo) {
+        var colecoes = await lerColecoes(libs, arquivo);
+        return normalizar(libs, libs.featureCollection([].concat.apply([], colecoes.map(function (c) { return feicoesDe(c.geo); }))));
     }
 
     // Partes poligonais de uma geometria: entra em GeometryCollection (é como o
@@ -591,23 +603,21 @@
         }
         resumo.area_ha = areaHa(libs, saida);
         saida.resumo = resumo;
+        saida.pecas = partes;
         return saida;
     }
 
     function normalizar(libs, geo) {
-        var feicoes;
-        if (geo.type === 'FeatureCollection') feicoes = geo.features;
-        else if (geo.type === 'Feature') feicoes = [geo];
-        else feicoes = [{ type: 'Feature', properties: {}, geometry: geo }];
         var ignorados = {}, partes = [];
-        feicoes.forEach(function (f, i) {
-            var nome = nomeDaFeicao(f.properties || {}, i + 1);
+        feicoesDe(geo).forEach(function (f, i) {
+            var atributos = f.properties || {};
+            var nome = nomeDaFeicao(atributos, i + 1);
             var aneis = [];
             partesPoligonais(f.geometry, ignorados).forEach(function (g) {
                 (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).forEach(function (p) { aneis.push(p); });
             });
             aneis.forEach(function (p, k) {
-                partes.push({ type: 'Feature', properties: { nome: aneis.length > 1 ? nome + ' (' + (k + 1) + ')' : nome },
+                partes.push({ type: 'Feature', properties: { nome: aneis.length > 1 ? nome + ' (' + (k + 1) + ')' : nome, feicao: i, nomeFeicao: nome, atributos: atributos },
                     geometry: { type: 'Polygon', coordinates: semAltitude(p) } });
             });
         });
@@ -615,6 +625,224 @@
             throw new Error('O arquivo não contém polígono' + (Object.keys(ignorados).length ? ': tem só ' + descreverIgnorados(ignorados) : '') + '.');
         }
         return unirPartes(libs, partes, ignorados);
+    }
+
+    // Cada feição do arquivo (com todos os seus polígonos) como uma área à parte,
+    // para valorar uma de cada vez, por exemplo quando as datas do dano diferem.
+    function separarFeicoes(libs, geo) {
+        var grupos = [], posicao = {};
+        (geo.pecas || []).forEach(function (f) {
+            var k = f.properties.feicao;
+            if (!(k in posicao)) {
+                posicao[k] = grupos.length;
+                grupos.push({ nome: f.properties.nomeFeicao, atributos: f.properties.atributos || {}, partes: [] });
+            }
+            grupos[posicao[k]].partes.push(f);
+        });
+        return grupos.map(function (g) {
+            var saida = unirPartes(libs, g.partes, {});
+            saida.nome = g.nome;
+            saida.atributos = g.atributos;
+            return saida;
+        });
+    }
+
+    // ---------- data do dano nos atributos ----------
+
+    // Campos de data de bases de desmatamento: PRODES (image_date), DETER
+    // (view_date), MapBiomas Alerta (data de detecção), KML (timestamp). Só data
+    // completa preenche o campo; o ano sozinho não diz o dia e fica como pista.
+    var CAMPOS_DATA = /^(image_?date|view_?date|date|data|data_?(do_?)?dano|dt_?dano|data_?desmat\w*|data_?detec\w*|dt_?detec\w*|detect\w*|data_?imagem|dt_?imagem|timestamp|when)$/i;
+    var CAMPOS_ANO = /^(year|ano|ano_?desmat\w*|ano_?prodes|ano_?detec\w*)$/i;
+
+    function lerData(v) {
+        function montar(a, m, d) {
+            var data = new Date(a, m - 1, d);
+            return a >= 1985 && data.getFullYear() === a && data.getMonth() === m - 1 && data.getDate() === d ? data : null;
+        }
+        if (v instanceof Date) return isNaN(v) ? null : montar(v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate());
+        var t = String(v == null ? '' : v).trim(), m;
+        if ((m = t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?!\d)/))) return montar(+m[1], +m[2], +m[3]);
+        if ((m = t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})(?!\d)/))) return montar(+m[3], +m[2], +m[1]);
+        if ((m = t.match(/^(\d{4})(\d{2})(\d{2})$/))) return montar(+m[1], +m[2], +m[3]);
+        return null;
+    }
+
+    // Devolve { data, campo }, { data: null, ano, campo } ou null.
+    function dataDaFeicao(atributos) {
+        var achada = null, ano = null;
+        Object.keys(atributos || {}).forEach(function (campo) {
+            var v = atributos[campo];
+            if (!achada && CAMPOS_DATA.test(campo)) {
+                var d = lerData(v);
+                if (d) achada = { data: d, campo: campo };
+            }
+            if (!ano && CAMPOS_ANO.test(campo)) {
+                var n = parseInt(v, 10);
+                if (String(n) === String(v).trim() && n >= 1985 && n <= 2100) ano = { data: null, ano: n, campo: campo };
+            }
+        });
+        return achada || ano;
+    }
+
+    // ---------- áreas territorialmente protegidas (recorte do polígono) ----------
+
+    var CATEGORIAS_PROTEGIDAS = [
+        { chave: 'app', nome: 'APP', teste: /(^|[^a-z])apps?([^a-z]|$)|preserva[cç][aã]o[ _-]*permanente/i },
+        { chave: 'rl', nome: 'reserva legal', teste: /reserva[ _-]*legal|(^|[^a-z])a?rl([^a-z]|$)/i },
+        { chave: 'uc', nome: 'unidade de conservação', teste: /unidades?[ _-]*de[ _-]*conserva|(^|[^a-z])ucs?([^a-z]|$)|cnuc|rppn|parque[ _-]*(nacional|estadual|municipal)|esta[cç][aã]o[ _-]*ecol|reserva[ _-]*biol/i },
+        { chave: 'ti', nome: 'terra indígena', teste: /ind[ií]gena|(^|[^a-z])tis?([^a-z]|$)/i }
+    ];
+    var SEM_CATEGORIA = { chave: 'outra', nome: 'área protegida sem categoria no arquivo' };
+    // Temas do CAR que não são área territorialmente protegida (perímetro do
+    // imóvel, vegetação nativa, área consolidada...): ficam fora do recorte.
+    var TEMAS_FORA = /im[oó]ve(l|is)|vegeta[cç][aã]o[ _-]*nativa|remanescente|consolidad|uso[ _-]*restrito|servid[aã]o|hidrografia|pousio|[aá]rea[ _-]*l[ií]quida|amortecimento/i;
+    // APA: unidade de conservação de uso sustentável, em que a supressão pode ser
+    // autorizada. Entra no recorte, com aviso.
+    var APA = /prote[cç][aã]o[ _-]*ambiental|(^|[^a-z])apa([^a-z]|$)/i;
+    // No CNUC, o campo "limite" separa a UC ("UC") da zona de amortecimento ("ZA").
+    function zonaDeAmortecimento(atributos) {
+        var v = atributos && (atributos.limite || atributos.LIMITE);
+        return /^\s*za\s*$/i.test(String(v || ''));
+    }
+    // Atributos que descrevem a feição, no CAR, no CNUC, na FUNAI e no KML.
+    var CAMPOS_DESCRITIVOS = /^(tema|nom_?tema|des_?tema|categoria\w*|tipo|classe|name|nome|nome_?uc\w*|terrai_?nom|descricao)$/i;
+
+    function categoriaDoTexto(texto) {
+        var t = String(texto || '');
+        for (var i = 0; i < CATEGORIAS_PROTEGIDAS.length; i++) {
+            if (CATEGORIAS_PROTEGIDAS[i].teste.test(t)) return CATEGORIAS_PROTEGIDAS[i];
+        }
+        return null;
+    }
+
+    function textoDescritivo(atributos) {
+        return Object.keys(atributos || {}).filter(function (k) { return CAMPOS_DESCRITIVOS.test(k); })
+            .map(function (k) { return String(atributos[k]); }).join(' | ');
+    }
+
+    // Camada de áreas protegidas a partir das coleções lidas. No shapefile do CAR,
+    // que vem um por tema, a categoria é a do tema; nos demais arquivos (KML,
+    // GeoJSON), a da feição, e o nome do arquivo só vale na falta dela. Temas que
+    // não são área protegida são contados e deixados de fora.
+    function camadaDeColecoes(libs, colecoes, nomeArquivo) {
+        var feicoes = [], contagem = {}, ignoradas = {}, apas = 0;
+        colecoes.forEach(function (c) {
+            var doArquivo = categoriaDoTexto(c.nome);
+            var arquivoFora = !!c.tema && !doArquivo && TEMAS_FORA.test(c.nome);
+            feicoesDe(c.geo).forEach(function (f) {
+                var geoms = partesPoligonais(f.geometry, {});
+                if (!geoms.length) return;
+                if (zonaDeAmortecimento(f.properties)) {
+                    ignoradas['zona de amortecimento'] = (ignoradas['zona de amortecimento'] || 0) + 1;
+                    return;
+                }
+                var texto = textoDescritivo(f.properties);
+                var daFeicao = categoriaDoTexto(texto);
+                var categoria = c.tema ? (doArquivo || (arquivoFora ? null : daFeicao)) : (daFeicao || doArquivo);
+                if (!categoria && (arquivoFora || TEMAS_FORA.test(texto))) {
+                    var tema = arquivoFora ? c.nome : (texto.split(' | ')[0] || 'sem nome');
+                    ignoradas[tema] = (ignoradas[tema] || 0) + 1;
+                    return;
+                }
+                categoria = categoria || SEM_CATEGORIA;
+                contagem[categoria.chave] = (contagem[categoria.chave] || 0) + 1;
+                var apa = APA.test(texto);
+                if (apa) apas++;
+                geoms.forEach(function (g) {
+                    var feature = { type: 'Feature', properties: { categoria: categoria.chave }, geometry: { type: g.type, coordinates: semAltitude(g.coordinates) } };
+                    feicoes.push({ categoria: categoria, feature: feature, bbox: libs.bbox(feature), apa: apa });
+                });
+            });
+        });
+        var descricaoIgnoradas = Object.keys(ignoradas).map(function (t) { return t + ' (' + ignoradas[t] + ')'; }).join(', ');
+        if (!feicoes.length) {
+            throw new Error('O arquivo não traz polígono de área protegida' + (descricaoIgnoradas ? '; só ' + descricaoIgnoradas + ', que não são área protegida' : '') + '.');
+        }
+        return { nomeArquivo: nomeArquivo || '', feicoes: feicoes, contagem: contagem, ignoradas: ignoradas, descricaoIgnoradas: descricaoIgnoradas, apas: apas };
+    }
+
+    async function lerCamadaProtegida(libs, arquivo) {
+        return camadaDeColecoes(libs, await lerColecoes(libs, arquivo), arquivo.name || '');
+    }
+
+    // Sem camada, o nome dos polígonos do próprio arquivo pode dizer a categoria
+    // ("APP do córrego", "Reserva legal"). Devolve a camada desses polígonos, ou
+    // null se nenhum nome indicar área protegida.
+    function camadaDosNomes(libs, geo) {
+        var feicoes = [], contagem = {};
+        (geo.pecas || []).forEach(function (f) {
+            var categoria = categoriaDoTexto(f.properties.nome);
+            if (!categoria) return;
+            contagem[categoria.chave] = (contagem[categoria.chave] || 0) + 1;
+            feicoes.push({ categoria: categoria, feature: f, bbox: libs.bbox(f) });
+        });
+        return feicoes.length ? { nomeArquivo: '', feicoes: feicoes, contagem: contagem, ignoradas: {}, descricaoIgnoradas: '', pelosNomes: true } : null;
+    }
+
+    // Quanto do polígono desmatado cai nas áreas protegidas da camada. Os pedaços
+    // são unidos antes da conta, para que APP e reserva legal sobrepostas contem
+    // uma vez só; por isso a soma por categoria pode passar da área protegida.
+    function recortarProtegidas(libs, geo, camada) {
+        var total = areaHa(libs, geo);
+        var caixa = libs.bbox(geo);
+        var alvos = geo.features.filter(ehPoligono);
+        var pedacos = [], porCategoria = {}, falhas = 0, emAPA = 0;
+        camada.feicoes.forEach(function (c) {
+            if (!caixasSeTocam(c.bbox, caixa)) return;
+            alvos.forEach(function (a) {
+                var i = null;
+                try { i = libs.intersect(libs.featureCollection([a, c.feature])); } catch (erro) { falhas++; }
+                if (!i) return;
+                var ha = areaHa(libs, i);
+                if (!(ha > 0)) return;
+                pedacos.push(i);
+                if (c.apa) emAPA += ha;
+                var k = c.categoria.chave;
+                porCategoria[k] = porCategoria[k] || { chave: k, nome: c.categoria.nome, area_ha: 0 };
+                porCategoria[k].area_ha += ha;
+            });
+        });
+        var soma = pedacos.reduce(function (s, p) { return s + areaHa(libs, p); }, 0);
+        var em = soma, aviso = '';
+        if (pedacos.length > 1) {
+            try {
+                var u = libs.union(libs.featureCollection(pedacos));
+                em = u ? areaHa(libs, u) : 0;
+            } catch (erro) {
+                aviso = 'Não foi possível unir as áreas protegidas (' + erro.message + '); a sobreposição entre elas pode ter sido contada duas vezes.';
+            }
+        }
+        if (falhas) aviso += (aviso ? ' ' : '') + falhas + ' polígono(s) da camada não puderam ser cruzados com a área desmatada.';
+        if (emAPA > 1e-4) aviso += (aviso ? ' ' : '') + 'Parte do polígono (até ' + emAPA.toFixed(4).replace('.', ',') + ' ha) está em Área de Proteção Ambiental (APA), unidade de uso sustentável em que a supressão pode ser autorizada; confira se essa parte deve contar como área territorialmente protegida.';
+        em = Math.min(em, total);
+        if (em < 1e-4) em = 0; // abaixo de 1 m² é arredondamento
+        var ordem = CATEGORIAS_PROTEGIDAS.map(function (c) { return c.chave; }).concat([SEM_CATEGORIA.chave]);
+        return {
+            arquivo: camada.nomeArquivo,
+            pelosNomes: !!camada.pelosNomes,
+            total_ha: total,
+            em_ha: em,
+            fora_ha: Math.max(total - em, 0),
+            categorias: ordem.filter(function (k) { return porCategoria[k]; }).map(function (k) { return porCategoria[k]; }),
+            sobreposicao_ha: soma - em > 1e-4 ? soma - em : 0,
+            descricaoIgnoradas: camada.descricaoIgnoradas || '',
+            aviso: aviso
+        };
+    }
+
+    // Área comum a duas geometrias (para avisar de áreas repetidas no carrinho).
+    function sobreposicaoHa(libs, geoA, geoB) {
+        if (!caixasSeTocam(libs.bbox(geoA), libs.bbox(geoB))) return 0;
+        var total = 0;
+        geoA.features.filter(ehPoligono).forEach(function (a) {
+            geoB.features.filter(ehPoligono).forEach(function (b) {
+                var i = null;
+                try { i = libs.intersect(libs.featureCollection([a, b])); } catch (erro) { i = null; }
+                if (i) total += areaHa(libs, i);
+            });
+        });
+        return total > 1e-4 ? total : 0;
     }
 
     // Carrega vendor/damnum-geo.js só quando o mapa ou o polígono forem usados.
@@ -655,7 +883,17 @@
         divergenciaDeArea: divergenciaDeArea,
         lerArquivoGeometria: lerArquivoGeometria,
         normalizar: normalizar,
+        separarFeicoes: separarFeicoes,
         descreverIgnorados: descreverIgnorados,
+        lerData: lerData,
+        dataDaFeicao: dataDaFeicao,
+        CATEGORIAS_PROTEGIDAS: CATEGORIAS_PROTEGIDAS,
+        categoriaDoTexto: categoriaDoTexto,
+        camadaDeColecoes: camadaDeColecoes,
+        lerCamadaProtegida: lerCamadaProtegida,
+        camadaDosNomes: camadaDosNomes,
+        recortarProtegidas: recortarProtegidas,
+        sobreposicaoHa: sobreposicaoHa,
         carregarLibs: carregarLibs
     };
 });

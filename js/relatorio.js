@@ -49,6 +49,7 @@
         var id = r.identificacao;
         var linhas = [];
         if (r.numeroProcesso) linhas.push(linha('Processo ou procedimento', '<b>' + esc(r.numeroProcesso) + '</b>'));
+        if (r.nomeArea) linhas.push(linha('Área valorada', esc(r.nomeArea)));
         if (id.credorNome || id.credorDoc) linhas.push(linha('Credor / exequente', esc(id.credorNome) + (id.credorDoc ? ' — CPF/CNPJ ' + esc(id.credorDoc) : '')));
         if (id.devedorNome || id.devedorDoc) linhas.push(linha('Devedor / executado', esc(id.devedorNome) + (id.devedorDoc ? ' — CPF/CNPJ ' + esc(id.devedorDoc) : '')));
         linhas.push(linha('Bioma', esc(r.bioma)));
@@ -63,7 +64,22 @@
         if (!(id.credorNome || id.credorDoc || id.devedorNome || id.devedorDoc)) {
             html += '<p style="font-size:10pt; color:#666;">Nome e CPF/CNPJ do credor e do devedor (art. 524, I, do CPC): não informados. O preenchimento é opcional e só é exigido no requerimento de cumprimento de sentença.</p>';
         }
+        if (r.areas.recorte) html += textoRecorte(r.areas.recorte);
         if (r.areas.observacao) html += nota(esc(r.areas.observacao));
+        return html;
+    }
+
+    // Como as áreas A1 e A2 saíram do polígono: pela camada de áreas protegidas
+    // enviada ou pelo nome dos polígonos do arquivo.
+    function textoRecorte(rc) {
+        var cats = rc.categorias.map(function (c) { return c.nome + ': ' + num(c.area_ha, 4) + ' ha'; }).join('; ');
+        var html = '<p style="font-size:10pt; text-align:justify;">' + (rc.pelosNomes
+            ? 'Áreas separadas pelo nome dos polígonos do arquivo: dos ' + num(rc.total_ha, 4) + ' ha desmatados, ' + num(rc.em_ha, 4) + ' ha estão em polígonos cujo nome indica área territorialmente protegida (' + esc(cats) + ') e ' + num(rc.fora_ha, 4) + ' ha nos demais.'
+            : 'Recorte pela camada de áreas protegidas "' + esc(rc.arquivo) + '": dos ' + num(rc.total_ha, 4) + ' ha do polígono desmatado, ' + num(rc.em_ha, 4) + ' ha caem em áreas territorialmente protegidas' + (cats ? ' (' + esc(cats) + ')' : '') + ' e ' + num(rc.fora_ha, 4) + ' ha ficam fora delas.') +
+            (rc.sobreposicao_ha > 0 ? ' As áreas protegidas se sobrepõem em ' + num(rc.sobreposicao_ha, 4) + ' ha dentro do polígono; foram unidas antes da conta, para que essa parte conte uma vez só.' : '') +
+            (rc.pelosNomes ? '' : ' Camadas do CAR são autodeclaratórias até a análise do órgão ambiental; a APP existe por força de lei (art. 4º da Lei 12.651/2012), esteja declarada ou não.') +
+            (rc.descricaoIgnoradas ? ' Temas do arquivo que não são área protegida e ficaram fora do recorte: ' + esc(rc.descricaoIgnoradas) + '.' : '') + '</p>';
+        if (rc.aviso) html += nota(esc(rc.aviso));
         return html;
     }
 
@@ -733,5 +749,130 @@
         return html + '</div>';
     }
 
-    return { gerarHTML: gerarHTML, gerarCSV: gerarCSV, linhasMensais: linhasMensais };
+    // ---------- relatório consolidado: várias áreas, cada uma valorada à parte ----------
+
+    var PARCELAS = [
+        ['material', 'Dano material'], ['interino', 'Dano interino'], ['residual', 'Dano residual'],
+        ['mercado', 'Dano extrapatrimonial (mercado voluntário)'], ['social', 'Dano climático (custo social do carbono)'],
+        ['lia', 'Lucro do ilícito ambiental (LIA)']
+    ];
+
+    // itens: [{ nome, r, sobreposicoes: [{ item, nome, ha }] }]; extra: { hash }.
+    function gerarHTMLConsolidado(itens, extra) {
+        extra = extra || {};
+        var th = TD + ' background:#f5f5f5;';
+        var n = itens.length;
+        var rs = itens.map(function (i) { return i.r; });
+        function somar(f) { return C.arredondar(rs.reduce(function (s, r) { return s + (f(r) || 0); }, 0), 2); }
+        function somarHa(f) { return rs.reduce(function (s, r) { return s + (f(r) || 0); }, 0); }
+        var meses = rs.map(function (r) { return r.mesCalculo; }).filter(function (m, k, a) { return a.indexOf(m) === k; });
+        var mesCalculo = meses.slice().sort().pop();
+        var algumAtualizado = rs.some(function (r) { return r.atualizacao.aplicada; });
+        var areaTotal = somarHa(function (r) { return r.areas.total; });
+
+        var html = '<div style="font-family: \'Times New Roman\', serif; font-size: 12pt; line-height: 1.6; color: #222; max-width: 760px;">';
+        html += '<h2 style="text-align:center; font-size:14pt; margin-bottom:5px;">RELATÓRIO CONSOLIDADO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL</h2>';
+        html += '<p style="text-align:center; font-size:11pt; color:#555;">Demonstrativo discriminado e atualizado (art. 524 do Código de Processo Civil) de ' + n + (n === 1 ? ' área' : ' áreas') + ', cada uma valorada à parte<br>DAMNUM v. ' + esc(rs[0].versao) + ' — ' + data(extra.dataCalculo || rs[0].dataCalculo) + '</p>';
+
+        // 1. Identificação
+        var processos = rs.map(function (r) { return r.numeroProcesso; }).filter(function (p, k, a) { return p && a.indexOf(p) === k; });
+        var id = (rs.filter(function (r) { var i = r.identificacao || {}; return i.credorNome || i.credorDoc || i.devedorNome || i.devedorDoc; })[0] || rs[0]).identificacao || {};
+        var linhas = [];
+        if (processos.length) linhas.push(linha(processos.length > 1 ? 'Processos ou procedimentos' : 'Processo ou procedimento', '<b>' + processos.map(esc).join('; ') + '</b>'));
+        if (id.credorNome || id.credorDoc) linhas.push(linha('Credor / exequente', esc(id.credorNome) + (id.credorDoc ? ' — CPF/CNPJ ' + esc(id.credorDoc) : '')));
+        if (id.devedorNome || id.devedorDoc) linhas.push(linha('Devedor / executado', esc(id.devedorNome) + (id.devedorDoc ? ' — CPF/CNPJ ' + esc(id.devedorDoc) : '')));
+        linhas.push(linha('Áreas valoradas', String(n)));
+        linhas.push(linha('Área total desmatada', num(areaTotal, 4) + ' ha'));
+        linhas.push(linha('Data do cálculo', data(extra.dataCalculo || rs[0].dataCalculo)));
+        html += titulo('1. IDENTIFICAÇÃO') + tabela(linhas);
+        html += '<p style="text-align:justify;">Cada área foi valorada à parte, com a sua data do dano, o seu bioma, o seu estoque de carbono e as suas áreas dentro e fora de áreas territorialmente protegidas, pelo mesmo método do relatório individual. Este relatório soma as parcelas; o relatório completo de cada área, com a memória de cálculo, segue como anexo.</p>';
+
+        // 2. Áreas valoradas
+        html += titulo('2. ÁREAS VALORADAS');
+        html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr>' +
+            ['Nº', 'Área', 'Bioma', 'Data do dano', 'A<sub>1</sub> (ha)', 'A<sub>2</sub> (ha)', 'Estoque (tC/ha)', 'Valor original', 'Valor atualizado'].map(function (c, k) { return '<th style="' + th + (k === 1 ? ' text-align:left;' : '') + '">' + c + '</th>'; }).join('') + '</tr>';
+        itens.forEach(function (it, k) {
+            var r = it.r;
+            html += '<tr><td style="' + TD + ' text-align:center;">' + (k + 1) + '</td><td style="' + TD + '">' + esc(it.nome) + '</td><td style="' + TD + '">' + esc(r.bioma) + '</td><td style="' + TD + ' text-align:center;">' + (r.dataInformada ? data(r.dataDano) : 'não informada') + '</td>' +
+                '<td style="' + TDR + '">' + num(r.areas.fora, 4) + '</td><td style="' + TDR + '">' + num(r.areas.em, 4) + '</td><td style="' + TDR + '">' + num(r.estoque.tC, 2) + '</td>' +
+                '<td style="' + TDR + '">' + moeda(r.totais.original) + '</td><td style="' + TDR + '">' + moeda(r.totais.atualizado) + '</td></tr>';
+        });
+        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '" colspan="4"><b>Total</b></td><td style="' + TDR + '"><b>' + num(somarHa(function (r) { return r.areas.fora; }), 4) + '</b></td><td style="' + TDR + '"><b>' + num(somarHa(function (r) { return r.areas.em; }), 4) + '</b></td><td style="' + TD + '"></td>' +
+            '<td style="' + TDR + '"><b>' + moeda(somar(function (r) { return r.totais.original; })) + '</b></td><td style="' + TDR + '"><b>' + moeda(somar(function (r) { return r.totais.atualizado; })) + '</b></td></tr></table>';
+        html += '<p style="font-size:10pt;">A<sub>1</sub>: área em excedentes de vegetação nativa. A<sub>2</sub>: área em áreas territorialmente protegidas (APP, ARL, UC e TI).</p>';
+        itens.forEach(function (it, k) {
+            (it.sobreposicoes || []).forEach(function (s) {
+                html += nota('A área ' + (k + 1) + ' (' + esc(it.nome) + ') se sobrepõe em ' + num(s.ha, 4) + ' ha à área ' + s.item + ' (' + esc(s.nome) + '). Se as duas se referem ao mesmo desmatamento, essa parte foi valorada duas vezes.', 'vermelho');
+            });
+        });
+        var semData = itens.filter(function (it) { return !it.r.dataInformada; }).map(function (it) { return esc(it.nome); });
+        if (semData.length) html += nota('Sem data do dano, sem atualização e sem lucro do ilícito ambiental: ' + semData.join('; ') + '.');
+        if (meses.length > 1) html += nota('As áreas foram calculadas em meses diferentes (' + meses.map(C.rotuloMes).join(', ') + '). Recalcule as mais antigas, para que todas sejam atualizadas até o mesmo mês.', 'vermelho');
+
+        // 3. Reparação em espécie
+        html += titulo('3. REPARAÇÃO EM ESPÉCIE, QUE PRECEDE A INDENIZAÇÃO');
+        html += '<p style="text-align:justify;">Soma das áreas de cada relatório: recuperação no próprio local, nas áreas territorialmente protegidas, e proteção perpétua de vegetação nativa (compensação ecológica), já multiplicada pelo fator K de cada área. As regras da compensação estão em cada anexo.</p>';
+        var colunas = [['material', 'Material'], ['interino', 'Interino'], ['residual', 'Residual'], ['mercado', 'Extrapatr.'], ['lia', 'LIA']];
+        function haItem(r, chave) {
+            var i = r.compensacao.itens.filter(function (x) { return x.chave === chave; })[0];
+            return i ? i.ha : null;
+        }
+        html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Área</th><th style="' + th + '">Recuperação no local (ha)</th>' +
+            colunas.map(function (c) { return '<th style="' + th + '">' + c[1] + ' (ha)</th>'; }).join('') + '<th style="' + th + '">Compensação ecológica (ha)</th></tr>';
+        itens.forEach(function (it, k) {
+            var r = it.r;
+            html += '<tr><td style="' + TD + '">' + (k + 1) + '. ' + esc(it.nome) + '</td><td style="' + TDR + '">' + num(r.compensacao.inSituHa, 4) + '</td>' +
+                colunas.map(function (c) { var ha = haItem(r, c[0]); return '<td style="' + TDR + '">' + (ha === null ? '—' : num(ha, 4)) + '</td>'; }).join('') +
+                '<td style="' + TDR + '">' + num(r.compensacao.totalHa, 4) + '</td></tr>';
+        });
+        html += '<tr style="background:#e8f5e9;"><td style="' + TD + '"><b>Total</b></td><td style="' + TDR + '"><b>' + num(somarHa(function (r) { return r.compensacao.inSituHa; }), 4) + '</b></td>' +
+            colunas.map(function (c) { return '<td style="' + TDR + '">' + num(somarHa(function (r) { return haItem(r, c[0]); }), 4) + '</td>'; }).join('') +
+            '<td style="' + TDR + '"><b>' + num(somarHa(function (r) { return r.compensacao.totalHa; }), 4) + '</b></td></tr></table>';
+        html += '<p style="font-size:10pt; text-align:justify;">O dano material de cada área é arredondado para cima no seu relatório; por isso a soma pode passar, em até 1 ha por área, do que daria a soma das áreas desmatadas. O dano climático é compensado pela própria compensação ecológica, sem área adicional.' +
+            (rs.some(function (r) { return r.lia && !r.compensacao.precoTerraNativa; }) ? ' Sem o preço da terra com vegetação nativa, o lucro do ilícito ambiental não foi convertido em área (—).' : '') + '</p>';
+
+        // 4. Total geral
+        html += titulo('4. TOTAL GERAL E TOTAL ATUALIZADO');
+        html += '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;">' +
+            '<tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Valor original</th><th style="' + th + '">Correção</th><th style="' + th + '">Juros</th><th style="' + th + '">Valor atualizado</th></tr>';
+        PARCELAS.forEach(function (par) {
+            if (par[0] === 'lia' && !rs.some(function (r) { return r.parcelas.lia; })) return;
+            function campo(c) { return somar(function (r) { return r.parcelas[par[0]] ? r.parcelas[par[0]][c] : 0; }); }
+            html += '<tr><td style="' + TD + '">' + par[1] + '</td><td style="' + TDR + '">' + moeda(campo('valor')) + '</td><td style="' + TDR + '">' + moeda(campo('correcao')) + '</td><td style="' + TDR + '">' + moeda(campo('juros')) + '</td><td style="' + TDR + '">' + moeda(campo('total')) + '</td></tr>';
+        });
+        var t = { original: somar(function (r) { return r.totais.original; }), correcao: somar(function (r) { return r.totais.correcao; }), juros: somar(function (r) { return r.totais.juros; }), atualizado: somar(function (r) { return r.totais.atualizado; }) };
+        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Total</b></td><td style="' + TDR + '"><b>' + moeda(t.original) + '</b></td><td style="' + TDR + '">' + moeda(t.correcao) + '</td><td style="' + TDR + '">' + moeda(t.juros) + '</td><td style="' + TDR + '"><b>' + moeda(t.atualizado) + '</b></td></tr></table>';
+        html += '<div style="background:#c8e6c9; padding:10px 14px; margin:10px 0 4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">TOTAL GERAL = ' + moeda(t.original) + '</div>';
+        if (algumAtualizado) {
+            html += '<div style="background:#fff3cd; padding:10px 14px; margin:4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">TOTAL ATUALIZADO ATÉ ' + C.rotuloMes(mesCalculo).toUpperCase() + ' = ' + moeda(t.atualizado) + '</div>';
+            html += '<p style="font-size:10pt; text-align:justify;">Cada área é atualizada a partir da sua própria data do dano, conforme o Manual de Cálculos da Justiça Federal (CJF, 2026), item 4.2.' + (semData.length ? ' As áreas sem data do dano entram pelo valor original.' : '') + '</p>';
+        }
+
+        // 5. Entendimento alternativo
+        var entendimentos = rs.map(function (r) { return r.entendimento; }).filter(function (e, k, a) { return a.indexOf(e) === k; });
+        html += titulo('5. VALORAÇÃO PELO ENTENDIMENTO ALTERNATIVO');
+        if (entendimentos.length > 1) {
+            html += '<p style="text-align:justify;">As áreas não foram valoradas pelo mesmo entendimento; o valor pelo entendimento alternativo está no anexo de cada uma.</p>';
+        } else {
+            html += '<p style="text-align:justify;">Caso fosse adotado o entendimento ' + (entendimentos[0] === 'gonzaga' ? 'do <b>' + nomeEntendimento('irdr') + '</b>' : 'de <b>' + nomeEntendimento('gonzaga') + '</b>') + ', a soma das áreas seria de ' + moeda(somar(function (r) { return r.alternativo.totalOriginal; })) + ' (valor original)' +
+                (algumAtualizado ? ' e de ' + moeda(somar(function (r) { return r.alternativo.totalAtualizado; })) + ' (valor atualizado)' : '') + '. O detalhamento por parcela está no anexo de cada área.</p>';
+        }
+
+        // 6. Integridade
+        html += titulo('6. METADADOS');
+        var lm = [linha('Versão do DAMNUM', esc(rs[0].versao) + ' — <a href="' + SITE + '/" target="_blank" style="color:#1a5276;">' + SITE + '</a>')];
+        itens.forEach(function (it, k) {
+            lm.push(linha('Hash SHA-256 da área ' + (k + 1), '<span style="font-family:monospace; font-size:9pt; word-break:break-all;">' + esc(it.r.hash) + '</span>'));
+        });
+        if (extra.hash) lm.push(linha('Hash SHA-256 do conjunto (hashes das áreas, na ordem)', '<span style="font-family:monospace; font-size:9pt; word-break:break-all;">' + esc(extra.hash) + '</span>'));
+        html += tabela(lm);
+
+        // Anexos
+        itens.forEach(function (it, k) {
+            html += '<div style="page-break-before:always; break-before:page; margin-top:28px;"><h3 style="font-size:13pt; text-align:center; border-top:3px double #333; padding-top:10px;">ANEXO ' + (k + 1) + ' — ' + esc(it.nome) + '</h3>' + gerarHTML(it.r) + '</div>';
+        });
+        return html + '</div>';
+    }
+
+    return { gerarHTML: gerarHTML, gerarHTMLConsolidado: gerarHTMLConsolidado, gerarCSV: gerarCSV, linhasMensais: linhasMensais };
 });

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.12">
+    <link rel="stylesheet" href="style.css?v=7.1.13">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -55,6 +55,19 @@
                     <label for="arquivoPoligono">Polígono da área desmatada (KML, KMZ, GeoJSON ou shapefile zipado):</label>
                     <input type="file" id="arquivoPoligono" accept=".kml,.kmz,.geojson,.json,.zip">
                     <p id="infoPoligono" class="ajuda-campo" style="display:none;"></p>
+                    <div id="filaPoligonos" class="fila-poligonos" style="display:none;" aria-live="polite">
+                        <p id="textoFila"></p>
+                        <div class="fila-acoes">
+                            <button type="button" id="btnFilaIniciar" class="btn-fila">Valorar uma área por vez</button>
+                            <button type="button" id="btnFilaAnterior" class="btn-fila btn-fila-secundario">Área anterior</button>
+                            <button type="button" id="btnFilaProxima" class="btn-fila btn-fila-secundario">Próxima área</button>
+                            <button type="button" id="btnFilaSair" class="btn-fila btn-fila-secundario">Usar o arquivo inteiro</button>
+                        </div>
+                    </div>
+                    <label for="arquivoProtegidas" style="margin-top:10px;">Áreas territorialmente protegidas do imóvel (opcional): APP, reserva legal, UC ou TI.</label>
+                    <p class="ajuda-campo">Envie o shapefile do CAR (.zip com os temas APP e Reserva Legal), ou KML, KMZ ou GeoJSON. A calculadora recorta o polígono desmatado e preenche as áreas dentro e fora das áreas protegidas. O arquivo também fica no seu navegador.</p>
+                    <input type="file" id="arquivoProtegidas" accept=".kml,.kmz,.geojson,.json,.zip">
+                    <p id="infoProtegidas" class="ajuda-campo" style="display:none;"></p>
                     <div id="divergenciaArea" class="aviso-campo" style="display:none;">
                         <span id="textoDivergenciaArea"></span>
                         <label class="caixa-opcao"><input type="radio" name="areaPrevalente" value="digitada" checked> Prevalece a área digitada</label>
@@ -139,6 +152,8 @@
                 <div class="input-group">
                     <label for="areaForaAPP">Área ilegalmente desmatada dentro de excedentes de vegetação nativa, passíveis de autorização (hectares):</label>
                     <input type="number" id="areaForaAPP" name="areaForaAPP" step="0.0001" min="0" placeholder="Ex: 3.3095">
+                    <p id="notaRecorte" class="ajuda-campo" style="display:none;"></p>
+                    <button type="button" id="btnUsarRecorte" class="btn-fila btn-fila-secundario" style="display:none;">Usar as áreas do polígono</button>
                 </div>
 
                 <div id="checkboxReparacaoContainer" class="input-group" style="display:none;">
@@ -385,6 +400,32 @@
                 </div>
             </div>
 
+            <div id="carrinho" class="carrinho" style="display:none;">
+                <h3>Carrinho: áreas do relatório consolidado (<span id="contagemCarrinho">0</span>)</h3>
+                <p class="ajuda-campo">Cada área é valorada à parte, com a sua data do dano, o seu bioma e o seu estoque; o relatório consolidado soma as parcelas e traz o relatório de cada área como anexo. O carrinho fica só neste navegador e se perde ao recarregar a página.</p>
+                <div class="tabela-rolavel">
+                    <table id="tabelaCarrinho" class="tabela-carrinho">
+                        <thead><tr><th>Nº</th><th>Área</th><th>Data do dano</th><th>Bioma</th><th>Área (ha)</th><th>Valor original</th><th>Valor atualizado</th><th><span class="visualmente-oculto">Ações</span></th></tr></thead>
+                        <tbody></tbody>
+                        <tfoot></tfoot>
+                    </table>
+                </div>
+                <div class="carrinho-acoes">
+                    <button type="button" id="btnConsolidado" class="btn-download">Gerar o relatório consolidado</button>
+                    <button type="button" id="btnEsvaziarCarrinho" class="btn-download btn-secundario">Esvaziar o carrinho</button>
+                </div>
+                <div id="relatorioConsolidado" class="relatorio-container" style="display:none;">
+                    <div class="relatorio-header">
+                        <h4>Relatório consolidado</h4>
+                        <div class="relatorio-acoes">
+                            <button type="button" id="btnCopiarConsolidado" class="btn-download">Copiar</button>
+                            <button type="button" id="btnPDFConsolidado" class="btn-download">Baixar PDF</button>
+                        </div>
+                    </div>
+                    <div id="textoConsolidado" class="texto-relatorio"></div>
+                </div>
+            </div>
+
             <div id="resultado" class="resultado-container" style="display: none;">
                 <h3>Resultado da Valoração</h3>
 
@@ -464,6 +505,11 @@
                     <p id="notaDataDano" style="display:none; font-size:0.85em; color:#8b4513; margin:8px 0 0 0; padding:8px 12px; background:#fef9e7; border-left:3px solid #d4ac0d; border-radius:3px; line-height:1.5;"></p>
                 </div>
 
+                <div class="resultado-secao carrinho-adicionar">
+                    <button type="button" id="btnCarrinho" class="btn-carrinho">Pôr esta área no carrinho</button>
+                    <p id="statusCarrinho" class="ajuda-campo">Para juntar várias áreas (por exemplo, com datas de dano diferentes) num relatório só, ponha cada uma no carrinho depois de calculá-la.</p>
+                </div>
+
                 <div id="relatorio" class="relatorio-container">
                     <div class="relatorio-header">
                         <h4>Relatório de Valoração dos Danos Ambientais Decorrentes de Desmatamento Ilegal</h4>
@@ -488,12 +534,12 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.12"></script>
-    <script src="js/series.js?v=7.1.12"></script>
-    <script src="js/mapa-qcn.js?v=7.1.12"></script>
-    <script src="js/valoracao.js?v=7.1.12"></script>
-    <script src="js/relatorio.js?v=7.1.12"></script>
-    <script src="script.js?v=7.1.12"></script>
+    <script src="js/calculo.js?v=7.1.13"></script>
+    <script src="js/series.js?v=7.1.13"></script>
+    <script src="js/mapa-qcn.js?v=7.1.13"></script>
+    <script src="js/valoracao.js?v=7.1.13"></script>
+    <script src="js/relatorio.js?v=7.1.13"></script>
+    <script src="script.js?v=7.1.13"></script>
 </body>
 </html>
 

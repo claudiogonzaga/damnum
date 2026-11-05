@@ -708,59 +708,429 @@ function descreverParte(p) {
     return (p.c_pret || 'classe não identificada') + ' (' + numeroBR(p.d, 2) + ' tC/ha)';
 }
 
+// Polígono enviado, a área em uso e a fila: um arquivo com várias áreas (por
+// exemplo, polígonos do PRODES de anos diferentes) pode ser valorado uma área
+// por vez, e cada uma vai para o carrinho.
+let arquivoAtual = null;    // { nome, geo, grupos }
+let geoAtual = null;        // geometria em uso: o arquivo inteiro ou a área da fila
+let nomeAreaAtual = '';
+let fila = null;            // { arquivo, indice, noCarrinho, notaData }
+
 async function aoEscolherPoligono(evento) {
     const info = document.getElementById('infoPoligono');
     const arquivo = evento.target.files[0];
-    const minha = ++ordemConsulta;
+    ++ordemConsulta;
+    arquivoAtual = null;
+    fila = null;
+    geoAtual = null;
+    nomeAreaAtual = '';
     poligonoUsuario = null;
     consultaMapa = null;
     mapa.falha = '';
-    if (!arquivo) { info.style.display = 'none'; atualizarDivergenciaArea(); aoInformarCoordenada(); return; }
+    atualizarFila();
+    if (!arquivo) {
+        info.style.display = 'none';
+        await atualizarRecorte();
+        atualizarDivergenciaArea();
+        aoInformarCoordenada();
+        return;
+    }
     info.style.display = '';
     info.textContent = 'Lendo o polígono...';
-    let geo = null;
     try {
         const libs = await DamnumMapa.carregarLibs();
-        geo = await DamnumMapa.lerArquivoGeometria(libs, arquivo);
-        poligonoUsuario = { area_ha: DamnumMapa.areaHa(libs, geo) };
+        const geo = await DamnumMapa.lerArquivoGeometria(libs, arquivo);
+        arquivoAtual = { nome: arquivo.name.replace(/\.[^.]+$/, ''), geo, grupos: DamnumMapa.separarFeicoes(libs, geo) };
     } catch (erro) {
         info.textContent = 'Não foi possível usar o polígono: ' + erro.message;
+        await atualizarRecorte();
+        atualizarDivergenciaArea();
+        atualizarPainelEstoque();
+        return;
     }
-    if (geo) {
-        const resumo = geo.resumo;
-        let texto = resumo && resumo.poligonos > 1
-            ? 'Arquivo com ' + resumo.poligonos + ' polígonos. Área calculada: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico, união dos polígonos' +
-                (resumo.sobreposicao_ha > 0 ? '; descontada a sobreposição de ' + numeroBR(resumo.sobreposicao_ha, 4) + ' ha' : '') + '). '
-            : 'Área calculada do polígono: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico). ';
-        if (resumo && resumo.aviso) texto += resumo.aviso + ' ';
-        if (resumo && resumo.descricaoIgnorados) texto += 'Além dos polígonos, o arquivo tinha ' + resumo.descricaoIgnorados + '; pontos e linhas não entram no cálculo. ';
-        try {
-            const { libs, fonte } = await obterFonteMapa();
-            const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo);
-            if (minha !== ordemConsulta) return;
-            const nomeBioma = await biomaDaLocalizacao(consulta, geo);
-            if (minha !== ordemConsulta) return;
-            consultaMapa = consulta;
-            aplicarBioma(nomeBioma);
-            texto += nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O polígono parece estar fora do Brasil; confira o arquivo. ';
-            if (typeof consulta.estoque_tC_ha === 'number') {
-                texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' classe(s): ' +
-                    consulta.partes.slice(0, 6).map(descreverParte).join('; ') + (consulta.partes.length > 6 ? '; ...' : '') + '.';
-                if (consulta.pct_descoberto > 0.005) {
-                    texto += ' ' + numeroBR(consulta.pct_descoberto, 2) + '% do polígono está fora da cobertura do mapa ou em classe sem dado; nessa parte vale a tabela.';
-                }
-            } else {
-                texto += 'O polígono está fora da cobertura do mapa do Inventário (por ora, a Amazônia Legal) ou em classe sem dado; vale a tabela por fitofisionomia ou a média do bioma.';
+    // Arquivo de uma área só, com data nos atributos: preenche a data do dano.
+    let notaData = '';
+    if (arquivoAtual.grupos.length === 1 && !valorCampo('dataDano')) {
+        const achada = DamnumMapa.dataDaFeicao(arquivoAtual.grupos[0].atributos);
+        if (achada) notaData = aplicarDataDoArquivo(achada, 0) + ' ';
+    }
+    const unico = arquivoAtual.grupos.length === 1 && arquivoAtual.grupos[0].nome && !/^polígono \d+$/.test(arquivoAtual.grupos[0].nome);
+    await usarGeometria(arquivoAtual.geo, unico ? arquivoAtual.grupos[0].nome : arquivoAtual.nome, notaData);
+}
+
+// Põe em uso uma geometria (o arquivo inteiro ou uma área da fila): consulta o
+// mapa, identifica o bioma e recorta as áreas protegidas.
+async function usarGeometria(geo, nome, notaData) {
+    const info = document.getElementById('infoPoligono');
+    const minha = ++ordemConsulta;
+    const libs = await DamnumMapa.carregarLibs();
+    geoAtual = geo;
+    nomeAreaAtual = nome || '';
+    poligonoUsuario = { area_ha: DamnumMapa.areaHa(libs, geo) };
+    consultaMapa = null;
+    mapa.falha = '';
+    info.style.display = '';
+    const resumo = geo.resumo;
+    let texto = (notaData || '') + (fila ? 'Área "' + nomeAreaAtual + '". ' : '');
+    texto += resumo && resumo.poligonos > 1
+        ? (fila ? 'Tem ' : 'Arquivo com ') + resumo.poligonos + ' polígonos. Área calculada: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico, união dos polígonos' +
+            (resumo.sobreposicao_ha > 0 ? '; descontada a sobreposição de ' + numeroBR(resumo.sobreposicao_ha, 4) + ' ha' : '') + '). '
+        : 'Área calculada do polígono: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico). ';
+    if (resumo && resumo.aviso) texto += resumo.aviso + ' ';
+    if (resumo && resumo.descricaoIgnorados) texto += 'Além dos polígonos, o arquivo tinha ' + resumo.descricaoIgnorados + '; pontos e linhas não entram no cálculo. ';
+    info.textContent = texto + 'Consultando o mapa...';
+    await atualizarRecorte();
+    atualizarFila();
+    try {
+        const { libs, fonte } = await obterFonteMapa();
+        const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo);
+        if (minha !== ordemConsulta) return;
+        const nomeBioma = await biomaDaLocalizacao(consulta, geo);
+        if (minha !== ordemConsulta) return;
+        consultaMapa = consulta;
+        aplicarBioma(nomeBioma);
+        texto += nomeBioma ? 'Bioma: ' + nomeBioma + '. ' : 'O polígono parece estar fora do Brasil; confira o arquivo. ';
+        if (typeof consulta.estoque_tC_ha === 'number') {
+            texto += 'Estoque médio pelo mapa: ' + numeroBR(consulta.estoque_tC_ha, 2) + ' tC/ha, em ' + consulta.partes.length + ' classe(s): ' +
+                consulta.partes.slice(0, 6).map(descreverParte).join('; ') + (consulta.partes.length > 6 ? '; ...' : '') + '.';
+            if (consulta.pct_descoberto > 0.005) {
+                texto += ' ' + numeroBR(consulta.pct_descoberto, 2) + '% do polígono está fora da cobertura do mapa ou em classe sem dado; nessa parte vale a tabela.';
             }
-        } catch (erro) {
-            // Falha de rede ou do servidor de dados: o cálculo segue pela reserva.
-            mapa.falha = erro.message;
-            texto += 'Consulta ao mapa indisponível (' + erro.message + '); vale a tabela por fitofisionomia ou a média do bioma.';
+        } else {
+            texto += 'O polígono está fora da cobertura do mapa do Inventário (por ora, a Amazônia Legal) ou em classe sem dado; vale a tabela por fitofisionomia ou a média do bioma.';
         }
-        info.textContent = texto;
+    } catch (erro) {
+        if (minha !== ordemConsulta) return;
+        // Falha de rede ou do servidor de dados: o cálculo segue pela reserva.
+        mapa.falha = erro.message;
+        texto += 'Consulta ao mapa indisponível (' + erro.message + '); vale a tabela por fitofisionomia ou a média do bioma.';
     }
+    info.textContent = texto;
     atualizarDivergenciaArea();
     atualizarPainelEstoque();
+}
+
+function dataISO(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// Data do dano lida dos atributos da área (PRODES, DETER, MapBiomas Alerta).
+// Devolve a frase que diz de onde veio a data, ou o que conferir.
+function aplicarDataDoArquivo(achada, indice) {
+    const campo = document.getElementById('dataDano');
+    if (achada && achada.data) {
+        campo.value = dataISO(achada.data);
+        campo.dispatchEvent(new Event('change'));
+        return 'Data do dano lida do arquivo (campo ' + achada.campo + '): ' + achada.data.toLocaleDateString('pt-BR') + '; confira.';
+    }
+    if (achada) return 'O arquivo indica o ano ' + achada.ano + ' (campo ' + achada.campo + '), sem o dia: informe a data do dano.';
+    if (!campo.value) return 'Informe a data do dano desta área; em branco, valem os valores de hoje, sem atualização.';
+    return indice > 0 ? 'A data do dano ficou a da área anterior; troque-a se esta foi desmatada em outra data.' : 'Confira a data do dano desta área.';
+}
+
+function atualizarFila() {
+    const caixa = document.getElementById('filaPoligonos');
+    const grupos = arquivoAtual ? arquivoAtual.grupos : [];
+    if (grupos.length < 2) { caixa.style.display = 'none'; return; }
+    caixa.style.display = '';
+    const texto = document.getElementById('textoFila');
+    const naFila = !!fila;
+    document.getElementById('btnFilaIniciar').style.display = naFila ? 'none' : '';
+    ['btnFilaAnterior', 'btnFilaProxima', 'btnFilaSair'].forEach(id => { document.getElementById(id).style.display = naFila ? '' : 'none'; });
+    texto.textContent = '';
+    if (!naFila) {
+        const datas = grupos.map(g => DamnumMapa.dataDaFeicao(g.atributos)).map(a => a ? (a.data ? a.data.toLocaleDateString('pt-BR') : String(a.ano)) : '');
+        const distintas = datas.filter((d, i) => d && datas.indexOf(d) === i);
+        const nomes = grupos.slice(0, 4).map(g => g.nome).join(', ') + (grupos.length > 4 ? '...' : '');
+        texto.textContent = 'O arquivo tem ' + grupos.length + ' áreas (' + nomes + '). ' +
+            (distintas.length > 1 ? 'Os atributos trazem datas diferentes (' + distintas.slice(0, 4).join(', ') + (distintas.length > 4 ? '...' : '') + '): valore uma área por vez. ' : '') +
+            'Por padrão, elas são unidas e valoradas juntas, com uma só data do dano. Com datas de dano diferentes, valore uma área por vez e junte todas no carrinho, para o relatório consolidado.';
+        return;
+    }
+    const n = grupos.length, i = fila.indice;
+    const feitas = fila.noCarrinho.filter(Boolean).length;
+    const forte = document.createElement('strong');
+    forte.textContent = 'Área ' + (i + 1) + ' de ' + n + ': ' + grupos[i].nome + (fila.noCarrinho[i] ? ' (já está no carrinho)' : '') + '.';
+    texto.append(forte, document.createTextNode(' ' + (fila.notaData ? fila.notaData + ' ' : '') + 'No carrinho: ' + feitas + ' de ' + n + '. ' +
+        (feitas === n ? 'Todas as áreas do arquivo estão no carrinho; gere o relatório consolidado.' : 'Calcule e ponha no carrinho; a próxima área entra em seguida.')));
+    document.getElementById('btnFilaAnterior').disabled = i === 0;
+    document.getElementById('btnFilaProxima').disabled = i === n - 1;
+}
+
+async function irParaArea(indice) {
+    const grupo = arquivoAtual.grupos[indice];
+    fila.indice = indice;
+    // As áreas digitadas eram da área anterior: voltam a vir do polígono.
+    ['areaForaAPP', 'areaEmAPP'].forEach(id => { const c = document.getElementById(id); c.value = ''; c.dataset.auto = '1'; });
+    fila.notaData = aplicarDataDoArquivo(DamnumMapa.dataDaFeicao(grupo.atributos), indice);
+    document.getElementById('resultado').style.display = 'none';
+    await usarGeometria(grupo, grupo.nome);
+    document.getElementById('grupoLocalizacao').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================================
+// RECORTE DAS ÁREAS TERRITORIALMENTE PROTEGIDAS
+// Pela camada enviada (CAR, CNUC, FUNAI) ou pelo nome dos polígonos. Preenche
+// as áreas dentro e fora delas, sem apagar o que o usuário digitou.
+// ============================================================
+
+let camadaProtegida = null;
+let recorteAtual = null;
+
+function campoLivre(c) { return !c.value || !!c.dataset.auto; }
+
+function aoMudarAreas() {
+    const em = parseFloat(valorCampo('areaEmAPP')) || 0;
+    document.getElementById('checkboxReparacaoContainer').style.display = em > 0 ? '' : 'none';
+    if (em <= 0) document.getElementById('reparacaoInSitu').checked = true; // resetar ao esconder
+    atualizarPadroesLIA();
+    atualizarDivergenciaArea();
+}
+
+function preencherAreas(fora, em) {
+    const cFora = document.getElementById('areaForaAPP'), cEm = document.getElementById('areaEmAPP');
+    if (!campoLivre(cFora) || !campoLivre(cEm)) return false;
+    cFora.value = String(Math.round(fora * 1e4) / 1e4);
+    cEm.value = String(Math.round(em * 1e4) / 1e4);
+    cFora.dataset.auto = '1';
+    cEm.dataset.auto = '1';
+    aoMudarAreas();
+    return true;
+}
+
+function limparAreasAutomaticas() {
+    ['areaForaAPP', 'areaEmAPP'].forEach(id => {
+        const c = document.getElementById(id);
+        if (c.dataset.auto) { c.value = ''; delete c.dataset.auto; }
+    });
+    aoMudarAreas();
+}
+
+function descreverCategorias(rc) {
+    return rc.categorias.map(c => c.nome + ': ' + numeroBR(c.area_ha, 4) + ' ha').join('; ');
+}
+
+function descreverRecorte(rc) {
+    if (rc.pelosNomes) {
+        return 'Pelo nome dos polígonos: ' + numeroBR(rc.em_ha, 4) + ' ha em áreas territorialmente protegidas (' + descreverCategorias(rc) + ') e ' + numeroBR(rc.fora_ha, 4) + ' ha em excedentes de vegetação nativa. Confira.';
+    }
+    let texto = 'Recorte pela camada "' + rc.arquivo + '": ' + numeroBR(rc.em_ha, 4) + ' ha em áreas territorialmente protegidas' +
+        (rc.categorias.length ? ' (' + descreverCategorias(rc) + ')' : '') + ' e ' + numeroBR(rc.fora_ha, 4) + ' ha fora delas.';
+    if (rc.sobreposicao_ha > 0) texto += ' As áreas protegidas se sobrepõem em ' + numeroBR(rc.sobreposicao_ha, 4) + ' ha dentro do polígono; essa parte conta uma vez só.';
+    if (rc.em_ha === 0) texto += ' Nenhuma área protegida do arquivo toca o polígono: confira se o arquivo é do mesmo imóvel.';
+    if (rc.aviso) texto += ' ' + rc.aviso;
+    return texto;
+}
+
+async function atualizarRecorte() {
+    const nota = document.getElementById('notaRecorte');
+    const botao = document.getElementById('btnUsarRecorte');
+    recorteAtual = null;
+    nota.style.display = 'none';
+    botao.style.display = 'none';
+    if (!geoAtual) { limparAreasAutomaticas(); return; }
+    const libs = await DamnumMapa.carregarLibs();
+    let rc = null, falha = '';
+    try {
+        const camada = camadaProtegida || DamnumMapa.camadaDosNomes(libs, geoAtual);
+        if (camada) rc = DamnumMapa.recortarProtegidas(libs, geoAtual, camada);
+    } catch (erro) {
+        falha = 'Não foi possível recortar as áreas protegidas (' + erro.message + '). ';
+    }
+    recorteAtual = rc;
+    const fora = rc ? rc.fora_ha : poligonoUsuario.area_ha;
+    const em = rc ? rc.em_ha : 0;
+    if (preencherAreas(fora, em)) {
+        nota.textContent = falha + (rc ? descreverRecorte(rc)
+            : 'A área do polígono entrou como excedente de vegetação nativa. Se parte dela estiver em APP, reserva legal, UC ou TI, passe essa parte para o campo de cima ou envie a camada de áreas protegidas.');
+    } else {
+        nota.textContent = falha + 'Pelo polígono' + (rc ? ' e pelo recorte' : '') + ', seriam ' + numeroBR(em, 4) + ' ha em áreas territorialmente protegidas e ' + numeroBR(fora, 4) + ' ha em excedentes; os campos guardam o que você digitou.';
+        botao.style.display = '';
+    }
+    nota.style.display = '';
+}
+
+async function aoEscolherProtegidas(evento) {
+    const info = document.getElementById('infoProtegidas');
+    const arquivo = evento.target.files[0];
+    camadaProtegida = null;
+    if (!arquivo) {
+        info.style.display = 'none';
+        await atualizarRecorte();
+        return;
+    }
+    info.style.display = '';
+    info.textContent = 'Lendo as áreas protegidas...';
+    try {
+        const libs = await DamnumMapa.carregarLibs();
+        camadaProtegida = await DamnumMapa.lerCamadaProtegida(libs, arquivo);
+        const c = camadaProtegida.contagem;
+        const nomes = DamnumMapa.CATEGORIAS_PROTEGIDAS.concat([{ chave: 'outra', nome: 'sem categoria no arquivo, contadas como área protegida' }]);
+        info.textContent = 'Polígonos reconhecidos: ' + nomes.filter(k => c[k.chave]).map(k => k.nome + ' (' + c[k.chave] + ')').join(', ') + '.' +
+            (camadaProtegida.descricaoIgnoradas ? ' Ficaram fora do recorte, por não serem área protegida: ' + camadaProtegida.descricaoIgnoradas + '.' : '') +
+            (camadaProtegida.apas ? ' Há ' + camadaProtegida.apas + ' APA(s): entram no recorte, com aviso.' : '') +
+            (geoAtual ? '' : ' Envie o polígono desmatado para o recorte.');
+    } catch (erro) {
+        info.textContent = 'Não foi possível usar o arquivo: ' + erro.message;
+    }
+    await atualizarRecorte();
+}
+
+// ============================================================
+// CARRINHO: VÁRIAS ÁREAS, CADA UMA VALORADA À PARTE, NUM RELATÓRIO SÓ
+// ============================================================
+
+let carrinho = [];       // [{ nome, r, geo, origem }]
+let ultimoItem = null;   // o último cálculo, pronto para ir ao carrinho
+
+function nomeDoItem(lat, lon) {
+    if (poligonoUsuario) return nomeAreaAtual || 'Polígono';
+    if (lat !== null && lon !== null) return 'Ponto ' + String(lat).replace('.', ',') + '; ' + String(lon).replace('.', ',');
+    return 'Área';
+}
+
+function atualizarBotaoCarrinho() {
+    const botao = document.getElementById('btnCarrinho');
+    const status = document.getElementById('statusCarrinho');
+    const dentro = !!(ultimoItem && ultimoItem.noCarrinho);
+    botao.disabled = !ultimoItem || dentro;
+    botao.textContent = dentro ? 'Esta área está no carrinho' : 'Pôr esta área no carrinho';
+    status.textContent = dentro
+        ? 'O carrinho tem ' + carrinho.length + (carrinho.length === 1 ? ' área' : ' áreas') + '. Calcule a próxima ou gere o relatório consolidado, acima dos resultados.'
+        : 'Para juntar várias áreas (por exemplo, com datas de dano diferentes) num relatório só, ponha cada uma no carrinho depois de calculá-la.';
+}
+
+// Áreas do carrinho que se sobrepõem: a parte comum seria valorada duas vezes.
+async function sobreposicoesCom(geo, ate) {
+    const lista = [];
+    if (!geo) return lista;
+    const libs = await DamnumMapa.carregarLibs();
+    carrinho.slice(0, ate === undefined ? carrinho.length : ate).forEach((outro, k) => {
+        if (!outro.geo) return;
+        const ha = DamnumMapa.sobreposicaoHa(libs, geo, outro.geo);
+        if (ha > 0) lista.push({ item: k + 1, nome: outro.nome, ha });
+    });
+    return lista;
+}
+
+function listaComE(itens) {
+    return itens.length < 2 ? itens.join('') : itens.slice(0, -1).join(', ') + ' e ' + itens[itens.length - 1];
+}
+
+async function porNoCarrinho() {
+    if (!ultimoItem || ultimoItem.noCarrinho) return;
+    const item = ultimoItem;
+    const novo = { nome: item.nome, r: item.r, geo: item.geo, origem: item.origem };
+    let posicao = carrinho.length;
+    const igual = carrinho.findIndex(c => c.r.hash === item.r.hash);
+    const sobreposicoes = await sobreposicoesCom(item.geo);
+    const mesma = sobreposicoes.find(s => s.ha >= 0.99 * item.r.areas.total && s.ha >= 0.99 * carrinho[s.item - 1].r.areas.total);
+    if (igual >= 0 && (!item.geo || mesma)) {
+        alert('Esta área, com os mesmos dados, já está no carrinho (área ' + (igual + 1) + ').');
+        return;
+    }
+    if (mesma) {
+        if (!confirm('A área ' + mesma.item + ' do carrinho (' + mesma.nome + ') é o mesmo polígono, calculado com outros dados. Substituí-la por este cálculo?')) return;
+        posicao = mesma.item - 1;
+    } else if (sobreposicoes.length && !confirm('Esta área se sobrepõe ' + listaComE(sobreposicoes.map(s => 'à área ' + s.item + ' do carrinho em ' + numeroBR(s.ha, 4) + ' ha')) + '. A parte comum seria valorada duas vezes. Pôr no carrinho mesmo assim?')) {
+        return;
+    }
+    if (posicao < carrinho.length) {
+        const antigo = carrinho[posicao];
+        if (antigo.origem && fila && fila.arquivo === antigo.origem.arquivo) fila.noCarrinho[antigo.origem.indice] = false;
+        carrinho[posicao] = novo;
+    } else {
+        carrinho.push(novo);
+    }
+    item.noCarrinho = true;
+    if (item.origem && fila && fila.arquivo === item.origem.arquivo) fila.noCarrinho[item.origem.indice] = true;
+    atualizarCarrinho();
+    atualizarBotaoCarrinho();
+    // Na fila, segue para a próxima área que ainda não está no carrinho.
+    if (fila && fila.arquivo === arquivoAtual) {
+        const n = fila.noCarrinho.length;
+        let proxima = -1;
+        for (let k = 1; k <= n && proxima < 0; k++) {
+            const j = (fila.indice + k) % n;
+            if (!fila.noCarrinho[j]) proxima = j;
+        }
+        if (proxima >= 0) await irParaArea(proxima);
+        else atualizarFila();
+    }
+}
+
+function atualizarCarrinho() {
+    const caixa = document.getElementById('carrinho');
+    document.getElementById('relatorioConsolidado').style.display = 'none';
+    document.getElementById('contagemCarrinho').textContent = carrinho.length;
+    caixa.style.display = carrinho.length ? '' : 'none';
+    const corpo = document.querySelector('#tabelaCarrinho tbody');
+    corpo.innerHTML = '';
+    carrinho.forEach((item, k) => {
+        const r = item.r;
+        const tr = document.createElement('tr');
+        const celula = (texto, classe) => { const td = document.createElement('td'); td.textContent = texto; if (classe) td.className = classe; tr.appendChild(td); return td; };
+        celula(String(k + 1), 'centro');
+        const tdNome = celula('');
+        const campo = document.createElement('input');
+        campo.type = 'text';
+        campo.value = item.nome;
+        campo.setAttribute('aria-label', 'Nome da área ' + (k + 1));
+        campo.addEventListener('input', () => { item.nome = campo.value.trim() || 'Área ' + (k + 1); document.getElementById('relatorioConsolidado').style.display = 'none'; });
+        tdNome.appendChild(campo);
+        celula(r.dataInformada ? r.dataDano.toLocaleDateString('pt-BR') : 'não informada', 'centro');
+        celula(r.bioma);
+        celula(numeroBR(r.areas.total, 4), 'numero');
+        celula(formatarMoeda(r.totais.original), 'numero');
+        celula(formatarMoeda(r.totais.atualizado), 'numero');
+        const tdAcao = celula('');
+        const remover = document.createElement('button');
+        remover.type = 'button';
+        remover.className = 'btn-remover';
+        remover.textContent = 'Remover';
+        remover.setAttribute('aria-label', 'Remover a área ' + (k + 1) + ' do carrinho');
+        remover.addEventListener('click', () => removerDoCarrinho(k));
+        tdAcao.appendChild(remover);
+        corpo.appendChild(tr);
+    });
+    const soma = campo => carrinho.reduce((s, i) => s + campo(i.r), 0);
+    document.querySelector('#tabelaCarrinho tfoot').innerHTML = carrinho.length > 1
+        ? '<tr><td></td><td><strong>Total</strong></td><td></td><td></td><td class="numero"><strong>' + numeroBR(soma(r => r.areas.total), 4) + '</strong></td><td class="numero"><strong>' +
+          formatarMoeda(soma(r => r.totais.original)) + '</strong></td><td class="numero"><strong>' + formatarMoeda(soma(r => r.totais.atualizado)) + '</strong></td><td></td></tr>'
+        : '';
+}
+
+function removerDoCarrinho(indice) {
+    const [item] = carrinho.splice(indice, 1);
+    if (item.origem && fila && fila.arquivo === item.origem.arquivo) fila.noCarrinho[item.origem.indice] = false;
+    if (ultimoItem && ultimoItem.r === item.r) ultimoItem.noCarrinho = false;
+    atualizarCarrinho();
+    atualizarBotaoCarrinho();
+    atualizarFila();
+}
+
+function esvaziarCarrinho() {
+    if (!carrinho.length || !confirm('Tirar todas as ' + carrinho.length + ' áreas do carrinho?')) return;
+    carrinho = [];
+    if (fila) fila.noCarrinho = fila.noCarrinho.map(() => false);
+    if (ultimoItem) ultimoItem.noCarrinho = false;
+    atualizarCarrinho();
+    atualizarBotaoCarrinho();
+    atualizarFila();
+}
+
+async function gerarConsolidado() {
+    if (!carrinho.length) return;
+    const itens = [];
+    for (let k = 0; k < carrinho.length; k++) {
+        const item = carrinho[k];
+        itens.push({ nome: item.nome, r: Object.assign({}, item.r, { nomeArea: item.nome }), sobreposicoes: await sobreposicoesCom(item.geo, k) });
+    }
+    const hash = await sha256(carrinho.map(i => i.r.hash).join('\n'));
+    document.getElementById('textoConsolidado').innerHTML = DamnumRelatorio.gerarHTMLConsolidado(itens, { hash, dataCalculo: new Date() });
+    const caixa = document.getElementById('relatorioConsolidado');
+    caixa.style.display = '';
+    caixa.scrollIntoView({ behavior: 'smooth' });
 }
 
 async function aoInformarCoordenada() {
@@ -852,15 +1222,15 @@ async function sha256(texto) {
     return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function baixarRelatorioPDF() {
-    var conteudo = document.getElementById('textoRelatorio').innerHTML;
+function baixarRelatorioPDF(idTexto) {
+    var conteudo = document.getElementById(idTexto || 'textoRelatorio').innerHTML;
     if (!conteudo || !conteudo.trim()) {
         alert('Gere o relatório primeiro clicando em "Calcular Valoração".');
         return;
     }
 
     var dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-    var nomeArquivo = 'DAMNUM_Relatorio_' + dataAtual;
+    var nomeArquivo = (idTexto === 'textoConsolidado' ? 'DAMNUM_Relatorio_consolidado_' : 'DAMNUM_Relatorio_') + dataAtual;
 
     // Abre nova janela com o relatório formatado e dispara window.print().
     // O usuário escolhe "Salvar como PDF" no diálogo de impressão do navegador.
@@ -899,13 +1269,13 @@ function baixarRelatorioPDF() {
     w.document.close();
 }
 
-function copiarRelatorio() {
-    const elemento = document.getElementById('textoRelatorio');
+function copiarRelatorio(idTexto, idBotao) {
+    const elemento = document.getElementById(idTexto || 'textoRelatorio');
     const htmlContent = elemento.innerHTML;
     const textoPlano = elemento.innerText;
 
     function mostrarCopiado() {
-        var btn = document.getElementById('btnCopiar');
+        var btn = document.getElementById(idBotao || 'btnCopiar');
         var textoOriginal = btn.innerHTML;
         btn.innerHTML = '&#10003; Copiado!';
         btn.style.backgroundColor = '#27ae60';
@@ -1041,6 +1411,9 @@ async function calcularValoracao() {
         return;
     }
 
+    // O recorte das áreas protegidas só vai ao relatório se as áreas são as dele.
+    const recorte = recorteAtual && poligonoUsuario && Math.abs(areaEmAPP - recorteAtual.em_ha) < 1e-3 && Math.abs(areaForaAPP - recorteAtual.fora_ha) < 1e-3 ? recorteAtual : null;
+
     // Área do polígono, quando o usuário decide que ela prevalece sobre a digitada.
     let observacaoArea = '';
     if (poligonoUsuario) {
@@ -1076,7 +1449,7 @@ async function calcularValoracao() {
             entendimento: obterEntendimento(),
             dataCalculo,
             dataDano,
-            areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea },
+            areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea, recorte },
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
             interino: lerInterino(),
             residual: lerResidual(),
@@ -1088,6 +1461,7 @@ async function calcularValoracao() {
             opcaoExtrapatrimonial: valorCampo('jurosExtrapatrimoniais'),
             manual,
             numeroProcesso: valorCampo('numeroProcesso'),
+            nomeArea: poligonoUsuario ? nomeAreaAtual : '',
             identificacao: {
                 credorNome: valorCampo('credorNome'), credorDoc: valorCampo('credorDoc'),
                 devedorNome: valorCampo('devedorNome'), devedorDoc: valorCampo('devedorDoc'),
@@ -1114,6 +1488,9 @@ async function calcularValoracao() {
         incrementarContador();
         registrarValoracaoGlobal(bioma, r.areas.total);
 
+        ultimoItem = { nome: nomeDoItem(latitude, longitude), r, geo: poligonoUsuario ? geoAtual : null,
+            origem: fila && poligonoUsuario ? { arquivo: fila.arquivo, indice: fila.indice } : null, noCarrinho: false };
+        atualizarBotaoCarrinho();
         mostrarResultado(r);
     } catch (erro) {
         console.error('Erro ao calcular valoração:', erro);
@@ -1288,6 +1665,24 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Mapa do Quarto Inventário (os campos só aparecem com o mapa disponível)
     document.getElementById('arquivoPoligono').addEventListener('change', aoEscolherPoligono);
+    document.getElementById('arquivoProtegidas').addEventListener('change', aoEscolherProtegidas);
+    document.getElementById('btnFilaIniciar').addEventListener('click', () => {
+        fila = { arquivo: arquivoAtual, indice: 0, noCarrinho: arquivoAtual.grupos.map(() => false), notaData: '' };
+        irParaArea(0);
+    });
+    document.getElementById('btnFilaAnterior').addEventListener('click', () => irParaArea(fila.indice - 1));
+    document.getElementById('btnFilaProxima').addEventListener('click', () => irParaArea(fila.indice + 1));
+    document.getElementById('btnFilaSair').addEventListener('click', () => {
+        fila = null;
+        ['areaForaAPP', 'areaEmAPP'].forEach(id => { const c = document.getElementById(id); c.value = ''; c.dataset.auto = '1'; });
+        usarGeometria(arquivoAtual.geo, arquivoAtual.nome);
+    });
+    document.getElementById('btnUsarRecorte').addEventListener('click', () => {
+        ['areaForaAPP', 'areaEmAPP'].forEach(id => { document.getElementById(id).dataset.auto = '1'; });
+        atualizarRecorte();
+    });
+    // Área digitada pelo usuário: o polígono não a sobrescreve mais.
+    ['areaForaAPP', 'areaEmAPP'].forEach(id => document.getElementById(id).addEventListener('input', function() { delete this.dataset.auto; }));
     document.getElementById('latitude').addEventListener('change', aoInformarCoordenada);
     document.getElementById('longitude').addEventListener('change', aoInformarCoordenada);
     document.getElementById('municipio').addEventListener('change', atualizarPainelEstoque);
@@ -1338,19 +1733,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         calcularValoracao();
     });
 
-    document.getElementById('btnDownloadPDF').addEventListener('click', baixarRelatorioPDF);
-    document.getElementById('btnCopiar').addEventListener('click', copiarRelatorio);
+    document.getElementById('btnDownloadPDF').addEventListener('click', () => baixarRelatorioPDF('textoRelatorio'));
+    document.getElementById('btnCopiar').addEventListener('click', () => copiarRelatorio('textoRelatorio', 'btnCopiar'));
     document.getElementById('btnCSV').addEventListener('click', baixarTabelaCSV);
 
+    // Carrinho e relatório consolidado
+    document.getElementById('btnCarrinho').addEventListener('click', porNoCarrinho);
+    document.getElementById('btnConsolidado').addEventListener('click', gerarConsolidado);
+    document.getElementById('btnEsvaziarCarrinho').addEventListener('click', esvaziarCarrinho);
+    document.getElementById('btnPDFConsolidado').addEventListener('click', () => baixarRelatorioPDF('textoConsolidado'));
+    document.getElementById('btnCopiarConsolidado').addEventListener('click', () => copiarRelatorio('textoConsolidado', 'btnCopiarConsolidado'));
+
     // Mostrar/esconder checkbox de reparação in situ conforme área APP
-    document.getElementById('areaEmAPP').addEventListener('input', function() {
-        const container = document.getElementById('checkboxReparacaoContainer');
-        const valor = parseFloat(this.value) || 0;
-        container.style.display = valor > 0 ? '' : 'none';
-        if (valor <= 0) {
-            document.getElementById('reparacaoInSitu').checked = true; // resetar ao esconder
-        }
-    });
+    document.getElementById('areaEmAPP').addEventListener('input', aoMudarAreas);
 
     // Permitir apenas números positivos nos campos de área e nos parâmetros
     document.querySelectorAll('#areaForaAPP, #areaEmAPP, .parametro-item input[type="number"]:not([readonly])').forEach(input => {
