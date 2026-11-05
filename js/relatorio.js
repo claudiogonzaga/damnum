@@ -354,7 +354,18 @@
         }
         var th = TD + ' background:#f5f5f5;';
         if (m.tipo === 'poligono') {
-            html += '<p style="font-size:11pt;">Área calculada do polígono: ' + num(m.area_ha, 4) + ' ha (método geodésico). Classes do mapa cruzadas:</p>';
+            var arq = m.arquivo;
+            if (arq && arq.poligonos > 1) {
+                html += '<p style="font-size:11pt; text-align:justify;">O arquivo trouxe ' + arq.poligonos + ' polígonos, que somam ' + num(arq.area_soma_ha, 4) + ' ha' +
+                    (arq.uniao ? (arq.sobreposicao_ha > 0 ? '. A sobreposição entre eles, de ' + num(arq.sobreposicao_ha, 4) + ' ha, foi descontada: vale a área da união dos polígonos' : '. Não há sobreposição entre eles') : '') + '.</p>';
+                var lista = arq.partes.slice(0, 30);
+                html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Polígono do arquivo</th><th style="' + th + '">Área (ha)</th></tr>' +
+                    lista.map(function (p) { return '<tr><td style="' + TD + '">' + esc(p.nome) + '</td><td style="' + TDR + '">' + num(p.area_ha, 4) + '</td></tr>'; }).join('') +
+                    (arq.partes.length > lista.length ? '<tr><td style="' + TD + '" colspan="2">e mais ' + (arq.partes.length - lista.length) + ' polígonos</td></tr>' : '') + '</table>';
+                if (arq.aviso) html += nota(esc(arq.aviso));
+            }
+            if (arq && arq.descricaoIgnorados) html += nota('Além dos polígonos, o arquivo tinha ' + esc(arq.descricaoIgnorados) + '; pontos e linhas não entram no cálculo.');
+            html += '<p style="font-size:11pt;">Área calculada ' + (arq && arq.poligonos > 1 ? '(união dos polígonos)' : 'do polígono') + ': ' + num(m.area_ha, 4) + ' ha (método geodésico). Classes do mapa cruzadas:</p>';
             html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr>' +
                 ['Bioma', 'Classe (c_pret)', 'Categoria', 'Formato do dado', 'Área de interseção (ha)', esc(m.campo) + ' (tC/ha)'].map(function (c) { return '<th style="' + th + '">' + c + '</th>'; }).join('') + '</tr>' +
                 m.partes.map(function (p) {

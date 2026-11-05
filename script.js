@@ -727,7 +727,13 @@ async function aoEscolherPoligono(evento) {
         info.textContent = 'Não foi possível usar o polígono: ' + erro.message;
     }
     if (geo) {
-        let texto = 'Área calculada do polígono: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico). ';
+        const resumo = geo.resumo;
+        let texto = resumo && resumo.poligonos > 1
+            ? 'Arquivo com ' + resumo.poligonos + ' polígonos. Área calculada: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico, união dos polígonos' +
+                (resumo.sobreposicao_ha > 0 ? '; descontada a sobreposição de ' + numeroBR(resumo.sobreposicao_ha, 4) + ' ha' : '') + '). '
+            : 'Área calculada do polígono: ' + numeroBR(poligonoUsuario.area_ha, 4) + ' ha (método geodésico). ';
+        if (resumo && resumo.aviso) texto += resumo.aviso + ' ';
+        if (resumo && resumo.descricaoIgnorados) texto += 'Além dos polígonos, o arquivo tinha ' + resumo.descricaoIgnorados + '; pontos e linhas não entram no cálculo. ';
         try {
             const { libs, fonte } = await obterFonteMapa();
             const consulta = await DamnumMapa.consultarPoligono(libs, fonte, geo);

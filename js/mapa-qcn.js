@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.11';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.12';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -379,7 +379,8 @@
             pct_sem_dado: areaTotal > 0 ? semDado / areaTotal * 100 : 0,
             estoque_tC_ha: coberta > 0 ? soma / coberta : null,
             campo: CAMPO_ESTOQUE,
-            blocos: Object.keys(chaves).sort()
+            blocos: Object.keys(chaves).sort(),
+            arquivo: geo.resumo || null
         };
     }
 
@@ -528,14 +529,92 @@
         return normalizar(libs, geo);
     }
 
+    // Partes poligonais de uma geometria: entra em GeometryCollection (é como o
+    // leitor de KML entrega a MultiGeometry) e conta o que não é polígono.
+    function partesPoligonais(geometria, ignorados) {
+        if (!geometria) return [];
+        if (geometria.type === 'Polygon' || geometria.type === 'MultiPolygon') return [geometria];
+        if (geometria.type === 'GeometryCollection') {
+            return [].concat.apply([], (geometria.geometries || []).map(function (g) { return partesPoligonais(g, ignorados); }));
+        }
+        ignorados[geometria.type] = (ignorados[geometria.type] || 0) + 1;
+        return [];
+    }
+
+    // Só longitude e latitude: a altitude do KML (x, y, 0) não entra na conta.
+    function semAltitude(c) {
+        return typeof c[0] === 'number' ? [c[0], c[1]] : c.map(semAltitude);
+    }
+
+    function nomeDaFeicao(p, n) {
+        var nome = p.name || p.Name || p.NAME || p.nome || p.Nome || p.NOME;
+        return nome ? String(nome).trim() : 'polígono ' + n;
+    }
+
+    var NOMES_IGNORADOS = { Point: ['ponto', 'pontos'], MultiPoint: ['grupo de pontos', 'grupos de pontos'], LineString: ['linha', 'linhas'], MultiLineString: ['grupo de linhas', 'grupos de linhas'] };
+    function descreverIgnorados(ignorados) {
+        var itens = Object.keys(ignorados).map(function (t) {
+            var n = ignorados[t], nomes = NOMES_IGNORADOS[t] || [t, t];
+            return n + ' ' + nomes[n === 1 ? 0 : 1];
+        });
+        return itens.length < 2 ? itens.join('') : itens.slice(0, -1).join(', ') + ' e ' + itens[itens.length - 1];
+    }
+
+    // Une os polígonos do arquivo: a área sobreposta conta uma vez só. O resumo
+    // (cada polígono com nome e área, soma, sobreposição, o que foi ignorado)
+    // segue com a geometria para a tela e para o relatório.
+    function unirPartes(libs, partes, ignorados) {
+        var resumo = {
+            poligonos: partes.length,
+            partes: partes.map(function (f) { return { nome: f.properties.nome, area_ha: areaHa(libs, f) }; }),
+            ignorados: ignorados,
+            descricaoIgnorados: descreverIgnorados(ignorados),
+            uniao: false,
+            sobreposicao_ha: 0,
+            aviso: ''
+        };
+        resumo.area_soma_ha = resumo.partes.reduce(function (s, p) { return s + p.area_ha; }, 0);
+        var saida = libs.featureCollection(partes);
+        if (partes.length > 1) {
+            try {
+                var u = libs.union(libs.featureCollection(partes));
+                if (u) {
+                    u.properties = { nome: 'união dos polígonos do arquivo' };
+                    saida = libs.featureCollection([u]);
+                    resumo.uniao = true;
+                    var sobra = resumo.area_soma_ha - areaHa(libs, u);
+                    resumo.sobreposicao_ha = sobra > 1e-4 ? sobra : 0; // abaixo de 1 m² é arredondamento
+                }
+            } catch (erro) {
+                resumo.aviso = 'Não foi possível unir os polígonos (' + erro.message + '); se houver sobreposição entre eles, a área sobreposta conta duas vezes.';
+            }
+        }
+        resumo.area_ha = areaHa(libs, saida);
+        saida.resumo = resumo;
+        return saida;
+    }
+
     function normalizar(libs, geo) {
         var feicoes;
         if (geo.type === 'FeatureCollection') feicoes = geo.features;
         else if (geo.type === 'Feature') feicoes = [geo];
         else feicoes = [{ type: 'Feature', properties: {}, geometry: geo }];
-        feicoes = feicoes.filter(ehPoligono);
-        if (feicoes.length === 0) throw new Error('O arquivo não contém polígono.');
-        return libs.featureCollection(feicoes);
+        var ignorados = {}, partes = [];
+        feicoes.forEach(function (f, i) {
+            var nome = nomeDaFeicao(f.properties || {}, i + 1);
+            var aneis = [];
+            partesPoligonais(f.geometry, ignorados).forEach(function (g) {
+                (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).forEach(function (p) { aneis.push(p); });
+            });
+            aneis.forEach(function (p, k) {
+                partes.push({ type: 'Feature', properties: { nome: aneis.length > 1 ? nome + ' (' + (k + 1) + ')' : nome },
+                    geometry: { type: 'Polygon', coordinates: semAltitude(p) } });
+            });
+        });
+        if (partes.length === 0) {
+            throw new Error('O arquivo não contém polígono' + (Object.keys(ignorados).length ? ': tem só ' + descreverIgnorados(ignorados) : '') + '.');
+        }
+        return unirPartes(libs, partes, ignorados);
     }
 
     // Carrega vendor/damnum-geo.js só quando o mapa ou o polígono forem usados.
@@ -576,6 +655,7 @@
         divergenciaDeArea: divergenciaDeArea,
         lerArquivoGeometria: lerArquivoGeometria,
         normalizar: normalizar,
+        descreverIgnorados: descreverIgnorados,
         carregarLibs: carregarLibs
     };
 });
