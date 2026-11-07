@@ -130,15 +130,16 @@ test('aviso do piso do CNJ quando o preço fica abaixo de US$ 5,00', () => {
     assert.strictEqual(V.calcular(entrada(), series).avisosPiso.length, 0);
 });
 
-test('relatório: incisos II a V do art. 524 preenchidos; I, VI e VII tratados', () => {
-    const id = { credorNome: 'Ministério Público', credorDoc: '00.000.000/0001-00', devedorNome: 'Fulano', devedorDoc: '000.000.000-00', descontos: '', bensPenhora: 'Imóvel rural matrícula 1' };
-    const html = R.gerarHTML(V.calcular(entrada({ identificacao: id, numeroProcesso: '0000000-00.2025.8.11.0001' }), series));
-    ['art. 524, II', 'art. 524, III', 'art. 524, IV', 'art. 524, V', 'simples, mensal', 'Credor / exequente', 'Devedor / executado',
-        '4. DESCONTOS OBRIGATÓRIOS', 'Não há.', '5. BENS PASSÍVEIS DE PENHORA', 'Imóvel rural matrícula 1', '6. TOTAL GERAL', '7. METADADOS',
-        'Hash SHA-256', '8. AVISO', 'valor de referência mínimo', '3. TABELA MÊS A MÊS', 'não está pacificada'
+test('relatório: correção, juros, termos e capitalização (art. 524, II a V) no demonstrativo; sem dados das partes nem de cumprimento de sentença', () => {
+    const html = R.gerarHTML(V.calcular(entrada({ numeroProcesso: '0000000-00.2025.8.11.0001' }), series));
+    ['art. 524, II', 'art. 524, III', 'art. 524, IV', 'art. 524, V', 'simples, mensal', '4. TOTAL GERAL', '5. METADADOS',
+        'Hash SHA-256', '6. AVISO', 'valor de referência mínimo', '3. TABELA MÊS A MÊS', 'não está pacificada', '0000000-00.2025.8.11.0001'
     ].forEach(trecho => assert.ok(html.includes(trecho), 'falta: ' + trecho));
+    ['Credor', 'Devedor', 'CPF/CNPJ', 'DESCONTOS', 'PENHORA', 'cumprimento de sentença'].forEach(t => assert.ok(!html.includes(t), 'sobrou: ' + t));
     assert.ok(html.indexOf('1. IDENTIFICAÇÃO') < html.indexOf('2. DEMONSTRATIVO') && html.indexOf('2. DEMONSTRATIVO') < html.indexOf('3. TABELA')
-        && html.indexOf('3. TABELA') < html.indexOf('4. DESCONTOS') && html.indexOf('6. TOTAL') < html.indexOf('7. METADADOS') && html.indexOf('7. METADADOS') < html.indexOf('8. AVISO'));
+        && html.indexOf('3. TABELA') < html.indexOf('4. TOTAL') && html.indexOf('4. TOTAL') < html.indexOf('5. METADADOS') && html.indexOf('5. METADADOS') < html.indexOf('6. AVISO'));
+    const pagina = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+    ['credorNome', 'devedorDoc', 'bensPenhora', 'cumprimento de sentença'].forEach(t => assert.ok(!pagina.includes(t), 'sobrou na página: ' + t));
 });
 
 test('relatório escapa o texto digitado pelo usuário', () => {

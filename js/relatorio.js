@@ -1,4 +1,4 @@
-// DAMNUM — relatório de valoração no formato do art. 524 do CPC, com memória de
+// DAMNUM — relatório de valoração com demonstrativo discriminado e memória de
 // cálculo. Recebe o objeto de resultado montado em script.js e devolve HTML e CSV.
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -46,12 +46,9 @@
     // ---------- 1. Identificação ----------
 
     function secaoIdentificacao(r) {
-        var id = r.identificacao;
         var linhas = [];
         if (r.numeroProcesso) linhas.push(linha('Processo ou procedimento', '<b>' + esc(r.numeroProcesso) + '</b>'));
         if (r.nomeArea) linhas.push(linha('Área valorada', esc(r.nomeArea)));
-        if (id.credorNome || id.credorDoc) linhas.push(linha('Credor / exequente', esc(id.credorNome) + (id.credorDoc ? ' — CPF/CNPJ ' + esc(id.credorDoc) : '')));
-        if (id.devedorNome || id.devedorDoc) linhas.push(linha('Devedor / executado', esc(id.devedorNome) + (id.devedorDoc ? ' — CPF/CNPJ ' + esc(id.devedorDoc) : '')));
         linhas.push(linha('Bioma', esc(r.bioma)));
         linhas.push(linha('Entendimento adotado', nomeEntendimento(r.entendimento)));
         linhas.push(linha('Data do dano', r.dataInformada ? data(r.dataDano) : 'não informada (valores na data do cálculo)'));
@@ -61,9 +58,6 @@
         linhas.push(linha('Área total (A<sub>1</sub> + A<sub>2</sub>)', num(r.areas.total, 4) + ' ha'));
         if (r.areas.em > 0) linhas.push(linha('Reparação <em>in situ</em> da área territorialmente protegida', r.reparacaoInSitu ? 'sim, será promovida' : 'não será promovida'));
         var html = titulo('1. IDENTIFICAÇÃO') + tabela(linhas);
-        if (!(id.credorNome || id.credorDoc || id.devedorNome || id.devedorDoc)) {
-            html += '<p style="font-size:10pt; color:#666;">Nome e CPF/CNPJ do credor e do devedor (art. 524, I, do CPC): não informados. O preenchimento é opcional e só é exigido no requerimento de cumprimento de sentença.</p>';
-        }
         if (r.areas.recorte) html += textoRecorte(r.areas.recorte);
         if (r.areas.observacao) html += nota(esc(r.areas.observacao));
         return html;
@@ -532,13 +526,10 @@
         return '﻿' + linhas.join('\r\n') + '\r\n';
     }
 
-    // ---------- 4 a 6 ----------
+    // ---------- 4. Total ----------
 
-    function secaoDescontosBensTotais(r) {
-        var id = r.identificacao;
-        var html = titulo('4. DESCONTOS OBRIGATÓRIOS') + '<p>' + (id.descontos ? esc(id.descontos) : 'Não há.') + '</p>';
-        html += titulo('5. BENS PASSÍVEIS DE PENHORA') + '<p>' + (id.bensPenhora ? esc(id.bensPenhora).replace(/\n/g, '<br>') : 'Não indicados.') + '</p>';
-        html += titulo('6. TOTAL GERAL E TOTAL ATUALIZADO');
+    function secaoTotais(r) {
+        var html = titulo('4. TOTAL GERAL E TOTAL ATUALIZADO');
         var p = r.parcelas;
         var th = TD + ' background:#f5f5f5;';
         html += '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;">' +
@@ -691,7 +682,7 @@
         });
         linhas.push(linha('Cotação do dólar', 'R$ ' + num(r.parametros.cotacaoDolar, 2) + ' — ' + esc(r.parametros.origemCotacao)));
         linhas.push(linha('Hash SHA-256 dos parâmetros de entrada', '<span style="font-family:monospace; font-size:9pt; word-break:break-all;">' + esc(r.hash) + '</span>'));
-        var html = titulo('7. METADADOS') + tabela(linhas);
+        var html = titulo('5. METADADOS') + tabela(linhas);
         if (r.consultas.some(function (c) { return c.reserva && c.situacao === 'ok'; })) {
             html += nota('Uma ou mais séries vieram das séries embutidas no DAMNUM, porque a fonte oficial não respondeu no momento do cálculo. Confira os valores na fonte oficial antes de usar o relatório em juízo.');
         }
@@ -699,7 +690,7 @@
     }
 
     function secaoAviso() {
-        return titulo('8. AVISO') + '<p style="text-align:justify;">Os valores deste relatório são um <b>valor de referência mínimo</b>, calculado com parâmetros publicados e sujeito a contraprova. O relatório não substitui a perícia quando o fato técnico for controvertido.</p>';
+        return titulo('6. AVISO') + '<p style="text-align:justify;">Os valores deste relatório são um <b>valor de referência mínimo</b>, calculado com parâmetros publicados e sujeito a contraprova. O relatório não substitui a perícia quando o fato técnico for controvertido.</p>';
     }
 
     function secaoReferencias(r) {
@@ -735,12 +726,12 @@
     function gerarHTML(r) {
         var html = '<div style="font-family: \'Times New Roman\', serif; font-size: 12pt; line-height: 1.6; color: #222; max-width: 760px;">';
         html += '<h2 style="text-align:center; font-size:14pt; margin-bottom:5px;">RELATÓRIO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL</h2>';
-        html += '<p style="text-align:center; font-size:11pt; color:#555;">Demonstrativo discriminado e atualizado (art. 524 do Código de Processo Civil)<br>DAMNUM v. ' + esc(r.versao) + ' — ' + data(r.dataCalculo) + '</p>';
+        html += '<p style="text-align:center; font-size:11pt; color:#555;">Demonstrativo discriminado e atualizado, com memória de cálculo<br>DAMNUM v. ' + esc(r.versao) + ' — ' + data(r.dataCalculo) + '</p>';
         html += secaoIdentificacao(r);
         html += secaoReparacaoEmEspecie(r);
         html += secaoDemonstrativo(r);
         html += secaoTabelaMensal(r);
-        html += secaoDescontosBensTotais(r);
+        html += secaoTotais(r);
         html += secaoAlternativo(r);
         html += secaoParametros(r);
         html += secaoMetadados(r);
@@ -772,15 +763,12 @@
 
         var html = '<div style="font-family: \'Times New Roman\', serif; font-size: 12pt; line-height: 1.6; color: #222; max-width: 760px;">';
         html += '<h2 style="text-align:center; font-size:14pt; margin-bottom:5px;">RELATÓRIO CONSOLIDADO DE VALORAÇÃO DOS DANOS AMBIENTAIS DECORRENTES DE DESMATAMENTO ILEGAL</h2>';
-        html += '<p style="text-align:center; font-size:11pt; color:#555;">Demonstrativo discriminado e atualizado (art. 524 do Código de Processo Civil) de ' + n + (n === 1 ? ' área' : ' áreas') + ', cada uma valorada à parte<br>DAMNUM v. ' + esc(rs[0].versao) + ' — ' + data(extra.dataCalculo || rs[0].dataCalculo) + '</p>';
+        html += '<p style="text-align:center; font-size:11pt; color:#555;">Demonstrativo discriminado e atualizado de ' + n + (n === 1 ? ' área' : ' áreas') + ', cada uma valorada à parte<br>DAMNUM v. ' + esc(rs[0].versao) + ' — ' + data(extra.dataCalculo || rs[0].dataCalculo) + '</p>';
 
         // 1. Identificação
         var processos = rs.map(function (r) { return r.numeroProcesso; }).filter(function (p, k, a) { return p && a.indexOf(p) === k; });
-        var id = (rs.filter(function (r) { var i = r.identificacao || {}; return i.credorNome || i.credorDoc || i.devedorNome || i.devedorDoc; })[0] || rs[0]).identificacao || {};
         var linhas = [];
         if (processos.length) linhas.push(linha(processos.length > 1 ? 'Processos ou procedimentos' : 'Processo ou procedimento', '<b>' + processos.map(esc).join('; ') + '</b>'));
-        if (id.credorNome || id.credorDoc) linhas.push(linha('Credor / exequente', esc(id.credorNome) + (id.credorDoc ? ' — CPF/CNPJ ' + esc(id.credorDoc) : '')));
-        if (id.devedorNome || id.devedorDoc) linhas.push(linha('Devedor / executado', esc(id.devedorNome) + (id.devedorDoc ? ' — CPF/CNPJ ' + esc(id.devedorDoc) : '')));
         linhas.push(linha('Áreas valoradas', String(n)));
         linhas.push(linha('Área total desmatada', num(areaTotal, 4) + ' ha'));
         linhas.push(linha('Data do cálculo', data(extra.dataCalculo || rs[0].dataCalculo)));

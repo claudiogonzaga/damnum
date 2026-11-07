@@ -730,7 +730,6 @@
             bioma: entrada.bioma, entendimento: entrada.entendimento,
             numeroProcesso: entrada.numeroProcesso || '',
             nomeArea: entrada.nomeArea || '',
-            identificacao: entrada.identificacao || {},
             areas: { fora: fora, em: em, total: total, observacao: entrada.areas.observacao || '', recorte: entrada.areas.recorte || null },
             reparacaoInSitu: reparacao,
             custo: custo,

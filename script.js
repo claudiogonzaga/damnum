@@ -1461,12 +1461,7 @@ async function calcularValoracao() {
             opcaoExtrapatrimonial: valorCampo('jurosExtrapatrimoniais'),
             manual,
             numeroProcesso: valorCampo('numeroProcesso'),
-            nomeArea: poligonoUsuario ? nomeAreaAtual : '',
-            identificacao: {
-                credorNome: valorCampo('credorNome'), credorDoc: valorCampo('credorDoc'),
-                devedorNome: valorCampo('devedorNome'), devedorDoc: valorCampo('devedorDoc'),
-                descontos: valorCampo('descontos'), bensPenhora: valorCampo('bensPenhora')
-            }
+            nomeArea: poligonoUsuario ? nomeAreaAtual : ''
         };
 
         const exigencias = DamnumValoracao.exigenciasDeSeries(mesDano, mesCalculo, atualizar);

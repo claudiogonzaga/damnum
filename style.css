@@ -971,15 +971,6 @@ header h2 {
     font-size: 0.95em;
     background: white;
 }
-.identificacao-524 summary {
-    cursor: pointer;
-    font-weight: 600;
-    color: #2c5530;
-    padding: 6px 0;
-}
-.identificacao-524 label {
-    margin-top: 8px;
-}
 .painel-erro {
     background: #fdecea;
     border-left: 4px solid #c62828;
