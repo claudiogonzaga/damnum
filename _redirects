@@ -3,3 +3,6 @@
 /metodologia        /manual.html   301
 /changelog.html     /manual.html   301
 /changelog          /manual.html   301
+# A pasta netlify/ é a página de aviso do endereço antigo; no site novo, leva ao início.
+/netlify/*          /              301
+/netlify            /              301
