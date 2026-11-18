@@ -68,7 +68,7 @@ async function obterTotalGlobal() {
 }
 
 // Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
-const VERSAO_DAMNUM = '7.4.0';
+const VERSAO_DAMNUM = '7.4.1';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -855,7 +855,7 @@ async function procurarSupressao() {
     if (!geoAtual) return;
     const geo = geoAtual;
     caixa.style.display = '';
-    caixa.innerHTML = '<p class="ajuda-campo">Baixando os blocos do PRODES e do DETER desta região...</p>';
+    caixa.innerHTML = '<p class="ajuda-campo">Baixando os dados do INPE desta região...</p>';
     botao.disabled = true;
     try {
         const libs = await DamnumMapa.carregarLibs();
@@ -865,7 +865,7 @@ async function procurarSupressao() {
         supressaoAtual = { geo, resultado };
         mostrarSupressao(resultado);
     } catch (erro) {
-        caixa.innerHTML = '<p class="ajuda-campo">Não foi possível consultar o PRODES e o DETER (' + escaparHTML(erro.message) + '). Informe a data do dano à mão.</p>';
+        caixa.innerHTML = '<p class="ajuda-campo">Não foi possível consultar os dados do INPE (' + escaparHTML(erro.message) + '). Informe a data do dano à mão.</p>';
     } finally {
         botao.disabled = false;
     }
@@ -874,26 +874,33 @@ async function procurarSupressao() {
 function mostrarSupressao(res) {
     const caixa = document.getElementById('resultadoSupressao');
     const d = res.dados;
+    // Uma fonte só por vez: o PRODES e o DETER cobrem a mesma área com critérios diferentes.
+    const fonte = valorCampo('fonteData') === 'DETER' ? 'DETER' : 'PRODES';
+    const outra = fonte === 'PRODES' ? 'DETER' : 'PRODES';
+    const itens = res.itens.filter(g => g.fonte === fonte);
     const rodape = 'Dados do INPE (TerraBrasilis), cópia de ' + dataBR(d.geradoEm) + ', só ' + (d.uf || []).join(', ') + '. ';
-    if (!res.itens.length) {
-        caixa.innerHTML = '<p class="ajuda-campo">Nenhum polígono do PRODES nem alerta do DETER se sobrepõe a esta área. ' + rodape +
-            'Isso não prova que não houve supressão: o PRODES não mapeia áreas pequenas nem vegetação que já não era primária, e a área pode estar fora de Mato Grosso. Informe a data do dano por outra fonte.</p>';
+    if (!itens.length) {
+        caixa.innerHTML = '<p class="ajuda-campo">' + (fonte === 'PRODES' ? 'Nenhum polígono do PRODES' : 'Nenhum alerta do DETER') + ' se sobrepõe a esta área. ' + rodape +
+            'Isso não prova que não houve supressão: ' + (fonte === 'PRODES' ? 'o PRODES não mapeia áreas pequenas nem vegetação que já não era primária' : 'o DETER só alerta áreas maiores e começou em anos diferentes em cada bioma') + ', e a área pode estar fora de Mato Grosso. ' +
+            (res.itens.length ? 'Há registro no ' + outra + ': troque a fonte acima para vê-lo.' : 'Também não há registro no ' + outra + '. Informe a data do dano por outra fonte.') + '</p>';
         return;
     }
-    let html = '<div class="tabela-rolavel"><table class="tabela-carrinho"><thead><tr><th>Fonte</th><th>Ano ou classe</th><th>Data da imagem</th><th>Área em comum (ha)</th><th>% do polígono</th><th></th></tr></thead><tbody>';
-    res.itens.slice(0, 12).forEach((g, k) => {
+    let html = '<div class="tabela-rolavel"><table class="tabela-carrinho"><thead><tr><th>Fonte</th><th>' + (fonte === 'PRODES' ? 'Ano' : 'Classe do alerta') + '</th><th>Data da imagem</th><th>Área em comum (ha)</th><th>% do polígono</th><th></th></tr></thead><tbody>';
+    itens.slice(0, 12).forEach((g, k) => {
         html += '<tr><td>' + escaparHTML(g.rotulo) + '</td><td>' + (g.fonte === 'PRODES' ? 'ano PRODES ' + g.ano : escaparHTML(g.rotuloClasse)) + '</td><td>' + (g.data ? dataBR(g.data) : 'sem data') +
             '</td><td>' + numeroBR(g.ha, 2) + '</td><td>' + numeroBR(g.pct, 1) + '%</td><td>' +
             (g.data ? '<button type="button" class="btn-fila btn-fila-secundario" data-supressao="' + k + '">Usar esta data</button>' : '') + '</td></tr>';
     });
     html += '</tbody></table></div>';
-    if (res.itens.length > 12) html += '<p class="ajuda-campo">Há mais ' + (res.itens.length - 12) + ' linha(s) com área menor.</p>';
-    html += '<p class="ajuda-campo">' + rodape + 'A data é a da imagem de satélite em que o INPE mapeou a área: a supressão ocorreu antes dela (no PRODES, entre a imagem do ano anterior e essa). Usá-la como data do dano é o critério mais favorável a quem responde, porque encurta a atualização. ' +
-        'Se as partes têm datas diferentes, valore cada uma em separado (reúna os resultados no relatório consolidado). O PRODES e o DETER podem cobrir a mesma área: não some as linhas.' +
-        (res.anosComQueimada.length ? ' O DETER mapeou cicatriz de queimada nesta área em ' + res.anosComQueimada.length + ' ano(s): ' + res.anosComQueimada.join(', ') + '.' : '') + '</p>';
+    if (itens.length > 12) html += '<p class="ajuda-campo">Há mais ' + (itens.length - 12) + ' linha(s) com área menor.</p>';
+    html += '<p class="ajuda-campo">' + rodape + (fonte === 'PRODES'
+        ? 'A data é a da imagem em que o INPE mapeou a área: a supressão ocorreu entre a imagem do ano anterior e essa. '
+        : 'A data é a da imagem que gerou o alerta: a supressão é anterior a ela. As áreas do DETER são aproximadas e não substituem a medição do polígono. ') +
+        'Usá-la como data do dano é o critério mais favorável a quem responde, porque encurta a atualização. Se as partes têm datas diferentes, valore cada uma em separado e reúna os resultados no relatório consolidado.' +
+        (fonte === 'DETER' && res.anosComQueimada.length ? ' O DETER mapeou cicatriz de queimada nesta área em ' + res.anosComQueimada.length + ' ano(s): ' + res.anosComQueimada.join(', ') + '.' : '') + '</p>';
     caixa.innerHTML = html;
     caixa.querySelectorAll('button[data-supressao]').forEach(b => b.addEventListener('click', () => {
-        const g = res.itens[+b.dataset.supressao];
+        const g = itens[+b.dataset.supressao];
         const campo = document.getElementById('dataDano');
         campo.value = g.data;
         campo.dispatchEvent(new Event('change'));
@@ -1709,6 +1716,7 @@ function iniciarPainelIA() {
     document.getElementById('btnAplicarCalcular').addEventListener('click', () => aplicarCaso(true));
     document.getElementById('btnBaixarCaso').addEventListener('click', baixarCaso);
     document.getElementById('btnSugerirData').addEventListener('click', procurarSupressao);
+    document.getElementById('fonteData').addEventListener('change', () => { if (supressaoAtual && supressaoAtual.geo === geoAtual) mostrarSupressao(supressaoAtual.resultado); });
 }
 
 function statusCaso(texto) {
