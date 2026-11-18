@@ -13,7 +13,7 @@ const libs = require('../vendor/damnum-geo.js');
 const S = require('./blocos_sinteticos.js');
 const { criarServidor } = require('../tools/servidor_local_dados.js');
 
-const ORIGEM = 'https://damnum.consciencia.eco.br';
+const ORIGEM = 'https://consciencia.eco.br';
 
 async function subir(extras) {
     const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'damnum-blocos-'));

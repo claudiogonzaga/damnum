@@ -40,7 +40,7 @@ Limites conferidos na documentação da Cloudflare em 11/10/2026 (plano gratuito
 
 * `<endereço>/v1/versao.json` responde com `"versao": "v1"`.
 * `<endereço>/v1/blocos/amr_124_77.gz` baixa um arquivo de cerca de 170 KB.
-* Nos dois, o cabeçalho `Access-Control-Allow-Origin` é `https://damnum.consciencia.eco.br`. O bloco tem `Cache-Control: public, max-age=31536000, immutable` e não tem `Content-Encoding` (o gzip é o próprio arquivo; o site confere o SHA-256 dos bytes recebidos).
+* Nos dois, o cabeçalho `Access-Control-Allow-Origin` é `https://consciencia.eco.br` (desde 17/11/2026, quando o app passou para consciencia.eco.br/damnum; antes, `https://damnum.consciencia.eco.br`). O bloco tem `Cache-Control: public, max-age=31536000, immutable` e não tem `Content-Encoding` (o gzip é o próprio arquivo; o site confere o SHA-256 dos bytes recebidos).
 * Uma chave inexistente responde 404.
 
 Medir e anotar o tempo de download de um bloco típico e do maior (`amr_121_81`), com cache frio e quente.

@@ -1,0 +1,7 @@
+# Publicar com: cd tools/subdominio && npx wrangler deploy
+# (conta gonzagacac; a zona consciencia.eco.br está nela). Desfazer: npx wrangler delete.
+name = "damnum-subdominio"
+main = "worker.js"
+compatibility_date = "2025-11-01"
+workers_dev = false
+routes = [{ pattern = "damnum.consciencia.eco.br/*", zone_name = "consciencia.eco.br" }]

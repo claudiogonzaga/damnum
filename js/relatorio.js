@@ -9,7 +9,7 @@
 })(typeof self !== 'undefined' ? self : this, function (C) {
     'use strict';
 
-    var SITE = 'https://damnum.consciencia.eco.br';
+    var SITE = 'https://consciencia.eco.br/damnum';
 
     function moeda(v) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
