@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.15';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.1.16';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -130,7 +130,16 @@
             var url = raiz + 'blocos/' + meta.chave + '.gz';
             var guardado = cache ? await cache.get(url) : null;
             if (guardado) return guardado;
-            var r = await buscar(url);
+            var r;
+            try {
+                r = await buscar(url);
+            } catch (erro) {
+                // O bloco guardado pelo navegador (validade de um ano) pode trazer a permissão de
+                // outra origem (o app saiu de damnum.consciencia.eco.br para consciencia.eco.br/damnum
+                // em 17/11/2026): sem a rede, a leitura é bloqueada. Uma nova tentativa, indo à rede,
+                // traz o cabeçalho atual e substitui a cópia guardada.
+                r = await buscar(url, { cache: 'reload' });
+            }
             if (!r.ok) throw new Error('O servidor de dados respondeu ' + r.status + ' para o bloco ' + meta.chave + '.');
             var bytes = await r.arrayBuffer();
             var resumo = hex(await crypto.subtle.digest('SHA-256', bytes));

@@ -170,3 +170,25 @@ test('falha de rede no meio do cálculo: a consulta falha e a reserva é aplicad
     assert.strictEqual(e.entrada, 'reserva');
     assert.match(e.avisoMapa, /^Consulta ao mapa indisponível \(.+\); usada a reserva: média do bioma Cerrado/);
 });
+
+test('bloco guardado com a permissão de outra origem: nova tentativa, uma só, indo à rede', async () => {
+    const a = await subir();
+    try {
+        const tentativas = [];
+        // Primeira leitura de cada bloco falha como falha o CORS no navegador (TypeError, sem resposta).
+        const buscar = (url, opcoes) => {
+            tentativas.push({ url: String(url), opcoes });
+            if (/\/blocos\//.test(url) && !opcoes) return Promise.reject(new TypeError('Failed to fetch'));
+            return fetch(url, opcoes);
+        };
+        const fonte = Mapa.criarFonteBlocos(libs, { baseUrl: a.base, versao: 'v1', cache: null, buscar });
+        const r = await Mapa.consultarPoligono(libs, fonte, S.poligono(-55.415, -12.605, -55.395, -12.595));
+        assert.ok(r.estoque_tC_ha > 0);
+        const blocos = tentativas.filter(t => /\/blocos\//.test(t.url));
+        assert.ok(blocos.length >= 2 && blocos.length % 2 === 0);
+        blocos.forEach((t, i) => assert.deepStrictEqual(t.opcoes, i % 2 ? { cache: 'reload' } : undefined));
+        // Se a rede também falhar, o erro chega a quem chamou (a tela usa a tabela).
+        const semRede = Mapa.criarFonteBlocos(libs, { baseUrl: a.base, versao: 'v1', cache: null, buscar: (url, o) => /\/blocos\//.test(url) ? Promise.reject(new TypeError('Failed to fetch')) : fetch(url, o) });
+        await assert.rejects(Mapa.consultarPoligono(libs, semRede, S.poligono(-55.415, -12.605, -55.395, -12.595)), /Failed to fetch/);
+    } finally { await fechar(a); }
+});
