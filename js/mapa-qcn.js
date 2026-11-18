@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.4.1';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.5.0';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -941,6 +941,65 @@
         };
     }
 
+    // ---------- laudos do MapBiomas Alerta (versão 7.5) ----------
+    // Consulta externa, feita só quando a pessoa pede e confirma: o navegador envia ao
+    // servidor de mapas do MapBiomas Alerta um retângulo que envolve o polígono, com
+    // folga (arredondado para fora em centésimos de grau, cerca de 1 km). A interseção
+    // exata é feita aqui. O laudo abre na plataforma, pelo código do alerta.
+    var MAPBIOMAS = {
+        servico: 'https://maps.alerta.mapbiomas.org/geoserver/ows',
+        camada: 'mapbiomas-alertas:dashboard-alert-shapefile',
+        laudo: 'https://plataforma.alerta.mapbiomas.org/alerta/',
+        citacao: 'MapBiomas Alerta – Sistema de Validação e Refinamento de Alertas de Desmatamento',
+        limite: 300
+    };
+
+    function caixaComFolga(caixa) {
+        return [Math.floor(caixa[0] * 100) / 100, Math.floor(caixa[1] * 100) / 100, Math.ceil(caixa[2] * 100) / 100, Math.ceil(caixa[3] * 100) / 100];
+    }
+
+    function urlAlertasMapBiomas(caixa) {
+        var c = caixaComFolga(caixa);
+        var p = ['service=WFS', 'version=2.0.0', 'request=GetFeature', 'typeName=' + encodeURIComponent(MAPBIOMAS.camada),
+            'outputFormat=' + encodeURIComponent('application/json'), 'count=' + MAPBIOMAS.limite,
+            'CQL_FILTER=' + encodeURIComponent('BBOX(geom,' + c.join(',') + ",'EPSG:4674')")];
+        return MAPBIOMAS.servico + '?' + p.join('&');
+    }
+
+    // `buscar` substitui o fetch nos testes.
+    async function alertasMapBiomas(libs, geo, buscar) {
+        var alvo = feicoesDe(geo).filter(ehPoligono);
+        var areaTotal = alvo.reduce(function (s, p) { return s + areaHa(libs, p); }, 0);
+        var caixa = libs.bbox(libs.featureCollection(alvo));
+        var r = await (buscar || fetch)(urlAlertasMapBiomas(caixa));
+        if (!r.ok) throw new Error('O MapBiomas Alerta respondeu ' + r.status + '.');
+        var dados = await r.json();
+        var itens = [];
+        (dados.features || []).forEach(function (ft) {
+            if (!ft.geometry || !ft.properties || !ft.properties.alert_code) return;
+            var ha = 0;
+            alvo.forEach(function (p) {
+                var i = null;
+                try { i = libs.intersect(libs.featureCollection([p, { type: 'Feature', properties: {}, geometry: ft.geometry }])); } catch (erro) { i = null; }
+                if (i) ha += areaHa(libs, i);
+            });
+            if (!(ha >= 0.01)) return;
+            var pr = ft.properties;
+            itens.push({
+                codigo: String(pr.alert_code).replace(/[^0-9A-Za-z_-]/g, ''),
+                areaAlertaHa: typeof pr.area_ha === 'number' ? pr.area_ha : null,
+                detectadoEm: pr.detected_at || null, publicadoEm: pr.published_at || null,
+                imagemAntes: pr.image_before_at || null, imagemDepois: pr.image_after_at || null,
+                fontes: pr.sources || '',
+                ha: Math.round(ha * 10000) / 10000,
+                pct: areaTotal > 0 ? Math.round(ha / areaTotal * 1000) / 10 : 0
+            });
+        });
+        itens.forEach(function (a) { a.url = MAPBIOMAS.laudo + a.codigo; });
+        itens.sort(function (a, b) { return b.ha - a.ha; });
+        return { areaHa: Math.round(areaTotal * 10000) / 10000, itens: itens, incompleto: (dados.features || []).length >= MAPBIOMAS.limite, caixaEnviada: caixaComFolga(caixa), citacao: MAPBIOMAS.citacao };
+    }
+
     // Carrega vendor/damnum-geo.js só quando o mapa ou o polígono forem usados.
     var promessaLibs = null;
     function carregarLibs() {
@@ -990,6 +1049,9 @@
         camadaDosNomes: camadaDosNomes,
         recortarProtegidas: recortarProtegidas,
         sobreposicaoHa: sobreposicaoHa,
+        alertasMapBiomas: alertasMapBiomas,
+        urlAlertasMapBiomas: urlAlertasMapBiomas,
+        MAPBIOMAS: MAPBIOMAS,
         criarFonteSupressao: criarFonteSupressao,
         supressaoNoPoligono: supressaoNoPoligono,
         CLASSES_DETER: CLASSES_DETER,

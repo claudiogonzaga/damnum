@@ -72,3 +72,29 @@ test('relatório: a data aceita do PRODES aparece com a origem; sem ela, só a d
     assert.ok(com.includes('a supressão é anterior a ela'));
     assert.ok(!R.gerarHTML(V.calcular(entrada, series)).includes('a supressão é anterior a ela'));
 });
+
+test('MapBiomas Alerta: envia só o retângulo com folga; cruza aqui e monta o link do laudo pelo código', async () => {
+    const geo = Mapa.normalizar(libs, S.poligono(-55.415, -12.605, -55.405, -12.595));
+    let pedida = '';
+    const alerta = (codigo, x0, y0, x1, y1) => ({ type: 'Feature', geometry: S.poligono(x0, y0, x1, y1).geometry,
+        properties: { alert_code: codigo, area_ha: 50, sources: 'DETER-B', detected_at: '2023-06-01', image_before_at: '2023-03-10', image_after_at: '2023-06-20' } });
+    const buscar = async url => { pedida = url; return { ok: true, json: async () => ({ features: [alerta(123456, -55.42, -12.61, -55.41, -12.59), alerta(999, -55.30, -12.61, -55.29, -12.59)] }) }; };
+    const r = await Mapa.alertasMapBiomas(libs, geo, buscar);
+    // Só o alerta que toca o polígono, com metade dele em comum.
+    assert.deepStrictEqual(r.itens.map(a => a.codigo), ['123456']);
+    perto(r.itens[0].pct, 50, 0.5);
+    assert.strictEqual(r.itens[0].url, 'https://plataforma.alerta.mapbiomas.org/alerta/123456');
+    assert.strictEqual(r.itens[0].imagemAntes, '2023-03-10');
+    // O pedido leva a caixa arredondada para fora em centésimos de grau, e nenhum vértice do polígono.
+    assert.deepStrictEqual(r.caixaEnviada, [-55.42, -12.61, -55.4, -12.59]);
+    const consulta = decodeURIComponent(pedida);
+    assert.ok(consulta.startsWith(Mapa.MAPBIOMAS.servico + '?'));
+    assert.ok(consulta.includes("BBOX(geom,-55.42,-12.61,-55.4,-12.59,'EPSG:4674')"));
+    assert.ok(!consulta.includes('-55.415') && !consulta.includes('-12.605'));
+});
+
+test('MapBiomas Alerta: erro do serviço vira mensagem; sem alerta, lista vazia', async () => {
+    const geo = Mapa.normalizar(libs, S.poligono(-55.415, -12.605, -55.405, -12.595));
+    await assert.rejects(Mapa.alertasMapBiomas(libs, geo, async () => ({ ok: false, status: 503 })), /respondeu 503/);
+    assert.deepStrictEqual((await Mapa.alertasMapBiomas(libs, geo, async () => ({ ok: true, json: async () => ({ features: [] }) }))).itens, []);
+});

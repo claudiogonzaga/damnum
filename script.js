@@ -68,7 +68,7 @@ async function obterTotalGlobal() {
 }
 
 // Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
-const VERSAO_DAMNUM = '7.4.1';
+const VERSAO_DAMNUM = '7.5.0';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -831,6 +831,10 @@ function atualizarPainelSupressao() {
         const caixa = document.getElementById('resultadoSupressao');
         caixa.style.display = 'none';
         caixa.innerHTML = '';
+        const laudos = document.getElementById('resultadoMapBiomas');
+        laudos.style.display = 'none';
+        laudos.innerHTML = '';
+        supressaoAtual = { geo: geoAtual, resultado: null };
     }
 }
 
@@ -906,6 +910,44 @@ function mostrarSupressao(res) {
         campo.dispatchEvent(new Event('change'));
         dataSugerida = { data: g.data, texto: descreverSupressao(g) + '; ' + numeroBR(g.ha, 2) + ' ha em comum (' + numeroBR(g.pct, 1) + '% do polígono); dados do INPE copiados em ' + dataBR(d.geradoEm) };
     }));
+}
+
+// ---------- laudo do MapBiomas Alerta (consulta externa, só com confirmação) ----------
+async function procurarLaudoMapBiomas() {
+    if (!geoAtual) return;
+    const geo = geoAtual;
+    const caixa = document.getElementById('resultadoMapBiomas');
+    const botao = document.getElementById('btnLaudoMapBiomas');
+    if (!confirm('Você vai consultar um serviço externo, o MapBiomas Alerta (maps.alerta.mapbiomas.org), que não é do DAMNUM.\n\n' +
+        'Para isso, a localização do caso será enviada a esse terceiro: um retângulo que envolve o polígono, com folga de até cerca de 1 km de cada lado. O polígono em si, o número do processo e os demais dados do formulário não são enviados.\n\n' +
+        'Deseja continuar?')) return;
+    caixa.style.display = '';
+    caixa.innerHTML = '<p class="ajuda-campo">Consultando o MapBiomas Alerta...</p>';
+    botao.disabled = true;
+    try {
+        const libs = await DamnumMapa.carregarLibs();
+        const res = await DamnumMapa.alertasMapBiomas(libs, geo);
+        if (geo !== geoAtual) return;
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        const citacao = 'Fonte: ' + escaparHTML(res.citacao) + ', acesso em ' + hoje + ' (plataforma.alerta.mapbiomas.org).';
+        if (!res.itens.length) {
+            caixa.innerHTML = '<p class="ajuda-campo">O MapBiomas Alerta não tem alerta validado sobre esta área. Isso não prova que não houve supressão. ' + citacao + '</p>';
+            return;
+        }
+        let html = '<div class="tabela-rolavel"><table class="tabela-carrinho"><thead><tr><th>Alerta</th><th>Detecção</th><th>Imagem antes</th><th>Imagem depois</th><th>Fonte do alerta</th><th>Área em comum (ha)</th><th>% do polígono</th><th>Laudo</th></tr></thead><tbody>';
+        res.itens.slice(0, 15).forEach(a => {
+            html += '<tr><td>' + escaparHTML(a.codigo) + '</td><td>' + (a.detectadoEm ? dataBR(a.detectadoEm) : '') + '</td><td>' + (a.imagemAntes ? dataBR(a.imagemAntes) : '') + '</td><td>' + (a.imagemDepois ? dataBR(a.imagemDepois) : '') +
+                '</td><td>' + escaparHTML(a.fontes) + '</td><td>' + numeroBR(a.ha, 2) + '</td><td>' + numeroBR(a.pct, 1) + '%</td><td><a href="' + escaparHTML(a.url) + '" target="_blank" rel="noopener noreferrer">Abrir o laudo</a></td></tr>';
+        });
+        html += '</tbody></table></div>';
+        html += '<p class="ajuda-campo">' + (res.itens.length > 15 ? 'Há mais ' + (res.itens.length - 15) + ' alerta(s) com área menor. ' : '') + (res.incompleto ? 'A região tem muitos alertas e a lista pode estar incompleta. ' : '') +
+            'O laudo abre na plataforma do MapBiomas Alerta, em outra aba, e é do alerta inteiro, que pode ser maior ou menor que o polígono do caso. ' + citacao + '</p>';
+        caixa.innerHTML = html;
+    } catch (erro) {
+        caixa.innerHTML = '<p class="ajuda-campo">Não foi possível consultar o MapBiomas Alerta (' + escaparHTML(erro.message) + ').</p>';
+    } finally {
+        botao.disabled = false;
+    }
 }
 
 // A origem da data só vale enquanto a data do formulário for a que foi aceita.
@@ -1716,7 +1758,8 @@ function iniciarPainelIA() {
     document.getElementById('btnAplicarCalcular').addEventListener('click', () => aplicarCaso(true));
     document.getElementById('btnBaixarCaso').addEventListener('click', baixarCaso);
     document.getElementById('btnSugerirData').addEventListener('click', procurarSupressao);
-    document.getElementById('fonteData').addEventListener('change', () => { if (supressaoAtual && supressaoAtual.geo === geoAtual) mostrarSupressao(supressaoAtual.resultado); });
+    document.getElementById('btnLaudoMapBiomas').addEventListener('click', procurarLaudoMapBiomas);
+    document.getElementById('fonteData').addEventListener('change', () => { if (supressaoAtual && supressaoAtual.resultado && supressaoAtual.geo === geoAtual) mostrarSupressao(supressaoAtual.resultado); });
 }
 
 function statusCaso(texto) {
