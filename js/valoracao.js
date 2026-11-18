@@ -37,8 +37,33 @@
     var CUSTOS_TIMOTHEO = {
         alta: { valor: 6656.91, rotulo: 'desmatamento com alta resiliência: isolamento e condução da regeneração natural ("cercamento")' },
         baixa: { valor: 9999.84, rotulo: 'desmatamento com baixa resiliência: isolamento e plantio de mudas em 5 m × 5 m ("adensamento")' },
-        plantio: { valor: 41649.33, rotulo: 'isolamento e plantio total de mudas em 3 m × 2 m' }
+        plantio: { valor: 41649.33, rotulo: 'isolamento e plantio total de mudas em 3 m × 2 m' },
+        // Item 3.2.1: incêndio, queimada e exploração seletiva, sem comprometer a estrutura da vegetação.
+        abandono: { valor: 2669.88, rotulo: 'fogo sem comprometimento da estrutura da vegetação: manutenção da área sem uso ("abandono")' }
     };
+
+    // ---------- fogo em vegetação nativa (versão 7.3) ----------
+    // Dois casos, além da queima de resíduo depois do corte raso, que é desmatamento:
+    // incêndio em floresta em pé e queimada em savana, campo ou pantanal.
+    // Dano interino: Nota Técnica 03/2022 do CAEx (item 3.2.6), a mesma do SISCALC
+    // Ambiental: custo de "abandono" e tempo de 26 anos (floresta) ou 2 anos (cerrado).
+    // Carbono: fração do estoque que se perde. Floresta em pé: 25%, da biomassa
+    // ainda 24,8% abaixo da floresta não queimada 31 anos depois (Silva et al., 2018)
+    // e da perda líquida de até 26% usada pelo SEEG. Savana e campo: 0% por padrão,
+    // porque a Nota do CAEx estima em 2 anos a volta da biomassa queimada.
+    var FOGO = {
+        'incendio-floresta': { rotulo: 'incêndio em floresta em pé', forma: 'floresta', tempo: 26, fracaoPct: 25,
+            fonteFracao: 'Silva et al. (2018): biomassa 24,8% abaixo da floresta não queimada depois de 31 anos; SEEG: perda líquida de até 26%' },
+        'queimada-savana': { rotulo: 'queimada em cerrado, campo ou pantanal', forma: 'savana', tempo: 2, fracaoPct: 0,
+            fonteFracao: 'Nota Técnica 03/2022 do CAEx, item 3.2.6.4: a biomassa consumida pelo fogo no cerrado volta em cerca de 2 anos' }
+    };
+    function fogoPadrao(tipologia) {
+        var f = FOGO[tipologia];
+        return f ? { tipologia: tipologia, rotulo: f.rotulo, forma: f.forma, tempo: f.tempo, fracaoPct: f.fracaoPct, fonteFracao: f.fonteFracao, taxaPct: INTERINO_CAEX.taxaPct } : null;
+    }
+    // Sem possibilidade técnica de recuperação (Nota Técnica 03/2022, itens 2 e 3.2):
+    // perda permanente, com horizonte infinito: custo do plantio total ÷ taxa.
+    var IRRECUPERAVEL = { custo: 'plantio', taxaPct: 6.82 };
 
     // ---------- dano interino ----------
     // Gonzaga et al. (2025): custo × i × (t + 1) ÷ 2; taxa de 6% e tempo mínimo de 15 anos.
@@ -649,21 +674,53 @@
         }
 
         var fora = entrada.areas.fora, em = entrada.areas.em, total = fora + em;
-        var reparacao = entrada.reparacaoInSitu && em > 0;
-        var areaMaterial = reparacao ? fora : total;
-        var areaInterino = reparacao ? em : 0;
+        var fogo = fogoPadrao(entrada.tipologia);
+        if (fogo && entrada.fogo) {
+            if (entrada.fogo.fracaoPct >= 0 && entrada.fogo.fracaoPct <= 100) fogo.fracaoPct = entrada.fogo.fracaoPct;
+            if (entrada.fogo.tempo > 0) fogo.tempo = entrada.fogo.tempo;
+        }
+        var irrecuperavel = !fogo && !!entrada.irrecuperavel;
+        var reparacao = !fogo && !irrecuperavel && entrada.reparacaoInSitu && em > 0;
+        var areaMaterial = fogo ? 0 : (reparacao ? fora : total);
+        var areaInterino = fogo ? total : (reparacao ? em : 0);
         var valorMaterialGonzaga = areaMaterial * custo.valorHa;
+        var perpetuidade = null;
+        if (irrecuperavel) {
+            perpetuidade = { custoHa: CUSTOS_TIMOTHEO[IRRECUPERAVEL.custo].valor, taxaPct: IRRECUPERAVEL.taxaPct };
+            perpetuidade.valorHa = perpetuidade.custoHa / (perpetuidade.taxaPct / 100);
+            valorMaterialGonzaga = total * perpetuidade.valorHa;
+        }
         // Custo de Timotheo et al., pelo valor da Nota Técnica do CAEx, sem reajuste,
         // como nos cálculos do próprio CAEx.
         function custoTimotheo(chave) { return CUSTOS_TIMOTHEO[chave].valor; }
         // Sem configuração própria, vale o método de Gonzaga et al. com a taxa e o tempo informados.
         var configInterino = entrada.interino || { metodo: 'gonzaga', forma: null, taxaPct: entrada.taxaInterinoPct, tempo: entrada.tempoRecuperacao };
-        var interino = calcularInterino(configInterino, custo.valorHa, configInterino.metodo === 'caex' ? custoTimotheo(configInterino.resiliencia) : null, areaInterino, fora);
+        // Valor pelo método do CAEx (o do SISCALC Ambiental), para a linha de comparação do relatório.
+        var anosCaex = configInterino.anosAteRegularizacao > 0 ? configInterino.anosAteRegularizacao
+            : (dataInformada ? Math.max((entrada.lia && entrada.lia.anoRegularizacao ? entrada.lia.anoRegularizacao : entrada.dataCalculo.getFullYear()) - entrada.dataDano.getFullYear(), 0) : 0);
+        var siscalc = null;
+        if (fogo) {
+            configInterino = { metodo: 'caex', forma: fogo.forma, taxaPct: fogo.taxaPct, tempo: fogo.tempo, resiliencia: 'abandono', anosAteRegularizacao: 0 };
+        } else if (irrecuperavel) {
+            siscalc = { valor: C.arredondar(total * perpetuidade.valorHa, 2), descricao: 'sem possibilidade técnica de recuperação: custo do plantio total ÷ taxa' };
+        } else {
+            var formaCaex = configInterino.forma || formaDaVegetacao(null, entrada.bioma, null);
+            var resilienciaCaex = configInterino.metodo === 'caex' && configInterino.resiliencia ? configInterino.resiliencia : INTERINO_CAEX.resiliencia;
+            var ic = calcularInterino({ metodo: 'caex', forma: formaCaex, taxaPct: INTERINO_CAEX.taxaPct, tempo: INTERINO_CAEX.tempo[formaCaex], resiliencia: resilienciaCaex, anosAteRegularizacao: anosCaex },
+                0, custoTimotheo(resilienciaCaex), em, fora);
+            siscalc = { valor: C.arredondar(ic.valorAreaProtegida + ic.valorAreaFora, 2), areaProtegida: ic.valorAreaProtegida, areaFora: ic.valorAreaFora, anos: anosCaex, resiliencia: resilienciaCaex, forma: formaCaex,
+                descricao: 'área protegida: custo de reposição × soma dos juros até a recuperação; fora dela: juros do ano 1 × ' + anosCaex + ' ano(s) até a regularização' };
+        }
+        if (irrecuperavel) areaInterino = 0;
+        var interino = calcularInterino(configInterino, custo.valorHa, configInterino.metodo === 'caex' ? custoTimotheo(configInterino.resiliencia) : null, areaInterino, fogo ? 0 : fora);
+        if (fogo) siscalc = { valor: C.arredondar(interino.valorAreaProtegida, 2), descricao: 'incêndio: custo de "abandono" × soma dos juros em ' + fogo.tempo + ' anos' };
         var valorInterino = interino.valorAreaProtegida + interino.valorAreaFora;
         var fk = fatorK(entrada.compensacao || {});
         var configResidual = Object.assign({}, entrada.residual || residualPadrao('gonzaga'));
         if (entrada.compensacao || !configResidual.k) configResidual.k = fk.K;
-        var residual = calcularResidual(configResidual, custo.valorHa, configResidual.metodo === 'caex' ? custoTimotheo(configResidual.custo) : null, areaInterino);
+        var residual = calcularResidual(configResidual, custo.valorHa, configResidual.metodo === 'caex' ? custoTimotheo(configResidual.custo) : null, fogo ? 0 : areaInterino);
+        // No fogo, só a fração perdida do estoque entra nas parcelas de carbono.
+        var fracaoCarbono = fogo ? fogo.fracaoPct / 100 : 1;
 
         var parametros = Object.assign({}, entrada.parametros);
         parametros.precoSocialCO2BRL = C.arredondar(parametros.precoSocialCO2USD * parametros.cotacaoDolar, 2);
@@ -671,7 +728,7 @@
 
         // Dano extrapatrimonial: o valor-base mede a extensão; o fator gradua pelos demais critérios do STJ.
         var gradacao = gradacaoExtrapatrimonial(entrada.gradacao);
-        gradacao.valorBase = C.arredondar(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL), 2);
+        gradacao.valorBase = C.arredondar(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL) * fracaoCarbono, 2);
         gradacao.precoImplicitoUSD = parametros.precoMercadoCO2USD * gradacao.fator;
         gradacao.aviso = gradacao.fator < 1 && C.abaixoDoPisoCNJ(gradacao.precoImplicitoUSD) && !C.abaixoDoPisoCNJ(parametros.precoMercadoCO2USD)
             ? 'Com a gradação, o preço implícito da tonelada ficou em US$ ' + String(gradacao.precoImplicitoUSD.toFixed(2)).replace('.', ',') + '/tCO₂, abaixo de US$ 5,00/tCO₂e, piso recomendado pelo Protocolo do CNJ (2024, p. 66). A redução decorre só dos critérios do STJ graduados abaixo do meio.'
@@ -682,12 +739,12 @@
             interino: parcelaPatrimonial(valorInterino, areaInterino, ctx),
             residual: parcelaPatrimonial(residual.valor, areaInterino, ctx),
             mercado: parcelaCarbono(gradacao.valorBase * gradacao.fator, ctx),
-            social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL), ctx)
+            social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL) * fracaoCarbono, ctx)
         };
 
         // Lucro do ilícito ambiental: exige a data do dano (o intervalo conta dela).
         var lia = null;
-        if (entrada.lia && dataInformada) {
+        if (entrada.lia && dataInformada && !fogo) {
             // Custos de licenciamento orçados em mês posterior ao do dano são trazidos
             // ao mês do dano pelo IPCA-15, para não contar a inflação duas vezes.
             var base = entrada.lia.mesBaseLicenciamento, fLic = 1;
@@ -739,6 +796,10 @@
             origem: entrada.origem || null,
             areas: { fora: fora, em: em, total: total, observacao: entrada.areas.observacao || '', recorte: entrada.areas.recorte || null },
             reparacaoInSitu: reparacao,
+            tipologia: fogo ? fogo.tipologia : 'desmatamento',
+            fogo: fogo,
+            irrecuperavel: irrecuperavel ? perpetuidade : null,
+            siscalc: siscalc,
             custo: custo,
             interino: interino,
             residual: residual,
@@ -794,6 +855,9 @@
             mesCalculo: C.mesDeData(entrada.dataCalculo),
             areaFora: entrada.areas.fora,
             areaEm: entrada.areas.em,
+            tipologia: entrada.tipologia || 'desmatamento',
+            fogo: entrada.fogo || null,
+            irrecuperavel: !!entrada.irrecuperavel,
             reparacaoInSitu: !!entrada.reparacaoInSitu,
             interino: entrada.interino
                 ? { metodo: entrada.interino.metodo, forma: entrada.interino.forma, taxaPct: entrada.interino.taxaPct, tempo: entrada.interino.tempo, resiliencia: entrada.interino.resiliencia || null, anosAteRegularizacao: entrada.interino.anosAteRegularizacao || 0 }
@@ -844,6 +908,9 @@
         AJUSTE_GRAU_24: AJUSTE_GRAU_24,
         fracao24: fracao24,
         gradacaoExtrapatrimonial: gradacaoExtrapatrimonial,
+        FOGO: FOGO,
+        fogoPadrao: fogoPadrao,
+        IRRECUPERAVEL: IRRECUPERAVEL,
         resolverEstoque: resolverEstoque,
         calcular: calcular,
         avisoPiso: avisoPiso,

@@ -5,7 +5,7 @@
     <link rel="canonical" href="https://consciencia.eco.br/damnum/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.2.0">
+    <link rel="stylesheet" href="style.css?v=7.3.0">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -155,6 +155,25 @@
                     <label for="municipio">Sem polígono e sem coordenada: município do desmatamento (opcional):</label>
                     <select id="municipio"><option value="">Não informar</option></select>
                     <p class="ajuda-campo">Com o município e a fitofisionomia escolhidos, vale o estoque médio dessa fitofisionomia no município, pelo mapa do Quarto Inventário.</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="tipologia">Tipo de dano:</label>
+                    <select id="tipologia" name="tipologia">
+                        <option value="desmatamento">Desmatamento a corte raso (inclui a queima do resíduo depois do corte)</option>
+                        <option value="incendio-floresta">Incêndio em floresta em pé, sem corte raso</option>
+                        <option value="queimada-savana">Queimada em cerrado, campo ou pantanal, sem corte raso</option>
+                    </select>
+                    <p id="notaTipologia" class="ajuda-campo"></p>
+                    <div id="camposFogo" style="display:none;">
+                        <label for="fracaoFogo">Fração do estoque de carbono perdida com o fogo (%):</label>
+                        <input type="number" id="fracaoFogo" step="0.1" min="0" max="100">
+                        <p id="notaFracaoFogo" class="ajuda-campo"></p>
+                    </div>
+                    <label class="caixa-opcao" id="rotuloIrrecuperavel" style="margin-top:8px;">
+                        <input type="checkbox" id="irrecuperavel"> Sem possibilidade técnica de recuperação (perda permanente da vegetação)
+                    </label>
+                    <p id="notaIrrecuperavel" class="ajuda-campo" style="display:none;">O dano material passa a ser a perpetuidade do custo do plantio total: R$ 41.649,33/ha ÷ 6,82% = R$ 610.693,99/ha (Nota Técnica 03/2022 do CAEx Ambiental do MPMT, itens 2 e 3.2). Não há dano interino nem residual à parte.</p>
                 </div>
 
                 <div class="input-group">
@@ -557,13 +576,13 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.2.0"></script>
-    <script src="js/series.js?v=7.2.0"></script>
-    <script src="js/mapa-qcn.js?v=7.2.0"></script>
-    <script src="js/valoracao.js?v=7.2.0"></script>
-    <script src="js/caso.js?v=7.2.0"></script>
-    <script src="js/relatorio.js?v=7.2.0"></script>
-    <script src="script.js?v=7.2.0"></script>
+    <script src="js/calculo.js?v=7.3.0"></script>
+    <script src="js/series.js?v=7.3.0"></script>
+    <script src="js/mapa-qcn.js?v=7.3.0"></script>
+    <script src="js/valoracao.js?v=7.3.0"></script>
+    <script src="js/caso.js?v=7.3.0"></script>
+    <script src="js/relatorio.js?v=7.3.0"></script>
+    <script src="script.js?v=7.3.0"></script>
 </body>
 </html>
 

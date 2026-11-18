@@ -68,7 +68,7 @@ async function obterTotalGlobal() {
 }
 
 // Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
-const VERSAO_DAMNUM = '7.2.0';
+const VERSAO_DAMNUM = '7.3.0';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -1450,6 +1450,9 @@ async function calcularValoracao() {
             entendimento: obterEntendimento(),
             dataCalculo,
             dataDano,
+            tipologia: valorCampo('tipologia'),
+            fogo: DamnumValoracao.FOGO[valorCampo('tipologia')] ? { fracaoPct: parseFloat(valorCampo('fracaoFogo')) } : null,
+            irrecuperavel: valorCampo('tipologia') === 'desmatamento' && document.getElementById('irrecuperavel').checked,
             areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea, recorte },
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
             interino: lerInterino(),
@@ -1511,7 +1514,7 @@ function mostrarResultado(r) {
 
     // Reparação em espécie, antes dos valores em dinheiro.
     const c = r.compensacao;
-    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em áreas territorialmente protegidas. ' : '') +
+    document.getElementById('textoEspecie').innerHTML = (c.inSituHa > 0 ? (r.fogo ? 'Regeneração natural da área queimada: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong>, mantidos sem uso. ' : 'Recuperação no próprio local: <strong>' + numeroBR(c.inSituHa, 2) + ' ha</strong> em áreas territorialmente protegidas. ') : '') +
         'Compensação ecológica: proteção perpétua de <strong>' + numeroBR(c.totalHa, 2) + ' ha</strong> de vegetação nativa, assim compostos:';
     document.getElementById('listaEspecie').innerHTML = c.itens.filter(i => i.ha > 0)
         .map(i => '<li>' + i.nome + ': ' + numeroBR(i.ha, 2) + ' ha</li>').join('') +
@@ -1535,7 +1538,7 @@ function mostrarResultado(r) {
     if (r.lia) document.getElementById('valorLIA').textContent = formatarMoeda(p.lia.valor);
 
     const notaDanoMaterial = document.getElementById('notaDanoMaterial');
-    if (r.areas.em > 0) {
+    if (r.areas.em > 0 && !r.fogo && !r.irrecuperavel) {
         notaDanoMaterial.style.display = '';
         notaDanoMaterial.innerHTML = r.reparacaoInSitu
             ? '<strong>Nota:</strong> Se o dano é em área territorialmente protegida (APP, ARL, UC ou TI) e haverá reparação <em>in situ</em>, o dano material direto deve ser reparado <em>in situ</em> (e não cobrado monetariamente, sob pena de <em>bis in idem</em>). Nesse caso, a cobrança monetária refere-se ao <strong>dano interino</strong>.'
@@ -1725,6 +1728,7 @@ async function aplicarCaso(calcular) {
     const valor = chave => (r.itens.find(i => i.chave === chave && !i.informativo) || {}).valor;
     statusCaso('Preenchendo o formulário...');
     if (usa('numeroProcesso') && r.caso.numeroProcesso) definirCampo('numeroProcesso', r.caso.numeroProcesso.valor);
+    if (usa('tipologia') && r.caso.tipologia && r.caso.tipologia.valor !== 'outra') definirCampo('tipologia', r.caso.tipologia.valor, 'change');
     if (usa('dataDano') && r.caso.dataDano) definirCampo('dataDano', r.caso.dataDano.valor, 'change');
     // Áreas antes da localização: se o polígono der outra área, a divergência aparece.
     const em = usa('areaProtegidaHa') ? valor('areaProtegidaHa') : undefined, fora = usa('areaExcedenteHa') ? valor('areaExcedenteHa') : undefined;
@@ -1842,6 +1846,7 @@ async function restaurarCaso(caso) {
     atualizarParametrosCalculados();
     aoMudarAreas();
     atualizarPainelEstoque();
+    atualizarTipologia(false);
     statusCaso('Caso reaberto' + (caso.damnum && caso.damnum !== VERSAO_DAMNUM ? ' (salvo na versão ' + caso.damnum + '; esta é a ' + VERSAO_DAMNUM + ')' : '') + '. Confira e calcule.');
 }
 
@@ -1854,6 +1859,22 @@ window.DAMNUM = {
     abrirCaso: caso => { document.getElementById('painelIA').open = true; return conferirCaso(caso); },
     resultado: () => ultimoResultado ? { versao: ultimoResultado.versao, hash: ultimoResultado.hash, totais: ultimoResultado.totais, parcelas: ultimoResultado.parcelas, areas: ultimoResultado.areas, compensacao: ultimoResultado.compensacao } : null
 };
+
+// Tipo de dano: no fogo sem corte raso, o dano interino segue a Nota Técnica do
+// CAEx e só a fração perdida do estoque entra nas parcelas de carbono.
+function atualizarTipologia(trocou) {
+    const tipo = valorCampo('tipologia');
+    const fogo = DamnumValoracao.fogoPadrao(tipo);
+    document.getElementById('camposFogo').style.display = fogo ? '' : 'none';
+    document.getElementById('rotuloIrrecuperavel').style.display = fogo ? 'none' : '';
+    if (fogo) document.getElementById('irrecuperavel').checked = false;
+    document.getElementById('notaIrrecuperavel').style.display = !fogo && document.getElementById('irrecuperavel').checked ? '' : 'none';
+    if (fogo && trocou) document.getElementById('fracaoFogo').value = fogo.fracaoPct;
+    document.getElementById('notaTipologia').textContent = fogo
+        ? 'Dano interino pela Nota Técnica 03/2022 do CAEx Ambiental do MPMT (a do SISCALC): custo de manter a área sem uso, por ' + fogo.tempo + ' anos. Não há dano material nem lucro do ilícito nesta versão. As áreas dentro e fora de área protegida são somadas.'
+        : 'Se o fogo veio depois do corte raso, para queimar o resíduo, o caso é de desmatamento.';
+    if (fogo) document.getElementById('notaFracaoFogo').textContent = 'Padrão: ' + numeroBR(fogo.fracaoPct, 0) + '%. ' + fogo.fonteFracao + '. Só essa fração do estoque entra no dano climático e no extrapatrimonial.';
+}
 
 function atualizarParametrosCalculados() {
     const p = obterParametrosAtuais();
@@ -2028,6 +2049,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Carrinho e relatório consolidado
     document.getElementById('btnCarrinho').addEventListener('click', porNoCarrinho);
     iniciarPainelIA();
+    document.getElementById('tipologia').addEventListener('change', () => atualizarTipologia(true));
+    document.getElementById('irrecuperavel').addEventListener('change', () => atualizarTipologia(false));
+    atualizarTipologia(true);
     document.getElementById('btnConsolidado').addEventListener('click', gerarConsolidado);
     document.getElementById('btnEsvaziarCarrinho').addEventListener('click', esvaziarCarrinho);
     document.getElementById('btnPDFConsolidado').addEventListener('click', () => baixarRelatorioPDF('textoConsolidado'));

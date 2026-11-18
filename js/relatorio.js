@@ -50,6 +50,7 @@
         if (r.numeroProcesso) linhas.push(linha('Processo ou procedimento', '<b>' + esc(r.numeroProcesso) + '</b>'));
         if (r.nomeArea) linhas.push(linha('Área valorada', esc(r.nomeArea)));
         linhas.push(linha('Bioma', esc(r.bioma)));
+        linhas.push(linha('Tipo de dano', r.fogo ? esc(r.fogo.rotulo) : 'desmatamento a corte raso' + (r.irrecuperavel ? ', sem possibilidade técnica de recuperação' : '')));
         linhas.push(linha('Entendimento adotado', nomeEntendimento(r.entendimento)));
         linhas.push(linha('Data do dano', r.dataInformada ? data(r.dataDano) : 'não informada (valores na data do cálculo)'));
         linhas.push(linha('Data do cálculo', data(r.dataCalculo)));
@@ -141,6 +142,18 @@
         var p = r.parcelas.material;
         var html = subtitulo('2.1 Dano material (dano ecológico direto)');
         var linhas = [];
+        if (r.fogo) {
+            return html + '<p style="text-align:justify;">No fogo sem corte raso, a estrutura da vegetação permanece e a recuperação se dá pela regeneração natural, com a área mantida sem uso. Não há custo de recomposição a cobrar como dano material: o custo de manter a área é a base do dano interino (Nota Técnica 03/2022 do CAEx Ambiental do MPMT, item 3.2.1). Se o fogo foi recorrente ou severo a ponto de exigir plantio, trate a área como desmatamento. Dano material = ' + moeda(0) + '.</p>';
+        }
+        if (r.irrecuperavel && r.entendimento !== 'irdr') {
+            var ir = r.irrecuperavel;
+            linhas.push(linha('Hipótese', 'sem possibilidade técnica de recuperação no local nem fora dele: a perda das funções da vegetação é permanente'));
+            linhas.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × custo de reposição ÷ i (horizonte infinito; Nota Técnica 03/2022 do CAEx Ambiental do MPMT, itens 2 e 3.2, a partir do método CATE II de Ribas, 1996)'));
+            linhas.push(linha('Parâmetros e fontes', num(p.area, 4) + ' ha × ' + moeda(ir.custoHa) + '/ha ÷ ' + num(ir.taxaPct, 2) + '% = ' + num(p.area, 4) + ' ha × ' + moeda(ir.valorHa) + '/ha. Custo do isolamento e plantio total de mudas em 3 m × 2 m (Timotheo et al., 2017, pelo valor da Nota, atualizado pelo IPCA até 2023); taxa igual à média do IPCA de 1995 a 2023.'));
+            linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
+            linhas = linhas.concat(textoAtualizacaoPatrimonial(r, p));
+            return html + tabela(linhas) + nota('Nesta hipótese não há dano interino nem residual à parte: a perpetuidade já representa a perda permanente.');
+        }
         if (r.entendimento === 'irdr') {
             html += '<p style="text-align:justify;">Pelo entendimento do IRDR 13/TJMT, o desmatamento em área não especialmente protegida não configura dano material indenizável. Dano material = ' + moeda(0) + '.</p>';
             return html;
@@ -179,6 +192,15 @@
         var p = r.parcelas.interino;
         var it = r.interino;
         var html = subtitulo('2.2 Dano interino');
+        if (r.fogo) {
+            var lf = [];
+            lf.push(linha('Método', 'Nota Técnica 03/2022 do CAEx Ambiental do MPMT (atualizada em 17/01/2024), a mesma do SISCALC Ambiental: soma dos juros decrescentes sobre o custo de manter a área sem uso até a volta da biomassa queimada.'));
+            lf.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × Σ<sub>a = 1..t</sub> [custo × i ÷ (1 + i)<sup>a</sup>] (Nota Técnica, itens 1.5 e 3.2.6)'));
+            lf.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.fator, 4) + ', com i = ' + num(it.taxaPct, 2) + '% ao ano e t = ' + num(it.tempo, 0) + ' anos (' + esc(r.fogo.rotulo) + '). Custo da técnica de "abandono" de Timotheo et al. (2017), pelo valor da Nota. A Nota chega ao tempo dividindo a biomassa consumida pelo fogo pela produtividade da vegetação secundária: 26 anos na floresta e 2 anos no cerrado.'));
+            lf.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
+            return html + tabela(lf.concat(textoAtualizacaoPatrimonial(r, p)));
+        }
+        if (r.irrecuperavel) return html + '<p>Área sem possibilidade técnica de recuperação: a perda permanente está no dano material. Dano interino = ' + moeda(0) + '.</p>';
         var temProtegida = r.areas.em > 0 && r.reparacaoInSitu;
         if (!temProtegida && !(it.valorAreaFora > 0)) {
             if (!(r.areas.em > 0)) return html + '<p>Não há área territorialmente protegida informada. Dano interino = ' + moeda(0) + '.</p>';
@@ -223,6 +245,8 @@
         var d = r.residual;
         var caex = d.metodo === 'caex';
         var html = subtitulo('2.3 Dano residual');
+        if (r.fogo) return html + '<p style="text-align:justify;">No fogo, o dano residual não é valorado à parte nesta versão: na floresta, a perda duradoura de biomassa já entra nas parcelas de carbono pela fração do estoque. Dano residual = ' + moeda(0) + '.</p>';
+        if (r.irrecuperavel) return html + '<p>Área sem possibilidade técnica de recuperação: a perda permanente está no dano material. Dano residual = ' + moeda(0) + '.</p>';
         if (!(d.area > 0)) {
             return html + '<p style="text-align:justify;">' + (r.areas.em > 0
                 ? 'Como a reparação <em>in situ</em> não será promovida, não há dano residual a calcular: ele é a parcela que a restauração não devolve.'
@@ -338,8 +362,9 @@
         var g = chave === 'mercado' && r.gradacao ? r.gradacao : null;
         var html = subtitulo(numero + ' ' + nome);
         var linhas = [];
-        linhas.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × estoque de carbono (tC/ha) × 3,67 × preço (R$/tCO₂)' + (g ? ' × fator de gradação' : '')));
-        linhas.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + num(e.tC, 2) + ' tC/ha × 3,67 × ' + moeda(precoBRL) + '/tCO₂. ' + rotuloPreco + ': US$ ' + num(precoUSD, 2) + '/tCO₂ (' + fontePreco + '), convertido à cotação de R$ ' + num(r.parametros.cotacaoDolar, 2) + '. Estoque e fator 3,67: ver "Estoque de carbono".' + (g ? ' Fator de gradação: ' + num(g.fator, 2) + ', pelos critérios do STJ (quadro abaixo).' : '')));
+        linhas.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × estoque de carbono (tC/ha) × ' + (r.fogo ? 'fração perdida com o fogo × ' : '') + '3,67 × preço (R$/tCO₂)' + (g ? ' × fator de gradação' : '')));
+        if (r.fogo) linhas.push(linha('Fração do estoque perdida com o fogo', num(r.fogo.fracaoPct, 2) + '%. ' + esc(r.fogo.fonteFracao) + '.' + (r.fogo.fracaoPct === 0 ? ' Com fração zero, a parcela é zero; informe fração maior quando o fogo for recorrente ou atingir formação florestal.' : '')));
+        linhas.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + num(e.tC, 2) + ' tC/ha × ' + (r.fogo ? num(r.fogo.fracaoPct, 2) + '% × ' : '') + '3,67 × ' + moeda(precoBRL) + '/tCO₂. ' + rotuloPreco + ': US$ ' + num(precoUSD, 2) + '/tCO₂ (' + fontePreco + '), convertido à cotação de R$ ' + num(r.parametros.cotacaoDolar, 2) + '. Estoque e fator 3,67: ver "Estoque de carbono".' + (g ? ' Fator de gradação: ' + num(g.fator, 2) + ', pelos critérios do STJ (quadro abaixo).' : '')));
         if (g) linhas.push(linha('Valor-base (extensão do dano)', moeda(g.valorBase)));
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, a preços de ' + data(r.dataCalculo) + ' (data do cálculo, que equivale ao arbitramento)'));
         linhas.push(linha('Índice de correção (art. 524, II)', 'não há correção: o valor já está a preços da data do cálculo, e a correção do dano extrapatrimonial corre do arbitramento (Súmula 362/STJ)'));
@@ -566,6 +591,11 @@
         return html;
     }
 
+    // Valor do mesmo caso pelas notas técnicas do CAEx, que o SISCALC Ambiental do MPMT aplica.
+    function textoSiscalc(r) {
+        return '<p style="font-size:10pt; text-align:justify;"><b>Valor pelo método do CAEx Ambiental do MPMT (SISCALC Ambiental): ' + moeda(r.siscalc.valor) + '.</b> É o dano material interino da Nota Técnica 03/2022 (atualizada em 17/01/2024), em valores da Nota, sem atualização pela data do dano (' + esc(r.siscalc.descricao) + '). A Nota valora só essa parcela e deixa ao promotor de Justiça o dano moral e a mais-valia; não valora o dano residual nem o climático. A diferença para o total acima está nessas parcelas e na atualização.</p>';
+    }
+
     // ---------- 4. Total ----------
 
     function secaoTotais(r) {
@@ -581,6 +611,7 @@
         if (r.atualizacao.aplicada) {
             html += '<div style="background:#fff3cd; padding:10px 14px; margin:4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">TOTAL ATUALIZADO ATÉ ' + C.rotuloMes(r.mesCalculo).toUpperCase() + ' = ' + moeda(t.atualizado) + '</div>';
         }
+        if (r.siscalc) html += textoSiscalc(r);
         return html;
     }
 
@@ -611,10 +642,14 @@
         var th = TD + ' background:#f5f5f5;';
         var html = titulo('REPARAÇÃO EM ESPÉCIE, QUE PRECEDE A INDENIZAÇÃO');
         html += '<p style="text-align:justify;">A reparação segue esta ordem: recuperação da área no próprio local; compensação ecológica, com a proteção perpétua de área equivalente; e, só quando as duas forem impossíveis, indenização em dinheiro. "A compensação ecológica possui, portanto, precedência em relação à opção pela indenização pecuniária" (CNJ, Protocolo para Julgamento de Ações Ambientais, segundo escopo, 2024, p. 38). Os valores em dinheiro da seção 2 correspondem ao que não for reparado em espécie.</p>';
+        if (r.fogo) {
+            html += '<p style="text-align:justify;">No fogo sem corte raso, a reparação no local é a regeneração natural da área queimada (' + num(r.areas.total, 4) + ' ha), mantida sem uso e protegida de novo fogo. O dano interino de ' + moeda(p.interino.valor) + ', o dano climático de ' + moeda(p.social.valor) + ' e o dano extrapatrimonial de ' + moeda(p.mercado.valor) + ' podem ser reparados por compensação ecológica, nos termos abaixo.</p>';
+        } else {
         html += '<p><b>1) Hipótese da recuperação da área desmatada (recuperação <em>in situ</em>):</b></p>';
         html += '<p style="text-align:justify;">' + (c.inSituHa > 0 ? 'Área a recuperar no próprio local: <b>' + num(c.inSituHa, 4) + ' ha</b>. ' : '') + 'Quando houver recuperação da área desmatada (recuperação <em>in situ</em>) por danos em área de reserva legal (ARL), área de preservação permanente (APP) ou áreas excedentes caso ele opte pela reparação <em>in natura</em> e <em>in situ</em>, o degradador deverá indenizar os danos interinos no valor de ' + moeda(p.interino.valor) + ' e os danos residuais no valor de ' + moeda(p.residual.valor) + ' (além de indenizar os danos extrapatrimoniais). Neste cenário, o proprietário deverá apresentar e executar Projeto de Recuperação de Áreas Degradadas (PRADA) ou laudo de constatação de reparação do dano ambiental. Alternativamente, a parte requerida poderá realizar a compensação ecológica do dano interino e extrapatrimonial (veja a seguir).</p>';
         html += '<p><b>2) Hipótese da não recuperação da área ilegalmente desmatada (desmatamento ilegal fora de ARL e APP a ser regularizado):</b></p>';
         html += '<p style="text-align:justify;">Quando não houver reparação <em>in situ</em> (área passível de exploração), deverá ser realizada a compensação ecológica ou o pagamento de indenização, para que o proprietário possa regularizar a exploração da área. Neste caso, a valoração (dano material) é de ' + moeda(p.material.valor) + '. Também deverão ser reparados os danos climáticos, estimados em ' + moeda(p.social.valor) + ' e extrapatrimoniais (' + moeda(p.mercado.valor) + ').</p>';
+        }
         html += '<p><b>COMPENSAÇÃO ECOLÓGICA</b></p>';
         var fk = c.fatorK;
         html += '<p style="text-align:justify;">As áreas a proteger são multiplicadas pelo fator de equivalência <b>K = ' + num(fk.K, 2) + '</b>, que cobre o risco de a proteção falhar e o vazamento. ' +
@@ -710,7 +745,7 @@
         linhas.push(linha('Entrada do estoque de carbono', esc(r.estoque.entrada || 'reserva') + (r.estoque.mapa ? '; dados do mapa na versão ' + esc(r.estoque.dados ? r.estoque.dados.versao : 'não informada') : '')));
         linhas.push(linha('Método do dano interino', r.interino.metodo === 'caex' ? 'Nota Técnica 03/2022 do CAEx Ambiental/MPMT (Roquette)' : 'Gonzaga et al. (2025)'));
         linhas.push(linha('Método do dano residual', r.residual.metodo === 'caex' ? 'Relatório Técnico 963/2026 do CAEx Ambiental/MPMT (Roquette)' : 'Gonzaga et al. (2026), com ' + num(r.residual.pfePct, 2) + '% não recuperado'));
-        linhas.push(linha('Lucro do ilícito ambiental (LIA)', r.lia ? 'calculado' : 'não calculado, porque a data do dano não foi informada'));
+        linhas.push(linha('Lucro do ilícito ambiental (LIA)', r.lia ? 'calculado' : (r.fogo ? 'não calculado nos casos de fogo: faltam parâmetros de referência do proveito (custo evitado de limpeza, renovação de pasto)' : 'não calculado, porque a data do dano não foi informada')));
         linhas.push(linha('Juros sobre danos extrapatrimoniais antes de set./2024', r.atualizacao.opcaoExtrapatrimonial === 'reais' ? 'opção (a): juros reais, Selic deduzida do IPCA-15' : 'opção (b): não computados'));
         r.consultas.forEach(function (c) {
             linhas.push(linha('Consulta: ' + esc(c.serie), esc(c.fonte) + ' — ' + esc(c.quando) + ' — ' + esc(c.situacao)));
