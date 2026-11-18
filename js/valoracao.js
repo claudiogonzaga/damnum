@@ -42,24 +42,59 @@
         abandono: { valor: 2669.88, rotulo: 'fogo sem comprometimento da estrutura da vegetação: manutenção da área sem uso ("abandono")' }
     };
 
-    // ---------- fogo em vegetação nativa (versão 7.3) ----------
-    // Dois casos, além da queima de resíduo depois do corte raso, que é desmatamento:
-    // incêndio em floresta em pé e queimada em savana, campo ou pantanal.
+    // ---------- fogo em vegetação nativa (versões 7.3 e 7.4) ----------
+    // Dois casos, além da queima de resíduo depois do corte raso, que é desmatamento.
+    // O que os separa é a formação da vegetação, e não o bioma: cerradão, mata de
+    // galeria e floresta estacional são formação florestal, também no Cerrado.
     // Dano interino: Nota Técnica 03/2022 do CAEx (item 3.2.6), a mesma do SISCALC
     // Ambiental: custo de "abandono" e tempo de 26 anos (floresta) ou 2 anos (cerrado).
-    // Carbono: fração do estoque que se perde. Floresta em pé: 25%, da biomassa
-    // ainda 24,8% abaixo da floresta não queimada 31 anos depois (Silva et al., 2018)
-    // e da perda líquida de até 26% usada pelo SEEG. Savana e campo: 0% por padrão,
-    // porque a Nota do CAEx estima em 2 anos a volta da biomassa queimada.
+    // Carbono: fração do estoque que se perde. Formação florestal: 25%, da biomassa
+    // ainda 24,8% abaixo da floresta não queimada 12 a 31 anos depois (Silva et al., 2018).
+    // Formação savânica ou campestre, fogo isolado: 0%, porque a Nota do CAEx estima
+    // em 2 anos a volta da biomassa queimada.
+    // Fogo recorrente (7.4): a premissa de fogo isolado não vale. Na floresta, qualquer
+    // queimada anterior; na savana e no campo, intervalo menor que 3 anos (Gomes et al.,
+    // 2020, com Pivello e Coutinho, 1992). Na savana recorrente não há padrão de fração
+    // nem de tempo: quem preenche informa os dois.
+    // Gases que a rebrota não reabsorve (7.4): CH4 e N2O da biomassa queimada, pela
+    // equação 2.27 das Diretrizes do IPCC de 2006 (vol. 4, cap. 2), com os fatores de
+    // emissão da Tabela 2.5 e, na savana, o consumo de biomassa da Tabela 2.4. A Tabela
+    // 2.4 não tem linha de fogo de sub-bosque em floresta em pé (as de floresta são de
+    // corte e queima): na formação florestal o consumo não tem padrão.
     var FOGO = {
-        'incendio-floresta': { rotulo: 'incêndio em floresta em pé', forma: 'floresta', tempo: 26, fracaoPct: 25,
-            fonteFracao: 'Silva et al. (2018): biomassa 24,8% abaixo da floresta não queimada depois de 31 anos; SEEG: perda líquida de até 26%' },
-        'queimada-savana': { rotulo: 'queimada em cerrado, campo ou pantanal', forma: 'savana', tempo: 2, fracaoPct: 0,
-            fonteFracao: 'Nota Técnica 03/2022 do CAEx, item 3.2.6.4: a biomassa consumida pelo fogo no cerrado volta em cerca de 2 anos' }
+        'incendio-floresta': { rotulo: 'fogo em formação florestal, sem corte raso', forma: 'floresta', tempo: 26, fracaoPct: 25,
+            fonteFracao: 'Silva et al. (2018): biomassa 24,8% abaixo da floresta não queimada 12 a 31 anos depois do fogo',
+            limiteAnos: Infinity, consumoMs: null, efCH4: 6.8, efN2O: 0.20,
+            fonteConsumo: 'sem padrão: a Tabela 2.4 das Diretrizes do IPCC de 2006 só traz, para floresta tropical, o consumo do corte e queima, e não o do fogo de sub-bosque em floresta em pé' },
+        'queimada-savana': { rotulo: 'fogo em formação savânica ou campestre, sem corte raso', forma: 'savana', tempo: 2, fracaoPct: 0,
+            fonteFracao: 'Nota Técnica 03/2022 do CAEx, item 3.2.6.4: a biomassa consumida pelo fogo no cerrado volta em cerca de 2 anos',
+            limiteAnos: 3, consumoMs: 4.6, efCH4: 2.3, efN2O: 0.21,
+            fonteConsumo: 'Diretrizes do IPCC de 2006, vol. 4, cap. 2, Tabela 2.4: savana arborizada, queima do meio ao fim da estação seca (camada superficial)' }
     };
-    function fogoPadrao(tipologia) {
+    // Potencial de aquecimento global em 100 anos, Quinto Relatório do IPCC (AR5, GT1,
+    // cap. 8, Tabela 8.7, sem retroalimentação clima-carbono).
+    var GASES_FOGO = { gwpCH4: 28, gwpN2O: 265 };
+    // `anosDesdeAnterior`: anos entre a queimada anterior na mesma área e esta; null ou
+    // vazio quando não há registro de queimada anterior.
+    function fogoPadrao(tipologia, anosDesdeAnterior) {
         var f = FOGO[tipologia];
-        return f ? { tipologia: tipologia, rotulo: f.rotulo, forma: f.forma, tempo: f.tempo, fracaoPct: f.fracaoPct, fonteFracao: f.fonteFracao, taxaPct: INTERINO_CAEX.taxaPct } : null;
+        if (!f) return null;
+        var anos = typeof anosDesdeAnterior === 'number' && anosDesdeAnterior >= 0 ? anosDesdeAnterior : null;
+        var recorrente = anos !== null && anos < f.limiteAnos;
+        var semPadrao = recorrente && f.forma === 'savana';
+        return { tipologia: tipologia, rotulo: f.rotulo, forma: f.forma, taxaPct: INTERINO_CAEX.taxaPct,
+            tempo: semPadrao ? null : f.tempo, fracaoPct: semPadrao ? null : f.fracaoPct, fonteFracao: f.fonteFracao,
+            tempoNota: f.tempo, fracaoNota: f.fracaoPct,
+            anosDesdeAnterior: anos, recorrente: recorrente, limiteAnos: f.limiteAnos,
+            consumoMs: f.consumoMs, consumoPadrao: f.consumoMs, fonteConsumo: f.fonteConsumo, efCH4: f.efCH4, efN2O: f.efN2O };
+    }
+    // Emissão de CH4 e N2O por hectare, em tCO2e (equação 2.27 do IPCC, com o consumo
+    // de biomassa em t de matéria seca por hectare).
+    function gasesDoFogo(fogo) {
+        if (!(fogo.consumoMs > 0)) return null;
+        var ch4 = fogo.consumoMs * fogo.efCH4 / 1000, n2o = fogo.consumoMs * fogo.efN2O / 1000;
+        return { consumoMs: fogo.consumoMs, efCH4: fogo.efCH4, efN2O: fogo.efN2O, gwpCH4: GASES_FOGO.gwpCH4, gwpN2O: GASES_FOGO.gwpN2O,
+            tCH4Ha: ch4, tN2OHa: n2o, tCO2eHa: ch4 * GASES_FOGO.gwpCH4 + n2o * GASES_FOGO.gwpN2O };
     }
     // Sem possibilidade técnica de recuperação (Nota Técnica 03/2022, itens 2 e 3.2):
     // perda permanente, com horizonte infinito: custo do plantio total ÷ taxa.
@@ -674,11 +709,18 @@
         }
 
         var fora = entrada.areas.fora, em = entrada.areas.em, total = fora + em;
-        var fogo = fogoPadrao(entrada.tipologia);
+        var fogo = fogoPadrao(entrada.tipologia, entrada.fogo ? entrada.fogo.anosDesdeAnterior : null);
         if (fogo && entrada.fogo) {
-            if (entrada.fogo.fracaoPct >= 0 && entrada.fogo.fracaoPct <= 100) fogo.fracaoPct = entrada.fogo.fracaoPct;
-            if (entrada.fogo.tempo > 0) fogo.tempo = entrada.fogo.tempo;
+            // Campo em branco chega como null e deixa o padrão valer.
+            var ef = entrada.fogo, ehNumero = function (v) { return typeof v === 'number' && !isNaN(v); };
+            if (ehNumero(ef.fracaoPct) && ef.fracaoPct >= 0 && ef.fracaoPct <= 100) fogo.fracaoPct = ef.fracaoPct;
+            if (ehNumero(ef.tempo) && ef.tempo > 0) fogo.tempo = ef.tempo;
+            if (ehNumero(ef.consumoMs) && ef.consumoMs >= 0) fogo.consumoMs = ef.consumoMs;
         }
+        if (fogo && (fogo.fracaoPct === null || fogo.tempo === null)) {
+            throw new Error('Fogo recorrente em formação savânica ou campestre (menos de ' + fogo.limiteAnos + ' anos desde a queimada anterior): informe a fração do estoque perdida e o tempo de recuperação. A premissa de 2 anos e de perda zero vale só para o fogo isolado.');
+        }
+        if (fogo) fogo.gases = gasesDoFogo(fogo);
         var irrecuperavel = !fogo && !!entrada.irrecuperavel;
         var reparacao = !fogo && !irrecuperavel && entrada.reparacaoInSitu && em > 0;
         var areaMaterial = fogo ? 0 : (reparacao ? fora : total);
@@ -713,7 +755,12 @@
         }
         if (irrecuperavel) areaInterino = 0;
         var interino = calcularInterino(configInterino, custo.valorHa, configInterino.metodo === 'caex' ? custoTimotheo(configInterino.resiliencia) : null, areaInterino, fogo ? 0 : fora);
-        if (fogo) siscalc = { valor: C.arredondar(interino.valorAreaProtegida, 2), descricao: 'incêndio: custo de "abandono" × soma dos juros em ' + fogo.tempo + ' anos' };
+        if (fogo) {
+            // A linha de comparação fica com o tempo da Nota, mesmo que o caso use outro.
+            var interinoNota = fogo.tempo === fogo.tempoNota ? interino
+                : calcularInterino(Object.assign({}, configInterino, { tempo: fogo.tempoNota }), custo.valorHa, custoTimotheo('abandono'), areaInterino, 0);
+            siscalc = { valor: C.arredondar(interinoNota.valorAreaProtegida, 2), descricao: 'incêndio: custo de "abandono" × soma dos juros em ' + fogo.tempoNota + ' anos' };
+        }
         var valorInterino = interino.valorAreaProtegida + interino.valorAreaFora;
         var fk = fatorK(entrada.compensacao || {});
         var configResidual = Object.assign({}, entrada.residual || residualPadrao('gonzaga'));
@@ -728,7 +775,10 @@
 
         // Dano extrapatrimonial: o valor-base mede a extensão; o fator gradua pelos demais critérios do STJ.
         var gradacao = gradacaoExtrapatrimonial(entrada.gradacao);
-        gradacao.valorBase = C.arredondar(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL) * fracaoCarbono, 2);
+        // CH4 e N2O da biomassa queimada: tCO2e que a rebrota não reabsorve.
+        var tCO2eGases = fogo && fogo.gases ? total * fogo.gases.tCO2eHa : 0;
+        if (fogo && fogo.gases) fogo.gases.tCO2e = tCO2eGases;
+        gradacao.valorBase = C.arredondar(C.danoCarbono(total, entrada.estoque.tC, parametros.precoMercadoCO2BRL) * fracaoCarbono + tCO2eGases * parametros.precoMercadoCO2BRL, 2);
         gradacao.precoImplicitoUSD = parametros.precoMercadoCO2USD * gradacao.fator;
         gradacao.aviso = gradacao.fator < 1 && C.abaixoDoPisoCNJ(gradacao.precoImplicitoUSD) && !C.abaixoDoPisoCNJ(parametros.precoMercadoCO2USD)
             ? 'Com a gradação, o preço implícito da tonelada ficou em US$ ' + String(gradacao.precoImplicitoUSD.toFixed(2)).replace('.', ',') + '/tCO₂, abaixo de US$ 5,00/tCO₂e, piso recomendado pelo Protocolo do CNJ (2024, p. 66). A redução decorre só dos critérios do STJ graduados abaixo do meio.'
@@ -739,7 +789,7 @@
             interino: parcelaPatrimonial(valorInterino, areaInterino, ctx),
             residual: parcelaPatrimonial(residual.valor, areaInterino, ctx),
             mercado: parcelaCarbono(gradacao.valorBase * gradacao.fator, ctx),
-            social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL) * fracaoCarbono, ctx)
+            social: parcelaCarbono(C.danoCarbono(total, entrada.estoque.tC, parametros.precoSocialCO2BRL) * fracaoCarbono + tCO2eGases * parametros.precoSocialCO2BRL, ctx)
         };
 
         // Lucro do ilícito ambiental: exige a data do dano (o intervalo conta dela).
@@ -794,12 +844,15 @@
             numeroProcesso: entrada.numeroProcesso || '',
             nomeArea: entrada.nomeArea || '',
             origem: entrada.origem || null,
+            origemData: entrada.origemData || '',
             areas: { fora: fora, em: em, total: total, observacao: entrada.areas.observacao || '', recorte: entrada.areas.recorte || null },
             reparacaoInSitu: reparacao,
             tipologia: fogo ? fogo.tipologia : 'desmatamento',
             fogo: fogo,
             irrecuperavel: irrecuperavel ? perpetuidade : null,
             siscalc: siscalc,
+            // A linha de comparação é opcional no relatório; o valor é sempre calculado.
+            compararSiscalc: entrada.compararSiscalc !== false,
             custo: custo,
             interino: interino,
             residual: residual,
@@ -910,6 +963,8 @@
         gradacaoExtrapatrimonial: gradacaoExtrapatrimonial,
         FOGO: FOGO,
         fogoPadrao: fogoPadrao,
+        GASES_FOGO: GASES_FOGO,
+        gasesDoFogo: gasesDoFogo,
         IRRECUPERAVEL: IRRECUPERAVEL,
         resolverEstoque: resolverEstoque,
         calcular: calcular,

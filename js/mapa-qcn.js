@@ -22,7 +22,7 @@
 
     var CONFIG = { ativo: MAPA_QCN_ATIVO, baseUrl: DADOS_BASE_URL, versao: VERSAO_DADOS };
     // O sufixo muda a cada publicação, para o navegador não usar cópia antiga.
-    var URL_LIBS = 'vendor/damnum-geo.js?v=7.3.0';
+    var URL_LIBS = 'vendor/damnum-geo.js?v=7.4.0';
     var LIMITE_BLOCOS = 400;
     var LIMITE_PIXELS = 250000;
     var RAIO_VIZINHANCA_M = 100;
@@ -68,7 +68,9 @@
                 var poligonos = f.pol.map(function (p) { return p.map(function (a) { return decodificarAnel(a, bloco.escala); }); });
                 var geo = {
                     type: 'Feature',
-                    properties: { id: f.id, c_pret: f.c_pret, categ: f.categ, d: f.d, bioma: bloco.bioma },
+                    properties: bloco.tema === 'supressao'
+                        ? { id: f.id, fonte: f.f, origem: f.o, ano: f.a || null, data: f.d || null, classe: f.c || null }
+                        : { id: f.id, c_pret: f.c_pret, categ: f.categ, d: f.d, bioma: bloco.bioma },
                     geometry: poligonos.length === 1 ? { type: 'Polygon', coordinates: poligonos[0] } : { type: 'MultiPolygon', coordinates: poligonos }
                 };
                 geo.caixa = libs.bbox(geo);
@@ -854,6 +856,91 @@
         return total > 1e-4 ? total : 0;
     }
 
+    // ---------- data do dano pelo PRODES e pelo DETER (versão 7.4) ----------
+    // Blocos gerados por tools/preprocessar_prodes.py a partir do serviço aberto do
+    // TerraBrasilis (INPE) e publicados em <baseUrl>/prodes/<mês>/. O arquivo
+    // prodes/atual.json diz qual é a pasta em vigor. O cruzamento é feito aqui, no
+    // navegador: o polígono do caso não sai dele.
+    var CLASSES_DETER = {
+        DESMATAMENTO_CR: 'desmatamento com solo exposto', DESMATAMENTO_VEG: 'desmatamento com vegetação',
+        MINERACAO: 'mineração', DEGRADACAO: 'degradação', CICATRIZ_DE_QUEIMADA: 'cicatriz de queimada',
+        CS_DESORDENADO: 'corte seletivo desordenado', CS_GEOMETRICO: 'corte seletivo geométrico'
+    };
+    var ROTULOS_ORIGEM = {
+        prodes_amz: 'PRODES Amazônia Legal', prodes_cerrado: 'PRODES Cerrado', prodes_pantanal: 'PRODES Pantanal',
+        deter_amz: 'DETER Amazônia', deter_cerrado: 'DETER Cerrado'
+    };
+
+    function criarFonteSupressao(libs, opcoes) {
+        opcoes = opcoes || {};
+        var base = String(opcoes.baseUrl || CONFIG.baseUrl).replace(/\/+$/, '');
+        var buscar = opcoes.buscar || function (url, init) { return init ? fetch(url, init) : fetch(url); };
+        var promessa = null;
+        function fonte() {
+            if (!promessa) {
+                promessa = Promise.resolve(typeof document !== 'undefined' ? buscar(base + '/prodes/atual.json', { cache: 'no-cache' }) : buscar(base + '/prodes/atual.json'))
+                    .then(function (r) {
+                        if (!r.ok) throw new Error('O servidor de dados respondeu ' + r.status + ' para o PRODES.');
+                        return r.json();
+                    })
+                    .then(function (atual) {
+                        return { atual: atual, blocos: criarFonteBlocos(libs, { baseUrl: base, versao: atual.versao, buscar: opcoes.buscar, cache: opcoes.cache }) };
+                    });
+                promessa.catch(function () { promessa = null; });
+            }
+            return promessa;
+        }
+        return { fonte: fonte };
+    }
+
+    // Cruza o polígono com os polígonos do PRODES e do DETER. Devolve, por fonte,
+    // ano e data da imagem, a área em comum. `fonteSupressao` vem de criarFonteSupressao
+    // ou é um objeto { atual, blocos } (testes).
+    async function supressaoNoPoligono(libs, fonteSupressao, geo) {
+        var f = fonteSupressao.fonte ? await fonteSupressao.fonte() : fonteSupressao;
+        var alvo = feicoesDe(geo).filter(ehPoligono);
+        var areaTotal = alvo.reduce(function (s, p) { return s + areaHa(libs, p); }, 0);
+        var caixa = libs.bbox(libs.featureCollection(alvo));
+        var blocos = await f.blocos.blocosNaCaixa(caixa);
+        var grupos = {};
+        blocos.forEach(function (b) {
+            (b.feicoesGeo || []).forEach(function (ft) {
+                if (!caixasSeTocam(ft.caixa, caixa)) return;
+                alvo.forEach(function (p) {
+                    var i = null;
+                    try { i = libs.intersect(libs.featureCollection([p, ft])); } catch (erro) { i = null; }
+                    if (!i) return;
+                    var ha = areaHa(libs, i);
+                    if (!(ha > 0)) return;
+                    var pr = ft.properties;
+                    var chave = [pr.origem, pr.ano || '', pr.data || '', pr.classe || ''].join('|');
+                    if (!grupos[chave]) grupos[chave] = { fonte: pr.fonte === 'P' ? 'PRODES' : 'DETER', origem: pr.origem, rotulo: ROTULOS_ORIGEM[pr.origem] || pr.origem, ano: pr.ano, data: pr.data, classe: pr.classe, rotuloClasse: pr.classe ? (CLASSES_DETER[pr.classe] || String(pr.classe).toLowerCase().replace(/_/g, ' ')) : null, ha: 0 };
+                    grupos[chave].ha += ha;
+                });
+            });
+        });
+        var itens = Object.keys(grupos).map(function (k) { return grupos[k]; }).filter(function (g) { return g.ha >= 0.01; });
+        itens.forEach(function (g) {
+            g.ha = Math.round(g.ha * 10000) / 10000;
+            g.pct = areaTotal > 0 ? Math.round(g.ha / areaTotal * 1000) / 10 : 0;
+        });
+        itens.sort(function (a, b) { return b.ha - a.ha || String(a.data).localeCompare(String(b.data)); });
+        function soma(fonte, filtro) {
+            return Math.round(itens.filter(function (g) { return g.fonte === fonte && (!filtro || filtro(g)); }).reduce(function (s, g) { return s + g.ha; }, 0) * 10000) / 10000;
+        }
+        // Anos em que o DETER mapeou cicatriz de queimada sobre o polígono (recorrência do fogo).
+        var anosQueimada = {};
+        itens.forEach(function (g) { if (g.classe === 'CICATRIZ_DE_QUEIMADA' && g.data) anosQueimada[g.data.slice(0, 4)] = true; });
+        return {
+            areaHa: Math.round(areaTotal * 10000) / 10000,
+            itens: itens,
+            prodesHa: soma('PRODES'),
+            deterHa: soma('DETER'),
+            anosComQueimada: Object.keys(anosQueimada).sort(),
+            dados: { versao: f.atual.versao, geradoEm: f.atual.gerado_em, uf: f.atual.uf || [], fontes: f.atual.fontes || [] }
+        };
+    }
+
     // Carrega vendor/damnum-geo.js só quando o mapa ou o polígono forem usados.
     var promessaLibs = null;
     function carregarLibs() {
@@ -903,6 +990,9 @@
         camadaDosNomes: camadaDosNomes,
         recortarProtegidas: recortarProtegidas,
         sobreposicaoHa: sobreposicaoHa,
+        criarFonteSupressao: criarFonteSupressao,
+        supressaoNoPoligono: supressaoNoPoligono,
+        CLASSES_DETER: CLASSES_DETER,
         carregarLibs: carregarLibs
     };
 });

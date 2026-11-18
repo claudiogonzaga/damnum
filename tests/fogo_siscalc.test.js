@@ -37,12 +37,56 @@ test('incêndio em floresta: interino do Quadro 1 da Nota (R$ 2.189,57/ha) e 25%
     perto(calcular({ tipologia: 'incendio-floresta', fogo: { fracaoPct: 40 } }).parcelas.social.valor, d.parcelas.social.valor * 0.40, 0.01);
 });
 
-test('queimada em savana: interino de R$ 330,04/ha; carbono zero por padrão, maior se a fração for informada', () => {
+test('queimada em savana: interino de R$ 330,04/ha; sem perda de estoque por padrão, só CH4 e N2O da queima', () => {
     const s = calcular({ tipologia: 'queimada-savana', bioma: 'CERRADO' });
     perto(s.parcelas.interino.valor / 10, 330.04, 0.01);
-    assert.strictEqual(s.parcelas.social.valor, 0);
-    assert.strictEqual(s.parcelas.mercado.valor, 0);
-    assert.ok(calcular({ tipologia: 'queimada-savana', bioma: 'CERRADO', fogo: { fracaoPct: 10 } }).parcelas.social.valor > 0);
+    assert.strictEqual(s.fogo.fracaoPct, 0);
+    assert.strictEqual(s.fogo.recorrente, false);
+    // IPCC 2006: 4,6 t MS/ha × (2,3 × 28 + 0,21 × 265) ÷ 1.000 = 0,55223 tCO2e/ha.
+    perto(s.fogo.gases.tCO2eHa, 0.55223, 1e-5);
+    perto(s.parcelas.social.valor, 10 * 0.55223 * s.parametros.precoSocialCO2BRL, 0.01);
+    perto(s.parcelas.mercado.valor, 10 * 0.55223 * s.parametros.precoMercadoCO2BRL * s.gradacao.fator, 0.01);
+    // Sem consumo de biomassa, os gases não entram e o carbono zera.
+    const semGases = calcular({ tipologia: 'queimada-savana', bioma: 'CERRADO', fogo: { consumoMs: 0 } });
+    assert.strictEqual(semGases.fogo.gases, null);
+    assert.strictEqual(semGases.parcelas.social.valor, 0);
+    assert.ok(calcular({ tipologia: 'queimada-savana', bioma: 'CERRADO', fogo: { fracaoPct: 10 } }).parcelas.social.valor > s.parcelas.social.valor);
+});
+
+test('fogo recorrente: na savana, sem padrão de fração nem de tempo; na floresta, qualquer queimada anterior', () => {
+    const base = { tipologia: 'queimada-savana', bioma: 'CERRADO' };
+    // Intervalo de 3 anos ou mais, ou sem registro: fogo isolado.
+    assert.strictEqual(calcular(Object.assign({ fogo: { anosDesdeAnterior: 3 } }, base)).fogo.recorrente, false);
+    assert.strictEqual(calcular(Object.assign({ fogo: { anosDesdeAnterior: null } }, base)).fogo.recorrente, false);
+    // Menos de 3 anos: exige fração e tempo.
+    assert.throws(() => calcular(Object.assign({ fogo: { anosDesdeAnterior: 2 } }, base)), /Fogo recorrente/);
+    assert.throws(() => calcular(Object.assign({ fogo: { anosDesdeAnterior: 2, fracaoPct: 20 } }, base)), /Fogo recorrente/);
+    const rec = calcular(Object.assign({ fogo: { anosDesdeAnterior: 2, fracaoPct: 20, tempo: 8 } }, base));
+    assert.strictEqual(rec.fogo.recorrente, true);
+    assert.strictEqual(rec.interino.tempo, 8);
+    assert.ok(rec.parcelas.interino.valor > calcular(base).parcelas.interino.valor);
+    // A linha do SISCALC fica com os 2 anos da Nota.
+    perto(rec.siscalc.valor / 10, 330.04, 0.01);
+    const html = R.gerarHTML(rec);
+    assert.ok(html.includes('fogo recorrente'));
+    assert.ok(html.includes('informados por quem preencheu'));
+    // Floresta: qualquer queimada anterior é recorrência; os 25% ficam como piso.
+    const fl = calcular({ tipologia: 'incendio-floresta', fogo: { anosDesdeAnterior: 9 } });
+    assert.strictEqual(fl.fogo.recorrente, true);
+    assert.strictEqual(fl.fogo.fracaoPct, 25);
+    // Campos em branco (null) deixam os padrões valerem.
+    const branco = calcular({ tipologia: 'queimada-savana', bioma: 'CERRADO', fogo: { fracaoPct: null, tempo: null, consumoMs: null, anosDesdeAnterior: null } });
+    assert.deepStrictEqual([branco.fogo.fracaoPct, branco.fogo.tempo, branco.fogo.consumoMs], [0, 2, 4.6]);
+    // Sem padrão de consumo na floresta: gases só com o valor informado (6,8 × 28 + 0,20 × 265 = 243,4 g CO2e/kg).
+    assert.strictEqual(fl.fogo.gases, null);
+    assert.ok(R.gerarHTML(fl).includes('não calculados'));
+    perto(calcular({ tipologia: 'incendio-floresta', fogo: { consumoMs: 20 } }).fogo.gases.tCO2eHa, 20 * 0.2434, 1e-6);
+});
+
+test('linha do SISCALC é opcional no relatório', () => {
+    assert.ok(R.gerarHTML(calcular()).includes('SISCALC Ambiental): '));
+    assert.ok(!R.gerarHTML(calcular({ compararSiscalc: false })).includes('SISCALC Ambiental): '));
+    assert.ok(calcular({ compararSiscalc: false }).siscalc.valor > 0);
 });
 
 test('fogo não calcula lucro do ilícito; os subtotais continuam somando o total', () => {
@@ -76,7 +120,7 @@ test('linha do SISCALC: os valores dos Quadros 1 e 2 da Nota, em qualquer métod
 
 test('relatório: tipo de dano, blocos do fogo, hipótese irrecuperável e linha do SISCALC', () => {
     const fogo = R.gerarHTML(calcular({ tipologia: 'incendio-floresta' }));
-    ['incêndio em floresta em pé', 'Fração do estoque perdida com o fogo', '25,00%', 'Silva et al. (2018)', 't = 26 anos', 'regeneração natural', 'Valor pelo método do CAEx Ambiental do MPMT (SISCALC Ambiental)', 'não calculado nos casos de fogo'].forEach(t => assert.ok(fogo.includes(t), 'falta: ' + t));
+    ['fogo em formação florestal, sem corte raso', 'Fração do estoque perdida com o fogo', '25,00%', 'Silva et al. (2018)', 't = 26 anos', 'regeneração natural', 'Valor pelo método do CAEx Ambiental do MPMT (SISCALC Ambiental)', 'não calculado nos casos de fogo'].forEach(t => assert.ok(fogo.includes(t), 'falta: ' + t));
     assert.ok(!fogo.includes('Hipótese da não recuperação da área ilegalmente desmatada'));
     const irr = R.gerarHTML(calcular({ irrecuperavel: true }));
     ['sem possibilidade técnica de recuperação', 'CATE II', '÷ 6,82%'].forEach(t => assert.ok(irr.includes(t), 'falta: ' + t));

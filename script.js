@@ -68,7 +68,7 @@ async function obterTotalGlobal() {
 }
 
 // Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
-const VERSAO_DAMNUM = '7.3.0';
+const VERSAO_DAMNUM = '7.4.0';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -815,6 +815,97 @@ function dataISO(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+// ---------- data do dano pelo PRODES e pelo DETER (opcional) ----------
+// Os blocos vêm do servidor de dados do DAMNUM (cópia dos dados abertos do INPE);
+// o cruzamento com o polígono é feito aqui. Nada é aplicado sem a pessoa escolher.
+let fonteSupressao = null;
+let supressaoAtual = null;   // { geo, resultado }
+let dataSugerida = null;     // { data: 'AAAA-MM-DD', texto } da linha aceita
+
+function atualizarPainelSupressao() {
+    const painel = document.getElementById('painelSupressao');
+    if (!painel) return;
+    painel.style.display = geoAtual && mapa.disponivel !== false ? '' : 'none';
+    if (!supressaoAtual || supressaoAtual.geo !== geoAtual) {
+        supressaoAtual = null;
+        const caixa = document.getElementById('resultadoSupressao');
+        caixa.style.display = 'none';
+        caixa.innerHTML = '';
+    }
+}
+
+function escaparHTML(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function dataBR(iso) {
+    const p = String(iso).split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : String(iso);
+}
+
+function descreverSupressao(g) {
+    return g.fonte === 'PRODES'
+        ? g.rotulo + ', ano PRODES ' + g.ano + (g.data ? ', imagem de ' + dataBR(g.data) : '')
+        : g.rotulo + ', alerta de ' + g.rotuloClasse + ', imagem de ' + dataBR(g.data);
+}
+
+async function procurarSupressao() {
+    const caixa = document.getElementById('resultadoSupressao');
+    const botao = document.getElementById('btnSugerirData');
+    if (!geoAtual) return;
+    const geo = geoAtual;
+    caixa.style.display = '';
+    caixa.innerHTML = '<p class="ajuda-campo">Baixando os blocos do PRODES e do DETER desta região...</p>';
+    botao.disabled = true;
+    try {
+        const libs = await DamnumMapa.carregarLibs();
+        if (!fonteSupressao) fonteSupressao = DamnumMapa.criarFonteSupressao(libs);
+        const resultado = await DamnumMapa.supressaoNoPoligono(libs, fonteSupressao, geo);
+        if (geo !== geoAtual) return;
+        supressaoAtual = { geo, resultado };
+        mostrarSupressao(resultado);
+    } catch (erro) {
+        caixa.innerHTML = '<p class="ajuda-campo">Não foi possível consultar o PRODES e o DETER (' + escaparHTML(erro.message) + '). Informe a data do dano à mão.</p>';
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+function mostrarSupressao(res) {
+    const caixa = document.getElementById('resultadoSupressao');
+    const d = res.dados;
+    const rodape = 'Dados do INPE (TerraBrasilis), cópia de ' + dataBR(d.geradoEm) + ', só ' + (d.uf || []).join(', ') + '. ';
+    if (!res.itens.length) {
+        caixa.innerHTML = '<p class="ajuda-campo">Nenhum polígono do PRODES nem alerta do DETER se sobrepõe a esta área. ' + rodape +
+            'Isso não prova que não houve supressão: o PRODES não mapeia áreas pequenas nem vegetação que já não era primária, e a área pode estar fora de Mato Grosso. Informe a data do dano por outra fonte.</p>';
+        return;
+    }
+    let html = '<div class="tabela-rolavel"><table class="tabela-carrinho"><thead><tr><th>Fonte</th><th>Ano ou classe</th><th>Data da imagem</th><th>Área em comum (ha)</th><th>% do polígono</th><th></th></tr></thead><tbody>';
+    res.itens.slice(0, 12).forEach((g, k) => {
+        html += '<tr><td>' + escaparHTML(g.rotulo) + '</td><td>' + (g.fonte === 'PRODES' ? 'ano PRODES ' + g.ano : escaparHTML(g.rotuloClasse)) + '</td><td>' + (g.data ? dataBR(g.data) : 'sem data') +
+            '</td><td>' + numeroBR(g.ha, 2) + '</td><td>' + numeroBR(g.pct, 1) + '%</td><td>' +
+            (g.data ? '<button type="button" class="btn-fila btn-fila-secundario" data-supressao="' + k + '">Usar esta data</button>' : '') + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    if (res.itens.length > 12) html += '<p class="ajuda-campo">Há mais ' + (res.itens.length - 12) + ' linha(s) com área menor.</p>';
+    html += '<p class="ajuda-campo">' + rodape + 'A data é a da imagem de satélite em que o INPE mapeou a área: a supressão ocorreu antes dela (no PRODES, entre a imagem do ano anterior e essa). Usá-la como data do dano é o critério mais favorável a quem responde, porque encurta a atualização. ' +
+        'Se as partes têm datas diferentes, valore cada uma em separado (reúna os resultados no relatório consolidado). O PRODES e o DETER podem cobrir a mesma área: não some as linhas.' +
+        (res.anosComQueimada.length ? ' O DETER mapeou cicatriz de queimada nesta área em ' + res.anosComQueimada.length + ' ano(s): ' + res.anosComQueimada.join(', ') + '.' : '') + '</p>';
+    caixa.innerHTML = html;
+    caixa.querySelectorAll('button[data-supressao]').forEach(b => b.addEventListener('click', () => {
+        const g = res.itens[+b.dataset.supressao];
+        const campo = document.getElementById('dataDano');
+        campo.value = g.data;
+        campo.dispatchEvent(new Event('change'));
+        dataSugerida = { data: g.data, texto: descreverSupressao(g) + '; ' + numeroBR(g.ha, 2) + ' ha em comum (' + numeroBR(g.pct, 1) + '% do polígono); dados do INPE copiados em ' + dataBR(d.geradoEm) };
+    }));
+}
+
+// A origem da data só vale enquanto a data do formulário for a que foi aceita.
+function origemDaData() {
+    return dataSugerida && dataSugerida.data === valorCampo('dataDano') ? dataSugerida.texto : '';
+}
+
 // Data do dano lida dos atributos da área (PRODES, DETER, MapBiomas Alerta).
 // Devolve a frase que diz de onde veio a data, ou o que conferir.
 function aplicarDataDoArquivo(achada, indice) {
@@ -830,6 +921,7 @@ function aplicarDataDoArquivo(achada, indice) {
 }
 
 function atualizarFila() {
+    atualizarPainelSupressao();
     const caixa = document.getElementById('filaPoligonos');
     const grupos = arquivoAtual ? arquivoAtual.grupos : [];
     if (grupos.length < 2) { caixa.style.display = 'none'; return; }
@@ -1391,6 +1483,12 @@ async function calcularValoracao() {
         return;
     }
 
+    const fogoDoCaso = DamnumValoracao.fogoPadrao(valorCampo('tipologia'), numeroDoCampo('anosFogoAnterior'));
+    if (fogoDoCaso && fogoDoCaso.fracaoPct === null && (numeroDoCampo('fracaoFogo') === null || !(numeroDoCampo('tempoFogo') > 0))) {
+        alert('Fogo recorrente em formação savânica ou campestre: informe a fração do estoque perdida e o tempo de recuperação. A perda zero e os 2 anos da Nota do CAEx valem só para o fogo isolado.');
+        return;
+    }
+
     const dataCalculo = new Date();
     const dataDano = obterDataDano();
     if (dataDano && dataDano > dataCalculo) {
@@ -1451,7 +1549,7 @@ async function calcularValoracao() {
             dataCalculo,
             dataDano,
             tipologia: valorCampo('tipologia'),
-            fogo: DamnumValoracao.FOGO[valorCampo('tipologia')] ? { fracaoPct: parseFloat(valorCampo('fracaoFogo')) } : null,
+            fogo: DamnumValoracao.FOGO[valorCampo('tipologia')] ? lerFogo() : null,
             irrecuperavel: valorCampo('tipologia') === 'desmatamento' && document.getElementById('irrecuperavel').checked,
             areas: { fora: areaForaAPP, em: areaEmAPP, observacao: observacaoArea, recorte },
             reparacaoInSitu: document.getElementById('reparacaoInSitu').checked,
@@ -1466,7 +1564,9 @@ async function calcularValoracao() {
             manual,
             numeroProcesso: valorCampo('numeroProcesso'),
             nomeArea: poligonoUsuario ? nomeAreaAtual : '',
-            origem: origemDoCaso()
+            origem: origemDoCaso(),
+            compararSiscalc: document.getElementById('compararSiscalc').checked,
+            origemData: origemDaData()
         };
 
         const exigencias = DamnumValoracao.exigenciasDeSeries(mesDano, mesCalculo, atualizar);
@@ -1608,6 +1708,7 @@ function iniciarPainelIA() {
     document.getElementById('btnAplicarCaso').addEventListener('click', () => aplicarCaso(false));
     document.getElementById('btnAplicarCalcular').addEventListener('click', () => aplicarCaso(true));
     document.getElementById('btnBaixarCaso').addEventListener('click', baixarCaso);
+    document.getElementById('btnSugerirData').addEventListener('click', procurarSupressao);
 }
 
 function statusCaso(texto) {
@@ -1791,6 +1892,7 @@ function montarCaso() {
         caso.geometria = { nome: nomeAreaAtual, feicoes: (geoAtual.pecas || geoAtual.features).map(f => ({ type: 'Feature', properties: { name: f.properties.nome || '' }, geometry: f.geometry })) };
     }
     if (casoAplicado) caso.origem = casoAplicado;
+    if (origemDaData()) caso.origemData = dataSugerida;
     if (ultimoResultado) {
         const t = ultimoResultado.totais;
         caso.resultado = { hash: ultimoResultado.hash, mesCalculo: ultimoResultado.mesCalculo, totalOriginal: t.original, totalAtualizado: t.atualizado, ecossistema: t.ecossistema.original, carbono: t.carbono.original };
@@ -1823,6 +1925,7 @@ async function restaurarCaso(caso) {
         if ((caso.automaticos || []).includes(c.id)) c.dataset.auto = '1';
     });
     casoAplicado = caso.origem || null;
+    dataSugerida = caso.origemData || null;
     arquivoAtual = null;
     fila = null;
     geoAtual = null;
@@ -1862,18 +1965,47 @@ window.DAMNUM = {
 
 // Tipo de dano: no fogo sem corte raso, o dano interino segue a Nota Técnica do
 // CAEx e só a fração perdida do estoque entra nas parcelas de carbono.
+function numeroDoCampo(id) {
+    const v = valorCampo(id);
+    return v === '' ? null : parseFloat(String(v).replace(',', '.'));
+}
+
+// Campos do fogo como o motor espera; o que ficou em branco vai como null.
+function lerFogo() {
+    return { fracaoPct: numeroDoCampo('fracaoFogo'), tempo: numeroDoCampo('tempoFogo'), consumoMs: numeroDoCampo('consumoFogo'), anosDesdeAnterior: numeroDoCampo('anosFogoAnterior') };
+}
+
 function atualizarTipologia(trocou) {
     const tipo = valorCampo('tipologia');
-    const fogo = DamnumValoracao.fogoPadrao(tipo);
+    const fogo = DamnumValoracao.fogoPadrao(tipo, numeroDoCampo('anosFogoAnterior'));
     document.getElementById('camposFogo').style.display = fogo ? '' : 'none';
     document.getElementById('rotuloIrrecuperavel').style.display = fogo ? 'none' : '';
     if (fogo) document.getElementById('irrecuperavel').checked = false;
     document.getElementById('notaIrrecuperavel').style.display = !fogo && document.getElementById('irrecuperavel').checked ? '' : 'none';
-    if (fogo && trocou) document.getElementById('fracaoFogo').value = fogo.fracaoPct;
     document.getElementById('notaTipologia').textContent = fogo
-        ? 'Dano interino pela Nota Técnica 03/2022 do CAEx Ambiental do MPMT (a do SISCALC): custo de manter a área sem uso, por ' + fogo.tempo + ' anos. Não há dano material nem lucro do ilícito nesta versão. As áreas dentro e fora de área protegida são somadas.'
+        ? 'O que separa os dois casos de fogo é a formação da vegetação, e não o bioma: cerradão, mata de galeria e floresta estacional são formação florestal, também no Cerrado. Dano interino pela Nota Técnica 03/2022 do CAEx Ambiental do MPMT (a do SISCALC): custo de manter a área sem uso até a vegetação se recompor. Não há dano material nem lucro do ilícito nesta versão. As áreas dentro e fora de área protegida são somadas.'
         : 'Se o fogo veio depois do corte raso, para queimar o resíduo, o caso é de desmatamento.';
-    if (fogo) document.getElementById('notaFracaoFogo').textContent = 'Padrão: ' + numeroBR(fogo.fracaoPct, 0) + '%. ' + fogo.fonteFracao + '. Só essa fração do estoque entra no dano climático e no extrapatrimonial.';
+    if (!fogo) return;
+    // Trocar o tipo de dano ou o intervalo desde a queimada anterior repõe os padrões.
+    if (trocou) {
+        document.getElementById('fracaoFogo').value = fogo.fracaoPct === null ? '' : fogo.fracaoPct;
+        document.getElementById('tempoFogo').value = fogo.tempo === null ? '' : fogo.tempo;
+        document.getElementById('consumoFogo').value = fogo.consumoMs === null ? '' : fogo.consumoMs;
+    }
+    const savana = fogo.forma === 'savana';
+    document.getElementById('notaRecorrencia').textContent = fogo.recorrente
+        ? 'Fogo recorrente. Acima do regime que a vegetação suporta, a parte lenhosa não se recompõe no tempo da Nota do CAEx e parte do estoque se perde de vez.' + (savana ? ' Não há padrão para esse caso: informe abaixo a fração perdida e o tempo de recuperação, com base no laudo.' : ' Os 25% abaixo foram medidos depois de uma única queimada: tome-os como piso e informe fração maior se o laudo indicar.')
+        : (savana ? 'Na formação savânica ou campestre, o fogo é tido como recorrente quando volta em menos de 3 anos (Gomes et al., 2020, com Pivello e Coutinho, 1992). Sem queimada anterior, vale a premissa do fogo isolado: a biomassa volta em 2 anos.'
+            : 'Na formação florestal, qualquer queimada anterior registrada caracteriza recorrência: a floresta não tem regime natural de fogo.');
+    document.getElementById('notaFracaoFogo').textContent = fogo.fracaoPct === null
+        ? 'Sem padrão no fogo recorrente. Referência: em cerrado sentido restrito, cinco queimadas a cada dois anos reduziram a biomassa aérea em 16% a 33%, conforme a época da queima (Sato, 2003, tese de doutorado, Projeto Fogo, Reserva do IBGE). A fração se aplica ao estoque total, que inclui raízes: ajuste com o laudo.'
+        : 'Padrão: ' + numeroBR(fogo.fracaoPct, 0) + '%. ' + fogo.fonteFracao + '. Só essa fração do estoque entra no dano climático e no extrapatrimonial' + (fogo.fracaoPct === 0 ? '; com zero, o CO₂ da queima é tido como reabsorvido pela rebrota.' : '.');
+    document.getElementById('notaTempoFogo').textContent = fogo.tempo === null
+        ? 'Sem padrão no fogo recorrente: os 2 anos da Nota do CAEx valem para o fogo isolado. Referência: sob queimadas a cada dois anos, o modelo de Gomes et al. (2020) estima que as árvores recuperam só 60% da biomassa em 24 meses.'
+        : 'Padrão: ' + fogo.tempo + ' anos (Nota Técnica 03/2022 do CAEx, item 3.2.6). É o tempo do dano interino.';
+    document.getElementById('notaConsumoFogo').textContent = 'Serve para calcular o metano e o óxido nitroso da queima, que a rebrota não reabsorve (IPCC, 2006, equação 2.27 e Tabela 2.5). ' +
+        (fogo.consumoPadrao === null ? 'Na formação florestal não há padrão: o IPCC só traz o consumo do corte e queima, e não o do fogo de sub-bosque. Em branco, esses gases não entram na conta; informe o valor do laudo.'
+            : 'Padrão: ' + numeroBR(fogo.consumoPadrao, 1) + ' t/ha (' + fogo.fonteConsumo + '). Em campo limpo ou queima de grande intensidade, informe o valor do laudo.');
 }
 
 function atualizarParametrosCalculados() {
@@ -2050,6 +2182,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('btnCarrinho').addEventListener('click', porNoCarrinho);
     iniciarPainelIA();
     document.getElementById('tipologia').addEventListener('change', () => atualizarTipologia(true));
+    document.getElementById('anosFogoAnterior').addEventListener('change', () => atualizarTipologia(true));
     document.getElementById('irrecuperavel').addEventListener('change', () => atualizarTipologia(false));
     atualizarTipologia(true);
     document.getElementById('btnConsolidado').addEventListener('click', gerarConsolidado);

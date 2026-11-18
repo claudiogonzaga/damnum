@@ -5,7 +5,7 @@
     <link rel="canonical" href="https://consciencia.eco.br/damnum/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.3.0">
+    <link rel="stylesheet" href="style.css?v=7.4.0">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -161,14 +161,23 @@
                     <label for="tipologia">Tipo de dano:</label>
                     <select id="tipologia" name="tipologia">
                         <option value="desmatamento">Desmatamento a corte raso (inclui a queima do resíduo depois do corte)</option>
-                        <option value="incendio-floresta">Incêndio em floresta em pé, sem corte raso</option>
-                        <option value="queimada-savana">Queimada em cerrado, campo ou pantanal, sem corte raso</option>
+                        <option value="incendio-floresta">Fogo em formação florestal, sem corte raso (floresta amazônica, cerradão, mata de galeria, floresta estacional)</option>
+                        <option value="queimada-savana">Fogo em formação savânica ou campestre, sem corte raso (cerrado, campo, campos do Pantanal)</option>
                     </select>
                     <p id="notaTipologia" class="ajuda-campo"></p>
                     <div id="camposFogo" style="display:none;">
+                        <label for="anosFogoAnterior">Anos desde a queimada anterior na mesma área (em branco, se não há registro):</label>
+                        <input type="number" id="anosFogoAnterior" step="0.5" min="0" placeholder="em branco: fogo isolado">
+                        <p id="notaRecorrencia" class="ajuda-campo"></p>
                         <label for="fracaoFogo">Fração do estoque de carbono perdida com o fogo (%):</label>
                         <input type="number" id="fracaoFogo" step="0.1" min="0" max="100">
                         <p id="notaFracaoFogo" class="ajuda-campo"></p>
+                        <label for="tempoFogo">Tempo de recuperação da vegetação queimada (anos):</label>
+                        <input type="number" id="tempoFogo" step="1" min="1">
+                        <p id="notaTempoFogo" class="ajuda-campo"></p>
+                        <label for="consumoFogo">Biomassa consumida pelo fogo (toneladas de matéria seca por hectare):</label>
+                        <input type="number" id="consumoFogo" step="0.1" min="0">
+                        <p id="notaConsumoFogo" class="ajuda-campo"></p>
                     </div>
                     <label class="caixa-opcao" id="rotuloIrrecuperavel" style="margin-top:8px;">
                         <input type="checkbox" id="irrecuperavel"> Sem possibilidade técnica de recuperação (perda permanente da vegetação)
@@ -182,11 +191,20 @@
                         <option value="gonzaga">Gonzaga et al. (2025)</option>
                         <option value="irdr">IRDR 13/TJMT (PJe 1019783-07.2025.8.11.0000)</option>
                     </select>
+                    <label class="caixa-opcao" style="margin-top:8px;">
+                        <input type="checkbox" id="compararSiscalc" checked> Mostrar no relatório, para comparação, o valor do mesmo caso pelo método do SISCALC Ambiental do MPMT
+                    </label>
+                    <p class="ajuda-campo">É uma linha de comparação, que não entra na soma: o dano interino da Nota Técnica 03/2022 do CAEx Ambiental, única parcela que o SISCALC calcula.</p>
                 </div>
 
                 <div class="input-group">
                     <label for="dataDano">Data do dano (deixe em branco para usar a data de hoje):</label>
                     <input type="date" id="dataDano" name="dataDano">
+                    <div id="painelSupressao" style="display:none; margin-top:8px;">
+                        <button type="button" id="btnSugerirData" class="btn-fila btn-fila-secundario">Procurar a data no PRODES e no DETER (INPE)</button>
+                        <p class="ajuda-campo">Opcional. Cruza o polígono com os mapas de desmatamento e de alertas do INPE e mostra o ano e a data da imagem de cada parte. O cruzamento é feito neste navegador: o polígono não é enviado a ninguém. Por ora, só Mato Grosso.</p>
+                        <div id="resultadoSupressao" style="display:none;"></div>
+                    </div>
                 </div>
 
                 <div class="input-group">
@@ -576,13 +594,13 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.3.0"></script>
-    <script src="js/series.js?v=7.3.0"></script>
-    <script src="js/mapa-qcn.js?v=7.3.0"></script>
-    <script src="js/valoracao.js?v=7.3.0"></script>
-    <script src="js/caso.js?v=7.3.0"></script>
-    <script src="js/relatorio.js?v=7.3.0"></script>
-    <script src="script.js?v=7.3.0"></script>
+    <script src="js/calculo.js?v=7.4.0"></script>
+    <script src="js/series.js?v=7.4.0"></script>
+    <script src="js/mapa-qcn.js?v=7.4.0"></script>
+    <script src="js/valoracao.js?v=7.4.0"></script>
+    <script src="js/caso.js?v=7.4.0"></script>
+    <script src="js/relatorio.js?v=7.4.0"></script>
+    <script src="script.js?v=7.4.0"></script>
 </body>
 </html>
 

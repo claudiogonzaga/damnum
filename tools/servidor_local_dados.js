@@ -29,7 +29,8 @@ function criarServidor(raiz, origem) {
     return http.createServer((req, res) => {
         const caminho = decodeURIComponent(new URL(req.url, 'http://x').pathname);
         const arquivo = path.join(raiz, caminho);
-        const permitido = /^\/v\d+\/(versao\.json|indice\.json|municipio_cpret\.json|blocos\/[A-Za-z0-9_]+\.gz)$/.test(caminho);
+        const permitido = /^\/v\d+\/(versao\.json|indice\.json|municipio_cpret\.json|blocos\/[A-Za-z0-9_]+\.gz)$/.test(caminho) ||
+            /^\/prodes\/(atual\.json|[0-9-]+\/(versao\.json|indice\.json|blocos\/[A-Za-z0-9_]+\.gz))$/.test(caminho);
         if (req.method !== 'GET' || !permitido || !arquivo.startsWith(raiz + path.sep) || !fs.existsSync(arquivo)) {
             res.writeHead(404, { 'Access-Control-Allow-Origin': origem, 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('Não encontrado');

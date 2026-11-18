@@ -51,8 +51,9 @@
         if (r.nomeArea) linhas.push(linha('Área valorada', esc(r.nomeArea)));
         linhas.push(linha('Bioma', esc(r.bioma)));
         linhas.push(linha('Tipo de dano', r.fogo ? esc(r.fogo.rotulo) : 'desmatamento a corte raso' + (r.irrecuperavel ? ', sem possibilidade técnica de recuperação' : '')));
+        if (r.fogo) linhas.push(linha('Regime de fogo', textoRegimeFogo(r.fogo)));
         linhas.push(linha('Entendimento adotado', nomeEntendimento(r.entendimento)));
-        linhas.push(linha('Data do dano', r.dataInformada ? data(r.dataDano) : 'não informada (valores na data do cálculo)'));
+        linhas.push(linha('Data do dano', r.dataInformada ? data(r.dataDano) + (r.origemData ? '. Data da imagem de satélite em que o INPE mapeou a área (' + esc(r.origemData) + '), aceita por quem preencheu; a supressão é anterior a ela' : '') : 'não informada (valores na data do cálculo)'));
         linhas.push(linha('Data do cálculo', data(r.dataCalculo)));
         linhas.push(linha('Área desmatada em excedentes de vegetação nativa (A<sub>1</sub>)', num(r.areas.fora, 4) + ' ha'));
         linhas.push(linha('Área desmatada em áreas territorialmente protegidas: APP, ARL, UC e TI (A<sub>2</sub>)', num(r.areas.em, 4) + ' ha'));
@@ -138,6 +139,17 @@
         return partes.join('; ') + '.';
     }
 
+    // Premissa do regime de fogo, escrita no relatório: isolado ou recorrente.
+    function textoRegimeFogo(f) {
+        var limite = f.forma === 'floresta' ? 'em formação florestal, qualquer queimada anterior registrada caracteriza recorrência, porque a floresta não tem regime natural de fogo'
+            : 'em formação savânica ou campestre, considera-se recorrente o fogo com menos de ' + num(f.limiteAnos, 0) + ' anos de intervalo (Gomes et al., 2020, com Pivello e Coutinho, 1992)';
+        if (f.recorrente) {
+            return '<b>fogo recorrente</b>: ' + num(f.anosDesdeAnterior, 1) + ' ano(s) desde a queimada anterior na mesma área, conforme informado; ' + limite + '. Acima do regime que a vegetação suporta, a parte lenhosa não se recompõe no tempo da Nota Técnica do CAEx e parte do estoque se perde de vez'
+                + (f.forma === 'savana' ? '; por isso a fração do estoque perdida e o tempo de recuperação foram informados por quem preencheu, e não tomados da Nota.' : '; a fração padrão de 25% foi medida depois de uma única queimada (Silva et al., 2018) e deve ser tida como piso.');
+        }
+        return 'fogo isolado' + (f.anosDesdeAnterior !== null ? ' (' + num(f.anosDesdeAnterior, 1) + ' ano(s) desde a queimada anterior, conforme informado)' : ' (não foi informada queimada anterior na mesma área)') + '; ' + limite + '. Premissa: a vegetação se recompõe pela regeneração natural, no tempo estimado pela Nota Técnica 03/2022 do CAEx. Se houve queimada anterior, informe o intervalo: com fogo recorrente a premissa não vale.';
+    }
+
     function blocoMaterial(r) {
         var p = r.parcelas.material;
         var html = subtitulo('2.1 Dano material (dano ecológico direto)');
@@ -196,7 +208,7 @@
             var lf = [];
             lf.push(linha('Método', 'Nota Técnica 03/2022 do CAEx Ambiental do MPMT (atualizada em 17/01/2024), a mesma do SISCALC Ambiental: soma dos juros decrescentes sobre o custo de manter a área sem uso até a volta da biomassa queimada.'));
             lf.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × Σ<sub>a = 1..t</sub> [custo × i ÷ (1 + i)<sup>a</sup>] (Nota Técnica, itens 1.5 e 3.2.6)'));
-            lf.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.fator, 4) + ', com i = ' + num(it.taxaPct, 2) + '% ao ano e t = ' + num(it.tempo, 0) + ' anos (' + esc(r.fogo.rotulo) + '). Custo da técnica de "abandono" de Timotheo et al. (2017), pelo valor da Nota. A Nota chega ao tempo dividindo a biomassa consumida pelo fogo pela produtividade da vegetação secundária: 26 anos na floresta e 2 anos no cerrado.'));
+            lf.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + moeda(it.custoHa) + '/ha × ' + num(it.fator, 4) + ', com i = ' + num(it.taxaPct, 2) + '% ao ano e t = ' + num(it.tempo, 0) + ' anos (' + esc(r.fogo.rotulo) + '). Custo da técnica de "abandono" de Timotheo et al. (2017), pelo valor da Nota. A Nota chega ao tempo dividindo a biomassa consumida pelo fogo pela produtividade da vegetação secundária: 26 anos na floresta e 2 anos no cerrado.' + (it.tempo !== r.fogo.tempoNota ? ' Neste caso o tempo foi informado por quem preencheu (' + num(it.tempo, 0) + ' anos, e não os ' + num(r.fogo.tempoNota, 0) + ' da Nota)' + (r.fogo.recorrente ? ', porque o fogo é recorrente.' : '.') : '')));
             lf.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, em ' + C.rotuloMes(r.custo.mesReferencia)));
             return html + tabela(lf.concat(textoAtualizacaoPatrimonial(r, p)));
         }
@@ -362,9 +374,16 @@
         var g = chave === 'mercado' && r.gradacao ? r.gradacao : null;
         var html = subtitulo(numero + ' ' + nome);
         var linhas = [];
-        linhas.push(linha('Fórmula', '(A<sub>1</sub> + A<sub>2</sub>) × estoque de carbono (tC/ha) × ' + (r.fogo ? 'fração perdida com o fogo × ' : '') + '3,67 × preço (R$/tCO₂)' + (g ? ' × fator de gradação' : '')));
-        if (r.fogo) linhas.push(linha('Fração do estoque perdida com o fogo', num(r.fogo.fracaoPct, 2) + '%. ' + esc(r.fogo.fonteFracao) + '.' + (r.fogo.fracaoPct === 0 ? ' Com fração zero, a parcela é zero; informe fração maior quando o fogo for recorrente ou atingir formação florestal.' : '')));
-        linhas.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + num(e.tC, 2) + ' tC/ha × ' + (r.fogo ? num(r.fogo.fracaoPct, 2) + '% × ' : '') + '3,67 × ' + moeda(precoBRL) + '/tCO₂. ' + rotuloPreco + ': US$ ' + num(precoUSD, 2) + '/tCO₂ (' + fontePreco + '), convertido à cotação de R$ ' + num(r.parametros.cotacaoDolar, 2) + '. Estoque e fator 3,67: ver "Estoque de carbono".' + (g ? ' Fator de gradação: ' + num(g.fator, 2) + ', pelos critérios do STJ (quadro abaixo).' : '')));
+        var gf = r.fogo ? r.fogo.gases : null;
+        linhas.push(linha('Fórmula', (r.fogo ? '(A<sub>1</sub> + A<sub>2</sub>) × [estoque de carbono (tC/ha) × fração perdida com o fogo × 3,67' + (gf ? ' + CH₄ e N₂O da queima (tCO₂e/ha)' : '') + ']' : '(A<sub>1</sub> + A<sub>2</sub>) × estoque de carbono (tC/ha) × 3,67') + ' × preço (R$/tCO₂)' + (g ? ' × fator de gradação' : '')));
+        if (r.fogo) {
+            linhas.push(linha('Fração do estoque perdida com o fogo', num(r.fogo.fracaoPct, 2) + '%. ' + (r.fogo.fracaoPct === r.fogo.fracaoNota && !(r.fogo.recorrente && r.fogo.forma === 'savana') ? esc(r.fogo.fonteFracao) + '.' : 'Valor informado por quem preencheu' + (r.fogo.recorrente ? ', em caso de fogo recorrente.' : '.') + ' Referência do padrão (' + num(r.fogo.fracaoNota, 0) + '%): ' + esc(r.fogo.fonteFracao) + '.')
+                + (r.fogo.fracaoPct === 0 ? ' Com fração zero, o CO₂ da biomassa queimada é tido como reabsorvido pela rebrota e não entra na conta; a premissa vale para o fogo isolado.' : '')));
+            linhas.push(linha('Metano e óxido nitroso da queima', gf
+                ? num(gf.consumoMs, 2) + ' t de matéria seca queimada por hectare × (' + num(gf.efCH4, 2) + ' g de CH₄/kg × ' + num(gf.gwpCH4, 0) + ' + ' + num(gf.efN2O, 2) + ' g de N₂O/kg × ' + num(gf.gwpN2O, 0) + ') ÷ 1.000 = <b>' + num(gf.tCO2eHa, 4) + ' tCO₂e/ha</b>. Esses gases não são reabsorvidos quando a vegetação rebrota. Equação 2.27 e fatores de emissão da Tabela 2.5 das Diretrizes do IPCC de 2006 (vol. 4, cap. 2); potencial de aquecimento em 100 anos do Quinto Relatório do IPCC (GT1, Tabela 8.7). Consumo de biomassa: ' + (gf.consumoMs === r.fogo.consumoPadrao ? esc(r.fogo.fonteConsumo) : 'informado por quem preencheu') + '.'
+                : 'não calculados: ' + esc(r.fogo.fonteConsumo) + '. Informe o consumo de biomassa do laudo (t de matéria seca por hectare) para incluí-los.'));
+        }
+        linhas.push(linha('Parâmetros e fontes', num(r.areas.total, 4) + ' ha × ' + (r.fogo ? '[' + num(e.tC, 2) + ' tC/ha × ' + num(r.fogo.fracaoPct, 2) + '% × 3,67' + (gf ? ' + ' + num(gf.tCO2eHa, 4) + ' tCO₂e/ha' : '') + ']' : num(e.tC, 2) + ' tC/ha × 3,67') + ' × ' + moeda(precoBRL) + '/tCO₂. ' + rotuloPreco + ': US$ ' + num(precoUSD, 2) + '/tCO₂ (' + fontePreco + '), convertido à cotação de R$ ' + num(r.parametros.cotacaoDolar, 2) + '. Estoque e fator 3,67: ver "Estoque de carbono".' + (g ? ' Fator de gradação: ' + num(g.fator, 2) + ', pelos critérios do STJ (quadro abaixo).' : '')));
         if (g) linhas.push(linha('Valor-base (extensão do dano)', moeda(g.valorBase)));
         linhas.push(linha('Valor original e data-base', '<b>' + moeda(p.valor) + '</b>, a preços de ' + data(r.dataCalculo) + ' (data do cálculo, que equivale ao arbitramento)'));
         linhas.push(linha('Índice de correção (art. 524, II)', 'não há correção: o valor já está a preços da data do cálculo, e a correção do dano extrapatrimonial corre do arbitramento (Súmula 362/STJ)'));
@@ -611,7 +630,7 @@
         if (r.atualizacao.aplicada) {
             html += '<div style="background:#fff3cd; padding:10px 14px; margin:4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">TOTAL ATUALIZADO ATÉ ' + C.rotuloMes(r.mesCalculo).toUpperCase() + ' = ' + moeda(t.atualizado) + '</div>';
         }
-        if (r.siscalc) html += textoSiscalc(r);
+        if (r.siscalc && r.compararSiscalc !== false) html += textoSiscalc(r);
         return html;
     }
 

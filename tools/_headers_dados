@@ -8,3 +8,19 @@
 /v1/*.json
   Access-Control-Allow-Origin: https://consciencia.eco.br
   Cache-Control: public, max-age=300
+# PRODES e DETER (sugestão da data do dano). Cada atualização vai para uma pasta nova
+# (prodes/AAAA-MM), e prodes/atual.json aponta a que vale.
+/prodes/atual.json
+  Access-Control-Allow-Origin: https://consciencia.eco.br
+  Cache-Control: public, max-age=300
+/prodes/:versao/indice.json
+  Access-Control-Allow-Origin: https://consciencia.eco.br
+  Cache-Control: public, max-age=300
+/prodes/:versao/versao.json
+  Access-Control-Allow-Origin: https://consciencia.eco.br
+  Cache-Control: public, max-age=300
+/prodes/:versao/blocos/*
+  Access-Control-Allow-Origin: https://consciencia.eco.br
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/octet-stream
+  X-Content-Type-Options: nosniff
