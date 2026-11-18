@@ -1223,3 +1223,35 @@ header h2 {
 @media (max-width: 420px) {
     .carrinho { padding: 14px 10px; }
 }
+
+/* v7.2.0: painel "Preencher com IA" e revisão do caso */
+.painel-ia summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #2c5530;
+    padding: 6px 0;
+}
+.painel-ia textarea {
+    width: 100%;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.8em;
+    line-height: 1.4;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin: 6px 0;
+    resize: vertical;
+}
+.painel-ia .passo-ia { margin: 12px 0 2px 0; color: #2c5530; }
+.revisao-caso {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #f8faf8;
+    border-left: 3px solid #4a7c59;
+    border-radius: 4px;
+}
+.revisao-caso .tabela-carrinho td { vertical-align: top; }
+.revisao-caso td.sem-origem { color: #8b4513; }
+.revisao-caso ul { margin: 4px 0 8px 18px; font-size: 0.9em; line-height: 1.5; }
+.ponto-atencao { align-items: flex-start; margin: 6px 0; font-size: 0.9em; line-height: 1.5; }
+.btn-carrinho + .btn-carrinho { margin-left: 8px; }

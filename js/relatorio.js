@@ -58,8 +58,22 @@
         linhas.push(linha('Área total (A<sub>1</sub> + A<sub>2</sub>)', num(r.areas.total, 4) + ' ha'));
         if (r.areas.em > 0) linhas.push(linha('Reparação <em>in situ</em> da área territorialmente protegida', r.reparacaoInSitu ? 'sim, será promovida' : 'não será promovida'));
         var html = titulo('1. IDENTIFICAÇÃO') + tabela(linhas);
+        if (r.origem) html += textoOrigem(r.origem);
         if (r.areas.recorte) html += textoRecorte(r.areas.recorte);
         if (r.areas.observacao) html += nota(esc(r.areas.observacao));
+        return html;
+    }
+
+    // Dados que vieram de um documento lido por IA: de onde saiu cada um.
+    function textoOrigem(o) {
+        var th = TD + ' background:#f5f5f5;';
+        var html = '<p style="text-align:justify;"><b>Origem dos dados.</b> Os dados abaixo foram extraídos do documento do caso por uma ferramenta de inteligência artificial escolhida pelo usuário, fora do DAMNUM, e conferidos por ele em ' + esc(o.conferidoEm) + ', antes do cálculo. A inteligência artificial não fez conta: as conversões e todos os valores são do DAMNUM.</p>';
+        html += '<table style="font-size:10pt; border-collapse:collapse; width:100%; border:1px solid #ccc;"><tr><th style="' + th + ' text-align:left;">Dado</th><th style="' + th + ' text-align:left;">Valor</th><th style="' + th + '">Página</th><th style="' + th + ' text-align:left;">Trecho do documento</th></tr>';
+        o.itens.forEach(function (i) {
+            html += '<tr><td style="' + TD + '">' + esc(i.rotulo) + '</td><td style="' + TD + '">' + esc(i.valor) + '</td><td style="' + TD + ' text-align:center;">' + (i.pagina ? esc(i.pagina) : '—') + '</td><td style="' + TD + '">' + (i.trecho ? '"' + esc(i.trecho) + '"' : '') + (i.regra ? (i.trecho ? ' ' : '') + '(' + esc(i.regra) + ')' : '') + '</td></tr>';
+        });
+        html += '</table>';
+        if (o.alterados && o.alterados.length) html += '<p style="font-size:10pt;">Alterados pelo usuário depois da conferência: ' + esc(o.alterados.join(', ')) + '.</p>';
         return html;
     }
 
@@ -526,22 +540,43 @@
         return '﻿' + linhas.join('\r\n') + '\r\n';
     }
 
+    // Nome dos dois subtotais: o lucro do ilícito entra no primeiro quando existe.
+    function nomeSubtotalEcossistema(temLia) {
+        return 'Subtotal: reparação do ecossistema' + (temLia ? ' e lucro do ilícito' : '');
+    }
+    var NOME_SUBTOTAL_CARBONO = 'Subtotal: parcelas de carbono';
+
+    function linhaParcela(nome, x) {
+        return '<tr><td style="' + TD + '">' + nome + '</td><td style="' + TDR + '">' + moeda(x.valor) + '</td><td style="' + TDR + '">' + moeda(x.correcao) + '</td><td style="' + TDR + '">' + moeda(x.juros) + '</td><td style="' + TDR + '">' + moeda(x.total) + '</td></tr>';
+    }
+    function linhaSubtotal(nome, t, cor) {
+        return '<tr style="background:' + cor + ';"><td style="' + TD + '"><b>' + nome + '</b></td><td style="' + TDR + '"><b>' + moeda(t.original) + '</b></td><td style="' + TDR + '">' + moeda(t.correcao) + '</td><td style="' + TDR + '">' + moeda(t.juros) + '</td><td style="' + TDR + '"><b>' + moeda(t.atualizado) + '</b></td></tr>';
+    }
+    // Quadro das parcelas em dois grupos, cada um com o seu subtotal, e o total.
+    function quadroTotais(grupos, t) {
+        var th = TD + ' background:#f5f5f5;';
+        var html = '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;">' +
+            '<tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Valor original</th><th style="' + th + '">Correção</th><th style="' + th + '">Juros</th><th style="' + th + '">Valor atualizado</th></tr>';
+        grupos.forEach(function (g) {
+            g.parcelas.forEach(function (par) { html += linhaParcela(par[0], par[1]); });
+            html += linhaSubtotal(g.nome, g.subtotal, '#f7f7f2');
+        });
+        html += linhaSubtotal('Total', t, '#f0f7f0') + '</table>';
+        html += '<p style="font-size:10pt; text-align:justify;">O primeiro subtotal reúne o que repara o ecossistema: o custo de recuperar, o tempo sem a vegetação, o que não se recupera' + (grupos[0].temLia ? ' e o lucro obtido com o ilícito' : '') + '. O segundo reúne as duas parcelas medidas pelo carbono emitido: o dano climático, pelo custo social do carbono, e o dano extrapatrimonial, pelo preço do mercado voluntário, graduado pelos critérios do STJ.</p>';
+        return html;
+    }
+
     // ---------- 4. Total ----------
 
     function secaoTotais(r) {
         var html = titulo('4. TOTAL GERAL E TOTAL ATUALIZADO');
-        var p = r.parcelas;
-        var th = TD + ' background:#f5f5f5;';
-        html += '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;">' +
-            '<tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Valor original</th><th style="' + th + '">Correção</th><th style="' + th + '">Juros</th><th style="' + th + '">Valor atualizado</th></tr>';
-        var listaParcelas = [['Dano material', p.material], ['Dano interino', p.interino], ['Dano residual', p.residual], ['Dano extrapatrimonial (mercado voluntário)', p.mercado], ['Dano climático (custo social do carbono)', p.social]];
-        if (p.lia) listaParcelas.push(['Lucro do ilícito ambiental (LIA)', p.lia]);
-        listaParcelas.forEach(function (par) {
-            var x = par[1];
-            html += '<tr><td style="' + TD + '">' + par[0] + '</td><td style="' + TDR + '">' + moeda(x.valor) + '</td><td style="' + TDR + '">' + moeda(x.correcao) + '</td><td style="' + TDR + '">' + moeda(x.juros) + '</td><td style="' + TDR + '">' + moeda(x.total) + '</td></tr>';
-        });
-        var t = r.totais;
-        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Total</b></td><td style="' + TDR + '"><b>' + moeda(t.original) + '</b></td><td style="' + TDR + '">' + moeda(t.correcao) + '</td><td style="' + TDR + '">' + moeda(t.juros) + '</td><td style="' + TDR + '"><b>' + moeda(t.atualizado) + '</b></td></tr></table>';
+        var p = r.parcelas, t = r.totais;
+        var ecossistema = [['Dano material', p.material], ['Dano interino', p.interino], ['Dano residual', p.residual]];
+        if (p.lia) ecossistema.push(['Lucro do ilícito ambiental (LIA)', p.lia]);
+        html += quadroTotais([
+            { nome: nomeSubtotalEcossistema(!!p.lia), parcelas: ecossistema, subtotal: t.ecossistema, temLia: !!p.lia },
+            { nome: NOME_SUBTOTAL_CARBONO, parcelas: [['Dano extrapatrimonial (mercado voluntário)', p.mercado], ['Dano climático (custo social do carbono)', p.social]], subtotal: t.carbono }
+        ], t);
         html += '<div style="background:#c8e6c9; padding:10px 14px; margin:10px 0 4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">TOTAL GERAL = ' + moeda(t.original) + '</div>';
         if (r.atualizacao.aplicada) {
             html += '<div style="background:#fff3cd; padding:10px 14px; margin:4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">TOTAL ATUALIZADO ATÉ ' + C.rotuloMes(r.mesCalculo).toUpperCase() + ' = ' + moeda(t.atualizado) + '</div>';
@@ -821,15 +856,23 @@
 
         // 4. Total geral
         html += titulo('4. TOTAL GERAL E TOTAL ATUALIZADO');
-        html += '<table style="font-size:11pt; border-collapse:collapse; width:100%; border:1px solid #ccc;">' +
-            '<tr><th style="' + th + ' text-align:left;">Parcela</th><th style="' + th + '">Valor original</th><th style="' + th + '">Correção</th><th style="' + th + '">Juros</th><th style="' + th + '">Valor atualizado</th></tr>';
-        PARCELAS.forEach(function (par) {
-            if (par[0] === 'lia' && !rs.some(function (r) { return r.parcelas.lia; })) return;
-            function campo(c) { return somar(function (r) { return r.parcelas[par[0]] ? r.parcelas[par[0]][c] : 0; }); }
-            html += '<tr><td style="' + TD + '">' + par[1] + '</td><td style="' + TDR + '">' + moeda(campo('valor')) + '</td><td style="' + TDR + '">' + moeda(campo('correcao')) + '</td><td style="' + TDR + '">' + moeda(campo('juros')) + '</td><td style="' + TDR + '">' + moeda(campo('total')) + '</td></tr>';
-        });
+        function parcelaSomada(chave) {
+            function campo(c) { return somar(function (r) { return r.parcelas[chave] ? r.parcelas[chave][c] : 0; }); }
+            return { valor: campo('valor'), correcao: campo('correcao'), juros: campo('juros'), total: campo('total') };
+        }
+        function subtotalSomado(chave) {
+            function campo(c) { return somar(function (r) { return r.totais[chave][c]; }); }
+            return { original: campo('original'), correcao: campo('correcao'), juros: campo('juros'), atualizado: campo('atualizado') };
+        }
+        var temLia = rs.some(function (r) { return r.parcelas.lia; });
+        var nomes = {};
+        PARCELAS.forEach(function (par) { nomes[par[0]] = par[1]; });
         var t = { original: somar(function (r) { return r.totais.original; }), correcao: somar(function (r) { return r.totais.correcao; }), juros: somar(function (r) { return r.totais.juros; }), atualizado: somar(function (r) { return r.totais.atualizado; }) };
-        html += '<tr style="background:#f0f7f0;"><td style="' + TD + '"><b>Total</b></td><td style="' + TDR + '"><b>' + moeda(t.original) + '</b></td><td style="' + TDR + '">' + moeda(t.correcao) + '</td><td style="' + TDR + '">' + moeda(t.juros) + '</td><td style="' + TDR + '"><b>' + moeda(t.atualizado) + '</b></td></tr></table>';
+        html += quadroTotais([
+            { nome: nomeSubtotalEcossistema(temLia), temLia: temLia, subtotal: subtotalSomado('ecossistema'),
+              parcelas: ['material', 'interino', 'residual'].concat(temLia ? ['lia'] : []).map(function (k) { return [nomes[k], parcelaSomada(k)]; }) },
+            { nome: NOME_SUBTOTAL_CARBONO, subtotal: subtotalSomado('carbono'), parcelas: ['mercado', 'social'].map(function (k) { return [nomes[k], parcelaSomada(k)]; }) }
+        ], t);
         html += '<div style="background:#c8e6c9; padding:10px 14px; margin:10px 0 4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center;">TOTAL GERAL = ' + moeda(t.original) + '</div>';
         if (algumAtualizado) {
             html += '<div style="background:#fff3cd; padding:10px 14px; margin:4px 0; border-radius:4px; font-size:13pt; font-weight:bold; text-align:center; border:2px solid #ffc107;">TOTAL ATUALIZADO ATÉ ' + C.rotuloMes(mesCalculo).toUpperCase() + ' = ' + moeda(t.atualizado) + '</div>';

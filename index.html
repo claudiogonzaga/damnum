@@ -5,7 +5,7 @@
     <link rel="canonical" href="https://consciencia.eco.br/damnum/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Valoração de Danos Ambientais</title>
-    <link rel="stylesheet" href="style.css?v=7.1.16">
+    <link rel="stylesheet" href="style.css?v=7.2.0">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     </head>
 <body>
@@ -49,6 +49,36 @@
             </div>
 
             <form id="calculoForm" class="form-container">
+                <details class="input-group painel-ia" id="painelIA">
+                    <summary>Preencher com IA, a partir do PDF do caso (opcional)</summary>
+                    <p class="ajuda-campo">O DAMNUM não lê o PDF nem chama IA. Você entrega o roteiro abaixo à IA que já usa, junto com o PDF do caso (auto de infração, relatório técnico, processo), e traz de volta o arquivo que ela devolver. O DAMNUM confere, mostra de onde veio cada dado e só então preenche o formulário. A IA não faz conta.</p>
+                    <p class="passo-ia"><strong>1.</strong> Copie o roteiro e cole na IA, com o PDF anexado.</p>
+                    <textarea id="roteiroIA" rows="5" readonly aria-label="Roteiro para a IA"></textarea>
+                    <button type="button" id="btnCopiarRoteiro" class="btn-fila">Copiar o roteiro</button>
+                    <p class="passo-ia"><strong>2.</strong> Traga a resposta: cole o texto ou escolha o arquivo (.json, .md ou .txt). Um caso baixado do DAMNUM também abre aqui.</p>
+                    <textarea id="respostaIA" rows="5" placeholder="Cole aqui a resposta da IA (o bloco JSON)" aria-label="Resposta da IA"></textarea>
+                    <div class="fila-acoes">
+                        <input type="file" id="arquivoCaso" accept=".json,.md,.txt,application/json,text/plain,text/markdown" aria-label="Arquivo do caso">
+                        <button type="button" id="btnConferirCaso" class="btn-fila">Conferir</button>
+                    </div>
+                    <div id="revisaoCaso" class="revisao-caso" style="display:none;" aria-live="polite">
+                        <p class="passo-ia"><strong>3.</strong> Confira cada dado com a página e o trecho de origem. Desmarque o que não quiser usar.</p>
+                        <div id="errosCaso" class="painel-erro" style="display:none;">
+                            <p><strong>A resposta tem problemas de formato.</strong> Copie a mensagem abaixo, cole na IA e traga a resposta nova. O que estiver certo já pode ser usado.</p>
+                            <textarea id="mensagemCorrecao" rows="4" readonly aria-label="Mensagem de correção para a IA"></textarea>
+                            <button type="button" id="btnCopiarCorrecao" class="btn-fila btn-fila-secundario">Copiar a mensagem</button>
+                        </div>
+                        <div class="tabela-rolavel"><table id="tabelaRevisao" class="tabela-carrinho"><thead><tr><th>Usar</th><th>Dado</th><th>Valor</th><th>Origem no documento</th></tr></thead><tbody></tbody></table></div>
+                        <div id="criteriosCaso" style="display:none;"></div>
+                        <div id="atencaoCaso" style="display:none;"></div>
+                        <div class="fila-acoes">
+                            <button type="button" id="btnAplicarCaso" class="btn-fila">Preencher o formulário</button>
+                            <button type="button" id="btnAplicarCalcular" class="btn-fila btn-fila-secundario">Preencher e calcular</button>
+                        </div>
+                        <p id="statusCaso" class="ajuda-campo"></p>
+                    </div>
+                </details>
+
                 <div class="input-group" id="grupoLocalizacao" style="display:none;">
                     <h4 class="titulo-secao-form">Localização do desmatamento (obrigatória)</h4>
                     <p class="ajuda-campo">Envie o polígono da área desmatada ou, ao menos, uma coordenada; sem localização não há cálculo. Por eles a calculadora identifica o bioma e busca, no mapa do Quarto Inventário, o estoque de carbono da vegetação original: no polígono, a média ponderada pela área; na coordenada, o estoque daquele ponto, aplicado a toda a área desmatada informada.</p>
@@ -475,6 +505,14 @@
 
                 <div class="resultado-secao totais">
                     <h4>Total</h4>
+                    <div class="valor-item">
+                        <span class="label" id="rotuloSubtotalEcossistema">Subtotal: reparação do ecossistema</span>
+                        <span id="subtotalEcossistema" class="valor"></span>
+                    </div>
+                    <div class="valor-item">
+                        <span class="label">Subtotal: parcelas de carbono (climático e extrapatrimonial)</span>
+                        <span id="subtotalCarbono" class="valor"></span>
+                    </div>
                     <div class="valor-item valor-destaque-medio">
                         <span class="label">Valor total:</span>
                         <span id="totalMedia" class="valor-total"></span>
@@ -491,6 +529,7 @@
 
                 <div class="resultado-secao carrinho-adicionar">
                     <button type="button" id="btnCarrinho" class="btn-carrinho">Pôr esta área no carrinho</button>
+                    <button type="button" id="btnBaixarCaso" class="btn-carrinho">Baixar o caso (JSON)</button>
                     <p id="statusCarrinho" class="ajuda-campo">Para juntar várias áreas (por exemplo, com datas de dano diferentes) num relatório só, ponha cada uma no carrinho depois de calculá-la.</p>
                 </div>
 
@@ -518,12 +557,13 @@
         </footer>
     </div>
 
-    <script src="js/calculo.js?v=7.1.16"></script>
-    <script src="js/series.js?v=7.1.16"></script>
-    <script src="js/mapa-qcn.js?v=7.1.16"></script>
-    <script src="js/valoracao.js?v=7.1.16"></script>
-    <script src="js/relatorio.js?v=7.1.16"></script>
-    <script src="script.js?v=7.1.16"></script>
+    <script src="js/calculo.js?v=7.2.0"></script>
+    <script src="js/series.js?v=7.2.0"></script>
+    <script src="js/mapa-qcn.js?v=7.2.0"></script>
+    <script src="js/valoracao.js?v=7.2.0"></script>
+    <script src="js/caso.js?v=7.2.0"></script>
+    <script src="js/relatorio.js?v=7.2.0"></script>
+    <script src="script.js?v=7.2.0"></script>
 </body>
 </html>
 

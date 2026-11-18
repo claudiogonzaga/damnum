@@ -706,7 +706,13 @@
         }
         var todas = [parcelas.material, parcelas.interino, parcelas.residual, parcelas.mercado, parcelas.social];
         if (lia) todas.push(parcelas.lia);
-        var totais = { original: somar('valor', todas), correcao: somar('correcao', todas), juros: somar('juros', todas), atualizado: somar('total', todas) };
+        function subtotal(lista) {
+            return { original: somar('valor', lista), correcao: somar('correcao', lista), juros: somar('juros', lista), atualizado: somar('total', lista) };
+        }
+        var totais = subtotal(todas);
+        // Dois subtotais: o que repara o ecossistema (com o lucro do ilícito) e o que é medido em carbono.
+        totais.ecossistema = subtotal([parcelas.material, parcelas.interino, parcelas.residual].concat(lia ? [parcelas.lia] : []));
+        totais.carbono = subtotal([parcelas.mercado, parcelas.social]);
 
         // Entendimento alternativo, como na versão 6: no IRDR 13/TJMT o material e
         // o interino ficam em zero; em Gonzaga et al. entram os dois.
@@ -730,6 +736,7 @@
             bioma: entrada.bioma, entendimento: entrada.entendimento,
             numeroProcesso: entrada.numeroProcesso || '',
             nomeArea: entrada.nomeArea || '',
+            origem: entrada.origem || null,
             areas: { fora: fora, em: em, total: total, observacao: entrada.areas.observacao || '', recorte: entrada.areas.recorte || null },
             reparacaoInSitu: reparacao,
             custo: custo,

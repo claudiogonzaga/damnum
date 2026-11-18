@@ -67,7 +67,8 @@ async function obterTotalGlobal() {
     return contadorExibido;
 }
 
-const VERSAO_DAMNUM = '7.1';
+// Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
+const VERSAO_DAMNUM = '7.2.0';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -1461,7 +1462,8 @@ async function calcularValoracao() {
             opcaoExtrapatrimonial: valorCampo('jurosExtrapatrimoniais'),
             manual,
             numeroProcesso: valorCampo('numeroProcesso'),
-            nomeArea: poligonoUsuario ? nomeAreaAtual : ''
+            nomeArea: poligonoUsuario ? nomeAreaAtual : '',
+            origem: origemDoCaso()
         };
 
         const exigencias = DamnumValoracao.exigenciasDeSeries(mesDano, mesCalculo, atualizar);
@@ -1526,6 +1528,9 @@ function mostrarResultado(r) {
         : 'Valor-base (extensão do dano) de ' + formatarMoeda(g.valorBase) + ' × fator de gradação ' + g.fatorFracao + (g.fatorFracao.indexOf('/') < 0 ? '' : ' (≈ ' + decimalBR(g.fator) + ')') + ', pelos critérios do STJ (REsp 2.200.069/MT).';
     document.getElementById('danoExtrapatrimonialSocial').textContent = formatarMoeda(p.social.valor);
     document.getElementById('totalMedia').textContent = formatarMoeda(r.totais.original);
+    document.getElementById('rotuloSubtotalEcossistema').textContent = 'Subtotal: reparação do ecossistema' + (r.lia ? ' e lucro do ilícito' : '');
+    document.getElementById('subtotalEcossistema').textContent = formatarMoeda(r.totais.ecossistema.original) + (r.atualizacao.aplicada ? ' (atualizado: ' + formatarMoeda(r.totais.ecossistema.atualizado) + ')' : '');
+    document.getElementById('subtotalCarbono').textContent = formatarMoeda(r.totais.carbono.original) + (r.atualizacao.aplicada ? ' (atualizado: ' + formatarMoeda(r.totais.carbono.atualizado) + ')' : '');
     document.getElementById('secaoLIA').style.display = r.lia ? '' : 'none';
     if (r.lia) document.getElementById('valorLIA').textContent = formatarMoeda(p.lia.valor);
 
@@ -1561,6 +1566,294 @@ function mostrarResultado(r) {
     document.getElementById('resultado').style.display = 'block';
     document.getElementById('resultado').scrollIntoView({ behavior: 'smooth' });
 }
+
+// ============================================================
+// PREENCHER COM IA: O CASO COMO DOCUMENTO ESTRUTURADO
+// A pessoa leva o roteiro à IA dela, com o PDF, e traz o JSON. O DAMNUM
+// confere, mostra a origem de cada dado e só então preenche o formulário.
+// ============================================================
+
+let revisaoAtual = null;   // resultado de DamnumCaso.validarCaso em conferência
+let casoAplicado = null;   // { itens, conferidoEm, valores } do caso que preencheu o formulário
+
+function copiarTexto(texto, botao) {
+    const original = botao.textContent;
+    const feito = () => { botao.textContent = 'Copiado'; setTimeout(() => { botao.textContent = original; }, 2000); };
+    navigator.clipboard.writeText(texto).then(feito).catch(() => {
+        const area = document.createElement('textarea');
+        area.value = texto;
+        area.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        document.body.removeChild(area);
+        feito();
+    });
+}
+
+function iniciarPainelIA() {
+    document.getElementById('roteiroIA').value = DamnumCaso.gerarRoteiro();
+    document.getElementById('btnCopiarRoteiro').addEventListener('click', function() { copiarTexto(document.getElementById('roteiroIA').value, this); });
+    document.getElementById('btnCopiarCorrecao').addEventListener('click', function() { copiarTexto(document.getElementById('mensagemCorrecao').value, this); });
+    document.getElementById('btnConferirCaso').addEventListener('click', () => conferirCaso(document.getElementById('respostaIA').value));
+    document.getElementById('arquivoCaso').addEventListener('change', async function() {
+        if (!this.files[0]) return;
+        const texto = await this.files[0].text();
+        document.getElementById('respostaIA').value = texto;
+        conferirCaso(texto);
+    });
+    document.getElementById('btnAplicarCaso').addEventListener('click', () => aplicarCaso(false));
+    document.getElementById('btnAplicarCalcular').addEventListener('click', () => aplicarCaso(true));
+    document.getElementById('btnBaixarCaso').addEventListener('click', baixarCaso);
+}
+
+function statusCaso(texto) {
+    document.getElementById('revisaoCaso').style.display = '';
+    document.getElementById('statusCaso').textContent = texto;
+}
+
+// Lê a resposta, valida e monta a tela de revisão. Caso salvo pelo DAMNUM reabre direto.
+function conferirCaso(texto) {
+    const tabela = document.querySelector('#tabelaRevisao tbody');
+    tabela.innerHTML = '';
+    revisaoAtual = null;
+    ['errosCaso', 'criteriosCaso', 'atencaoCaso'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+    let bruto;
+    try {
+        bruto = typeof texto === 'string' ? DamnumCaso.extrairJSON(texto) : texto;
+    } catch (erro) {
+        statusCaso(erro.message);
+        return null;
+    }
+    if (bruto && bruto.formulario && typeof bruto.formulario === 'object') {
+        restaurarCaso(bruto);
+        return null;
+    }
+    const r = DamnumCaso.validarCaso(bruto, new Date());
+    revisaoAtual = r;
+    document.getElementById('revisaoCaso').style.display = '';
+    if (r.erros.length) {
+        document.getElementById('errosCaso').style.display = '';
+        document.getElementById('mensagemCorrecao').value = DamnumCaso.mensagemDeCorrecao(r);
+    }
+    r.itens.forEach(item => {
+        const tr = document.createElement('tr');
+        const tdUsar = document.createElement('td');
+        tdUsar.className = 'centro';
+        if (!item.informativo) {
+            const caixa = document.createElement('input');
+            caixa.type = 'checkbox';
+            caixa.checked = true;
+            caixa.dataset.chave = item.chave;
+            caixa.setAttribute('aria-label', 'Usar: ' + item.rotulo);
+            tdUsar.appendChild(caixa);
+        }
+        const tdDado = document.createElement('td');
+        tdDado.textContent = item.rotulo;
+        const tdValor = document.createElement('td');
+        tdValor.textContent = item.exibicao;
+        const tdOrigem = document.createElement('td');
+        tdOrigem.textContent = (item.pagina ? 'p. ' + item.pagina + ': ' : '') + (item.trecho ? '"' + item.trecho + '"' : '') + (item.regra ? (item.trecho ? ' ' : '') + '(' + item.regra + ')' : '') || 'sem página nem trecho';
+        if (item.semOrigem && !item.regra) tdOrigem.className = 'sem-origem';
+        tr.append(tdUsar, tdDado, tdValor, tdOrigem);
+        tabela.appendChild(tr);
+    });
+    // Fatos para a gradação do STJ: só informam; os critérios ficam no meio.
+    const criterios = document.getElementById('criteriosCaso');
+    criterios.textContent = '';
+    if (r.criterios.length) {
+        criterios.style.display = '';
+        const titulo = document.createElement('p');
+        titulo.className = 'ajuda-campo';
+        titulo.textContent = 'Fatos do documento para a gradação do dano extrapatrimonial (a gradação continua no meio; ajuste, se for o caso, no quadro dos critérios do STJ):';
+        const lista = document.createElement('ul');
+        r.criterios.forEach(c => c.fatos.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = c.nome + ': ' + f.fato + (f.pagina ? ' (p. ' + f.pagina + ')' : '');
+            lista.appendChild(li);
+        }));
+        criterios.append(titulo, lista);
+    }
+    // Conflitos, pendências e avisos: cada um precisa de um "conferi" antes de preencher.
+    const atencao = document.getElementById('atencaoCaso');
+    atencao.textContent = '';
+    const pontos = r.conflitos.map(c => 'Conflito: ' + c.texto).concat(r.pendencias.map(p => 'Pendência: ' + p.texto), r.avisos.map(a => 'Aviso: ' + a.mensagem));
+    if (pontos.length) {
+        atencao.style.display = '';
+        const titulo = document.createElement('p');
+        titulo.className = 'aviso-campo';
+        titulo.textContent = 'Marque cada ponto abaixo depois de conferir. O formulário só é preenchido com todos marcados.';
+        atencao.appendChild(titulo);
+        pontos.forEach(texto => {
+            const rotulo = document.createElement('label');
+            rotulo.className = 'caixa-opcao ponto-atencao';
+            const caixa = document.createElement('input');
+            caixa.type = 'checkbox';
+            caixa.className = 'conferi';
+            caixa.addEventListener('change', atualizarBotoesCaso);
+            const span = document.createElement('span');
+            span.textContent = texto;
+            rotulo.append(caixa, span);
+            atencao.appendChild(rotulo);
+        });
+    }
+    statusCaso(r.itens.length ? '' : 'Nenhum dado aproveitável na resposta.');
+    atualizarBotoesCaso();
+    return r;
+}
+
+function atualizarBotoesCaso() {
+    const falta = [...document.querySelectorAll('#atencaoCaso input.conferi')].some(c => !c.checked);
+    const vazio = !revisaoAtual || !revisaoAtual.itens.length;
+    ['btnAplicarCaso', 'btnAplicarCalcular'].forEach(id => { document.getElementById(id).disabled = falta || vazio; });
+}
+
+function definirCampo(id, valor, evento) {
+    const campo = document.getElementById(id);
+    campo.value = valor;
+    delete campo.dataset.auto;
+    campo.dispatchEvent(new Event(evento || 'input'));
+}
+
+// Leva ao formulário o que foi aceito na revisão.
+async function aplicarCaso(calcular) {
+    const r = revisaoAtual;
+    if (!r) return;
+    const aceitos = {};
+    document.querySelectorAll('#tabelaRevisao input[type="checkbox"]').forEach(c => { aceitos[c.dataset.chave] = aceitos[c.dataset.chave] === false ? false : c.checked; });
+    const usa = chave => aceitos[chave] !== false;
+    const valor = chave => (r.itens.find(i => i.chave === chave && !i.informativo) || {}).valor;
+    statusCaso('Preenchendo o formulário...');
+    if (usa('numeroProcesso') && r.caso.numeroProcesso) definirCampo('numeroProcesso', r.caso.numeroProcesso.valor);
+    if (usa('dataDano') && r.caso.dataDano) definirCampo('dataDano', r.caso.dataDano.valor, 'change');
+    // Áreas antes da localização: se o polígono der outra área, a divergência aparece.
+    const em = usa('areaProtegidaHa') ? valor('areaProtegidaHa') : undefined, fora = usa('areaExcedenteHa') ? valor('areaExcedenteHa') : undefined;
+    if (em !== undefined || fora !== undefined) {
+        definirCampo('areaEmAPP', em !== undefined ? String(Math.round(em * 1e4) / 1e4) : '');
+        definirCampo('areaForaAPP', fora !== undefined ? String(Math.round(fora * 1e4) / 1e4) : '');
+    }
+    const loc = r.localizacao;
+    if (loc && loc.tipo === 'poligono' && usa('poligono')) {
+        const libs = await DamnumMapa.carregarLibs();
+        const geo = DamnumMapa.normalizar(libs, loc.geojson);
+        arquivoAtual = { nome: 'polígono do documento', geo, grupos: DamnumMapa.separarFeicoes(libs, geo) };
+        fila = null;
+        await usarGeometria(geo, 'polígono do documento');
+    } else if (loc && (loc.ponto || loc.tipo === 'poligono') && usa('coordenadas')) {
+        const ponto = loc.ponto || (r.itens.find(i => i.chave === 'coordenadas') || {}).valor;
+        const p = typeof ponto === 'string' ? { lat: parseFloat(ponto.split(';')[0]), lon: parseFloat(ponto.split(';')[1]) } : ponto;
+        document.getElementById('latitude').value = String(p.lat);
+        document.getElementById('longitude').value = String(p.lon);
+        await aoInformarCoordenada();
+    }
+    casoAplicado = {
+        conferidoEm: new Date().toLocaleString('pt-BR'),
+        itens: DamnumCaso.origemParaRelatorio(r, aceitos),
+        valores: { dataDano: valorCampo('dataDano'), areaEmAPP: valorCampo('areaEmAPP'), areaForaAPP: valorCampo('areaForaAPP'), numeroProcesso: valorCampo('numeroProcesso') }
+    };
+    statusCaso('Formulário preenchido com os dados conferidos. ' + (calcular ? '' : 'Confira os demais campos e calcule.'));
+    if (calcular) await calcularValoracao();
+    else document.getElementById('grupoLocalizacao').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Origem dos dados, para o relatório: só quando o caso veio da conferência.
+function origemDoCaso() {
+    if (!casoAplicado) return null;
+    const nomes = { dataDano: 'data do dano', areaEmAPP: 'área em área protegida', areaForaAPP: 'área em excedente', numeroProcesso: 'número do processo' };
+    const alterados = Object.keys(nomes).filter(id => valorCampo(id) !== casoAplicado.valores[id]).map(id => nomes[id]);
+    return { conferidoEm: casoAplicado.conferidoEm, itens: casoAplicado.itens, alterados };
+}
+
+// ---------- baixar e reabrir o caso ----------
+
+const CAMPOS_FORA_DO_CASO = ['roteiroIA', 'respostaIA', 'mensagemCorrecao', 'arquivoCaso', 'arquivoPoligono', 'arquivoProtegidas'];
+
+function camposDoCaso() {
+    return [...document.querySelectorAll('#calculoForm input, #calculoForm select, #calculoForm textarea, .parametros-container input, .parametros-container select, #painelFatorManual input')]
+        .filter(c => c.type !== 'file' && c.type !== 'hidden' && !c.readOnly && !CAMPOS_FORA_DO_CASO.includes(c.id) && !c.closest('#revisaoCaso'));
+}
+
+function montarCaso() {
+    const formulario = {}, editados = [], automaticos = [];
+    camposDoCaso().forEach(c => {
+        if (c.type === 'radio') { if (c.checked) formulario['radio:' + c.name] = c.value; return; }
+        if (!c.id) return;
+        formulario[c.id] = c.type === 'checkbox' ? c.checked : c.value;
+        if (c.dataset.editado) editados.push(c.id);
+        if (c.dataset.auto) automaticos.push(c.id);
+    });
+    const caso = { formato: DamnumCaso.FORMATO, damnum: VERSAO_DAMNUM, salvoEm: new Date().toISOString(), formulario, editados, automaticos };
+    if (poligonoUsuario && geoAtual) {
+        caso.geometria = { nome: nomeAreaAtual, feicoes: (geoAtual.pecas || geoAtual.features).map(f => ({ type: 'Feature', properties: { name: f.properties.nome || '' }, geometry: f.geometry })) };
+    }
+    if (casoAplicado) caso.origem = casoAplicado;
+    if (ultimoResultado) {
+        const t = ultimoResultado.totais;
+        caso.resultado = { hash: ultimoResultado.hash, mesCalculo: ultimoResultado.mesCalculo, totalOriginal: t.original, totalAtualizado: t.atualizado, ecossistema: t.ecossistema.original, carbono: t.carbono.original };
+    }
+    return caso;
+}
+
+function baixarCaso() {
+    const blob = new Blob([JSON.stringify(montarCaso(), null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'DAMNUM_caso_' + new Date().toLocaleDateString('pt-BR').replace(/\//g, '-') + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// Reabre um caso baixado do DAMNUM: repõe os campos como estavam e refaz as consultas.
+async function restaurarCaso(caso) {
+    statusCaso('Reabrindo o caso salvo em ' + new Date(caso.salvoEm || Date.now()).toLocaleString('pt-BR') + '...');
+    const f = caso.formulario;
+    camposDoCaso().forEach(c => {
+        if (c.type === 'radio') { if (f['radio:' + c.name] !== undefined) c.checked = f['radio:' + c.name] === c.value; return; }
+        if (!c.id || f[c.id] === undefined) return;
+        if (c.type === 'checkbox') c.checked = !!f[c.id]; else c.value = f[c.id];
+        delete c.dataset.editado;
+        delete c.dataset.auto;
+        if ((caso.editados || []).includes(c.id)) c.dataset.editado = '1';
+        if ((caso.automaticos || []).includes(c.id)) c.dataset.auto = '1';
+    });
+    casoAplicado = caso.origem || null;
+    arquivoAtual = null;
+    fila = null;
+    geoAtual = null;
+    poligonoUsuario = null;
+    if (caso.geometria && caso.geometria.feicoes && caso.geometria.feicoes.length) {
+        const libs = await DamnumMapa.carregarLibs();
+        const geo = DamnumMapa.normalizar(libs, { type: 'FeatureCollection', features: caso.geometria.feicoes });
+        arquivoAtual = { nome: caso.geometria.nome || 'polígono do caso', geo, grupos: DamnumMapa.separarFeicoes(libs, geo) };
+        await usarGeometria(geo, arquivoAtual.nome);
+    } else {
+        atualizarFila();
+        await aoInformarCoordenada();
+    }
+    // Repõe o que as consultas refazem e o que depende de método, sem trocar o que foi salvo.
+    ['formaVegetacao', 'taxaJurosAnual', 'tempoRecuperacao', 'pfeResidual'].concat(CAMPOS_LIA_PADRAO).forEach(id => { if (f[id] !== undefined) document.getElementById(id).value = f[id]; });
+    document.getElementById('itemAnosRegularizacao').style.display = valorCampo('metodoInterino') === 'caex' ? '' : 'none';
+    document.getElementById('itemResiliencia').style.display = valorCampo('metodoInterino') === 'caex' ? '' : 'none';
+    document.getElementById('itemTaxaResidual').style.display = valorCampo('metodoResidual') === 'caex' ? '' : 'none';
+    atualizarFatorK();
+    atualizarGradacao();
+    atualizarParametrosCalculados();
+    aoMudarAreas();
+    atualizarPainelEstoque();
+    statusCaso('Caso reaberto' + (caso.damnum && caso.damnum !== VERSAO_DAMNUM ? ' (salvo na versão ' + caso.damnum + '; esta é a ' + VERSAO_DAMNUM + ')' : '') + '. Confira e calcule.');
+}
+
+// Porta para agentes que controlam o navegador: em vez de clicar nos campos,
+// chamam DAMNUM.abrirCaso(caso) e deixam a conferência com a pessoa.
+window.DAMNUM = {
+    versao: VERSAO_DAMNUM,
+    roteiro: () => DamnumCaso.gerarRoteiro(),
+    validarCaso: caso => DamnumCaso.validarCaso(caso, new Date()),
+    abrirCaso: caso => { document.getElementById('painelIA').open = true; return conferirCaso(caso); },
+    resultado: () => ultimoResultado ? { versao: ultimoResultado.versao, hash: ultimoResultado.hash, totais: ultimoResultado.totais, parcelas: ultimoResultado.parcelas, areas: ultimoResultado.areas, compensacao: ultimoResultado.compensacao } : null
+};
 
 function atualizarParametrosCalculados() {
     const p = obterParametrosAtuais();
@@ -1734,6 +2027,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Carrinho e relatório consolidado
     document.getElementById('btnCarrinho').addEventListener('click', porNoCarrinho);
+    iniciarPainelIA();
     document.getElementById('btnConsolidado').addEventListener('click', gerarConsolidado);
     document.getElementById('btnEsvaziarCarrinho').addEventListener('click', esvaziarCarrinho);
     document.getElementById('btnPDFConsolidado').addEventListener('click', () => baixarRelatorioPDF('textoConsolidado'));
