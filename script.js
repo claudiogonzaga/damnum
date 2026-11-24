@@ -68,7 +68,7 @@ async function obterTotalGlobal() {
 }
 
 // Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
-const VERSAO_DAMNUM = '7.5.0';
+const VERSAO_DAMNUM = '7.5.1';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {
@@ -94,29 +94,8 @@ let slideshowAtivo = true;
 let indiceSlideshowAtual = 0;
 let intervalSlideshow;
 
-// Gerenciamento de Cookies
-function verificarCookies() {
-    const cookieConsent = localStorage.getItem('cookieConsent');
-    if (!cookieConsent) {
-        setTimeout(() => {
-            document.getElementById('cookieBar').style.display = 'block';
-        }, 1000);
-    }
-}
-
-function aceitarCookies() {
-    localStorage.setItem('cookieConsent', 'accepted');
-    document.getElementById('cookieBar').style.display = 'none';
-}
-
-function rejeitarCookies() {
-    localStorage.setItem('cookieConsent', 'rejected');
-    // Limpar qualquer dado armazenado
-    localStorage.removeItem('contadorValoracoes');
-    document.getElementById('cookieBar').style.display = 'none';
-    // Recarregar página para aplicar mudanças
-    location.reload();
-}
+// A barra de cookies e a escolha do visitante ficam em js/cookies.js, que também grava o
+// 'cookieConsent' lido pelo contador abaixo.
 
 // Contador de Valorações
 //
@@ -2106,16 +2085,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     const form = document.getElementById('calculoForm');
     const biomaSelect = document.getElementById('bioma');
 
-    // Verificar cookies e inicializar contador
-    verificarCookies();
-
     // Contador: mostra o backup local na hora e tenta o total global em seguida
     restaurarContadorLocal();
     obterTotalGlobal();
-
-    // Listeners da barra de cookies
-    document.getElementById('acceptCookies').addEventListener('click', aceitarCookies);
-    document.getElementById('rejectCookies').addEventListener('click', rejeitarCookies);
 
     iniciarSlideshow();
     buscarCotacaoDolar();

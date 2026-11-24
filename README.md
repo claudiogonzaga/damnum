@@ -21,13 +21,16 @@ Site estático, publicado em https://consciencia.eco.br/damnum/ (o portal repass
 - `docs/fase0_dados.md`: validação dos dados do Inventário e regra do estoque.
 - `manual.html`, `js/manual.js`: Manual e Metodologia (inclui o histórico de versões), colaborativo. O texto fica num Google Docs compartilhado como "qualquer pessoa pode comentar"; a página o lê (exportação em HTML), monta o sumário e leva a quem quiser sugerir. Se a leitura falhar, mostra o documento em quadro.
 
-## Google Analytics
+## Google Analytics e aviso de cookies
 
-O DAMNUM mede as visitas com o Google Analytics 4 (ID `G-MD5QMGX9EC`, a mesma propriedade do portal), mas só depois que a
-pessoa clica em "Permitir" na barra de cookies. O código é um bloco no `<head>` de `index.html`, `manual.html` e
-`contato.html`: lê `cookieConsent` no `localStorage`, carrega o `gtag.js` só se for `accepted` e, na `index.html`, também
-quando o botão `#acceptCookies` é clicado. Quem rejeita não é medido. Não ponha dados do caso na URL: o Analytics grava o
-endereço da página.
+O DAMNUM mede as visitas com o Google Analytics 4 (ID `G-MD5QMGX9EC`, a mesma propriedade do portal). Quem cuida de tudo é
+`js/cookies.js`, carregado no `<head>` de `index.html`, `manual.html` e `contato.html`: mostra o aviso de cookies em duas
+camadas (Aceitar e Gerenciar preferências; no segundo nível, Só os necessários e Aceitar tudo) e só carrega o `gtag.js`
+depois do aceite. A escolha fica em `cookiesEscolha` no `localStorage` e vale para o site todo, porque o portal e o DAMNUM
+dividem a origem `consciencia.eco.br`. O módulo grava também o `cookieConsent` (`accepted`/`rejected`) que o contador lê.
+O `cookieConsent` de antes de 7.5.1 ("Permitir Necessários") não vale como aceite do Analytics. O portal tem uma cópia
+idêntica do arquivo: mudou um, mude o outro. `tests/cookies.test.js` confere a regra. Não ponha dados do caso na URL: o
+Analytics grava o endereço da página.
 
 ## Testes
 

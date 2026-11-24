@@ -5,7 +5,7 @@
     <link rel="canonical" href="https://consciencia.eco.br/damnum/manual">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAMNUM - Manual e Metodologia</title>
-    <link rel="stylesheet" href="style.css?v=7.5.0">
+    <link rel="stylesheet" href="style.css?v=7.5.1">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .manual-barra {
@@ -55,29 +55,7 @@
             .manual-conteudo { padding: 18px; }
         }
     </style>
-    <!-- Google Analytics (GA4): só carrega se a pessoa permitiu na barra de cookies -->
-    <script>
-        (function () {
-            var ID = 'G-MD5QMGX9EC';
-            window.dataLayer = window.dataLayer || [];
-            window.gtag = function () { window.dataLayer.push(arguments); };
-            window.carregarAnalytics = function () {
-                if (window.analyticsCarregado) return;
-                window.analyticsCarregado = true;
-                var s = document.createElement('script');
-                s.async = true;
-                s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID;
-                document.head.appendChild(s);
-                window.gtag('js', new Date());
-                window.gtag('config', ID, { allow_google_signals: false, allow_ad_personalization_signals: false });
-            };
-            try { if (localStorage.getItem('cookieConsent') === 'accepted') window.carregarAnalytics(); } catch (e) {}
-            document.addEventListener('DOMContentLoaded', function () {
-                var botao = document.getElementById('acceptCookies');
-                if (botao) botao.addEventListener('click', window.carregarAnalytics);
-            });
-        })();
-    </script>
+    <script src="js/cookies.js?v=7.5.1"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -156,6 +134,6 @@
             atualizarExibicaoContador();
         });
     </script>
-    <script src="js/manual.js?v=7.5.0"></script>
+    <script src="js/manual.js?v=7.5.1"></script>
 </body>
 </html>
