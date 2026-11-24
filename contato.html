@@ -7,6 +7,29 @@
     <title>DAMNUM - Contato</title>
     <link rel="stylesheet" href="style.css?v=7.5.0">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Analytics (GA4): só carrega se a pessoa permitiu na barra de cookies -->
+    <script>
+        (function () {
+            var ID = 'G-MD5QMGX9EC';
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { window.dataLayer.push(arguments); };
+            window.carregarAnalytics = function () {
+                if (window.analyticsCarregado) return;
+                window.analyticsCarregado = true;
+                var s = document.createElement('script');
+                s.async = true;
+                s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID;
+                document.head.appendChild(s);
+                window.gtag('js', new Date());
+                window.gtag('config', ID, { allow_google_signals: false, allow_ad_personalization_signals: false });
+            };
+            try { if (localStorage.getItem('cookieConsent') === 'accepted') window.carregarAnalytics(); } catch (e) {}
+            document.addEventListener('DOMContentLoaded', function () {
+                var botao = document.getElementById('acceptCookies');
+                if (botao) botao.addEventListener('click', window.carregarAnalytics);
+            });
+        })();
+    </script>
 </head>
 <body>
     <nav class="navbar">

@@ -21,6 +21,14 @@ Site estático, publicado em https://consciencia.eco.br/damnum/ (o portal repass
 - `docs/fase0_dados.md`: validação dos dados do Inventário e regra do estoque.
 - `manual.html`, `js/manual.js`: Manual e Metodologia (inclui o histórico de versões), colaborativo. O texto fica num Google Docs compartilhado como "qualquer pessoa pode comentar"; a página o lê (exportação em HTML), monta o sumário e leva a quem quiser sugerir. Se a leitura falhar, mostra o documento em quadro.
 
+## Google Analytics
+
+O DAMNUM mede as visitas com o Google Analytics 4 (ID `G-MD5QMGX9EC`, a mesma propriedade do portal), mas só depois que a
+pessoa clica em "Permitir" na barra de cookies. O código é um bloco no `<head>` de `index.html`, `manual.html` e
+`contato.html`: lê `cookieConsent` no `localStorage`, carrega o `gtag.js` só se for `accepted` e, na `index.html`, também
+quando o botão `#acceptCookies` é clicado. Quem rejeita não é medido. Não ponha dados do caso na URL: o Analytics grava o
+endereço da página.
+
 ## Testes
 
 ```

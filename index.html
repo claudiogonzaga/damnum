@@ -7,6 +7,29 @@
     <title>DAMNUM - Valoração de Danos Ambientais</title>
     <link rel="stylesheet" href="style.css?v=7.5.0">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Analytics (GA4): só carrega se a pessoa permitiu na barra de cookies -->
+    <script>
+        (function () {
+            var ID = 'G-MD5QMGX9EC';
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { window.dataLayer.push(arguments); };
+            window.carregarAnalytics = function () {
+                if (window.analyticsCarregado) return;
+                window.analyticsCarregado = true;
+                var s = document.createElement('script');
+                s.async = true;
+                s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID;
+                document.head.appendChild(s);
+                window.gtag('js', new Date());
+                window.gtag('config', ID, { allow_google_signals: false, allow_ad_personalization_signals: false });
+            };
+            try { if (localStorage.getItem('cookieConsent') === 'accepted') window.carregarAnalytics(); } catch (e) {}
+            document.addEventListener('DOMContentLoaded', function () {
+                var botao = document.getElementById('acceptCookies');
+                if (botao) botao.addEventListener('click', window.carregarAnalytics);
+            });
+        })();
+    </script>
     </head>
 <body>
     <!-- Barra de Cookies -->
@@ -14,10 +37,10 @@
         <div class="cookie-content">
             <div class="cookie-text">
                 <h4>Cookies</h4>
-                <p>Este site não usa cookies de rastreamento nem de publicidade. O armazenamento do navegador serve apenas para lembrar esta escolha.</p>
+                <p>Se você permitir, o site usa o Google Analytics para contar as visitas e saber de que regiões elas vêm, o que grava cookies de medição de audiência. Não usa cookies de publicidade. O armazenamento do navegador também serve para lembrar esta escolha.</p>
             </div>
             <div class="cookie-buttons">
-                <button id="acceptCookies" class="btn-cookie accept">Permitir Necessários</button>
+                <button id="acceptCookies" class="btn-cookie accept">Permitir</button>
                 <button id="rejectCookies" class="btn-cookie reject">Rejeitar Tudo</button>
             </div>
         </div>
