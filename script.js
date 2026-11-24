@@ -68,7 +68,7 @@ async function obterTotalGlobal() {
 }
 
 // Versão completa, igual à do package.json (um teste confere): vai ao relatório e ao arquivo do caso.
-const VERSAO_DAMNUM = '7.5.1';
+const VERSAO_DAMNUM = '7.5.2';
 
 // Mapeamento de biomas para imagens
 const biomaParaImagem = {

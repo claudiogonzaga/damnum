@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const raiz = path.join(__dirname, '..');
 const codigo = fs.readFileSync(path.join(raiz, 'js', 'cookies.js'), 'utf8');
 
-function executar(inicial) {
+function executar(inicial, sinal) {
     const armazenamento = Object.assign({}, inicial);
     const anexados = [];
     function elemento(tag) {
@@ -24,7 +24,7 @@ function executar(inicial) {
     }
     const janela = {};
     janela.window = janela;
-    janela.document = { readyState: 'complete', head: elemento('head'), body: elemento('body'), createElement: elemento, addEventListener() {} };
+    janela.document = { currentScript: sinal, readyState: 'complete', head: elemento('head'), body: elemento('body'), createElement: elemento, addEventListener() {} };
     janela.localStorage = {
         getItem(chave) { return chave in armazenamento ? armazenamento[chave] : null; },
         setItem(chave, valor) { armazenamento[chave] = String(valor); },
@@ -55,12 +55,12 @@ test("o 'cookieConsent' antigo (Permitir Necessários) não vale como aceite do 
     assert.strictEqual(a.analytics(), 0);
 });
 
-test('Gerenciar preferências não grava escolha nem carrega o Analytics', () => {
+test('o aviso tem Só os necessários e Aceitar no primeiro nível, com o mesmo peso', () => {
     const a = executar({});
-    a.clicar('gerenciar');
-    assert.ok(a.aviso());
-    assert.deepStrictEqual(a.armazenamento, {});
-    assert.strictEqual(a.analytics(), 0);
+    const html = a.aviso().innerHTML;
+    assert.match(html, /<button type="button" class="ac-principal" data-ac="necessarios">Só os necessários<\/button>/);
+    assert.match(html, /<button type="button" class="ac-principal" data-ac="todos">Aceitar<\/button>/);
+    assert.ok(!/gerenciar|ac-secundario|hidden/i.test(html));
 });
 
 test('Aceitar: carrega o Analytics, grava a escolha, mantém o backup do contador e some com o aviso', () => {
@@ -94,11 +94,28 @@ test('escolha guardada "necessarios": não carrega o Analytics e não mostra o a
     assert.strictEqual(a.aviso(), undefined);
 });
 
-test('as páginas usam só o módulo: sem tag do Analytics direta e sem a barra antiga', () => {
+const sem_aviso = { getAttribute: (nome) => (nome === 'data-aviso' ? 'nao' : null) };
+
+test('página com data-aviso="nao" e sem escolha: não mostra o aviso e não carrega o Analytics', () => {
+    const a = executar({}, sem_aviso);
+    assert.strictEqual(a.aviso(), undefined);
+    assert.strictEqual(a.analytics(), 0);
+    assert.deepStrictEqual(a.armazenamento, {});
+});
+
+test('página com data-aviso="nao" segue a escolha feita na principal', () => {
+    assert.strictEqual(executar({ cookiesEscolha: 'todos' }, sem_aviso).analytics(), 1);
+    assert.strictEqual(executar({ cookiesEscolha: 'necessarios' }, sem_aviso).analytics(), 0);
+});
+
+test('só a principal mostra o aviso; manual e contato seguem a escolha, sem tag do Analytics nem barra antiga', () => {
     for (const pagina of ['index.html', 'manual.html', 'contato.html']) {
         const html = fs.readFileSync(path.join(raiz, pagina), 'utf8');
         assert.ok(!/googletagmanager/.test(html), pagina);
         assert.ok(!/id="cookieBar"/.test(html), pagina);
-        assert.match(html, /<script src="js\/cookies\.js\?v=[0-9.]+"><\/script>/, pagina);
+        const esperado = pagina === 'index.html'
+            ? /<script src="js\/cookies\.js\?v=[0-9.]+"><\/script>/
+            : /<script src="js\/cookies\.js\?v=[0-9.]+" data-aviso="nao"><\/script>/;
+        assert.match(html, esperado, pagina);
     }
 });
